@@ -39,11 +39,10 @@ let threeCamera = null;
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
-// Drag vs Click detection
+// Drag tracking is retained only to avoid treating a drag as an object click.
 let isPointerDown = false;
 let isDragging = false;
 const pointerStart = { x: 0, y: 0 };
-let prevPointer = { x: 0, y: 0 };
 
 // Room State
 const state = {
@@ -99,6 +98,11 @@ const CAMERA_PRESETS = {
 };
 
 let currentCamAnim = null;
+let zoomBounce = null;
+const ZOOM_BOUNDS = {
+  min: DEFAULT_CAM_ZOOM * 0.7,
+  max: Math.max(...Object.values(CAMERA_PRESETS).map(({ zoom }) => zoom)) * 1.1
+};
 
 // Lighting Palettes
 const THEMES = {
@@ -181,6 +185,7 @@ async function init() {
 
     threeScene = splineApp._scene;
     threeCamera = splineApp._camera;
+    configureCameraControls();
 
     loadingStatus.textContent = 'Connecting scene lighting & physics...';
     setupSceneReferences();
@@ -201,6 +206,38 @@ async function init() {
     console.error('Failed to initialize Spline scene:', err);
     loadingStatus.innerHTML = '<span style="color: #ef4444;">Failed to load 3D scene. Please refresh.</span>';
   }
+}
+
+// Allow a small inspection orbit without allowing the camera to pan away from
+// the centered composition.
+function configureCameraControls() {
+  const orbitControls = splineApp._controls?.orbitControls;
+  if (!orbitControls) return;
+
+  const rotationLimit = THREE.MathUtils.degToRad(15);
+  const wrapAngle = THREE.MathUtils.euclideanModulo;
+
+  orbitControls.enabled = true;
+  orbitControls.enableRotate = true;
+  orbitControls.enablePan = false;
+
+  // Preserve the starting framing and the closest preset view without letting
+  // the orthographic camera zoom endlessly away from the house.
+  orbitControls.zoomLimitsEnabled = true;
+  orbitControls.minZoom = ZOOM_BOUNDS.min;
+  orbitControls.maxZoom = ZOOM_BOUNDS.max;
+
+  // Spline only applies min/max orbit angles when its limit mode is enabled.
+  // Its elastic soft limit gives a small bounce at the ±15° edge. A short
+  // response range makes the resistance ramp up quickly and feel stiffer.
+  orbitControls.rotationLimitsMode = 3;
+  orbitControls.rotationSoftLimit = 2;
+  orbitControls.rotationRangeFactor.setScalar(THREE.MathUtils.degToRad(3));
+  orbitControls.minTheta = wrapAngle(orbitControls.spherical.theta - rotationLimit + Math.PI, Math.PI * 2) - Math.PI;
+  orbitControls.maxTheta = wrapAngle(orbitControls.spherical.theta + rotationLimit + Math.PI, Math.PI * 2) - Math.PI;
+  orbitControls.minPhi = orbitControls.spherical.phi - rotationLimit;
+  orbitControls.maxPhi = orbitControls.spherical.phi + rotationLimit;
+  orbitControls.isThetaFlipped = orbitControls.minTheta > orbitControls.maxTheta;
 }
 
 // Find and cache scene objects
@@ -344,6 +381,18 @@ function animateLoop(now) {
     if (progress >= 1) {
       currentCamAnim = null;
     }
+  }
+
+  // Let the camera briefly flex past its minimum zoom before returning, so
+  // attempts to zoom out further have clear boundary feedback.
+  if (zoomBounce && threeCamera) {
+    zoomBounce.elapsed += delta;
+    const progress = Math.min(1, zoomBounce.elapsed / zoomBounce.duration);
+    const ease = 1 - Math.pow(1 - progress, 4);
+    threeCamera.zoom = THREE.MathUtils.lerp(zoomBounce.startZoom, ZOOM_BOUNDS.min, ease);
+    threeCamera.updateProjectionMatrix();
+
+    if (progress >= 1) zoomBounce = null;
   }
 
   // 4. Update 3D Hotspot Screen Coordinates
@@ -526,23 +575,12 @@ function handlePointerMove(e) {
   mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
   mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-  // Check drag threshold
   if (isPointerDown) {
-    const dist = Math.hypot(e.clientX - pointerStart.x, e.clientY - pointerStart.y);
-    if (dist > 6) {
+    const distance = Math.hypot(e.clientX - pointerStart.x, e.clientY - pointerStart.y);
+    if (distance > 6) {
       isDragging = true;
       hoverTooltip.classList.remove('visible');
-
-      // Subtle interactive orbit on drag
-      if (threeCamera && !currentCamAnim) {
-        const deltaX = e.clientX - prevPointer.x;
-        const deltaY = e.clientY - prevPointer.y;
-        threeCamera.position.x += deltaX * 0.5;
-        threeCamera.position.y -= deltaY * 0.5;
-      }
     }
-    prevPointer.x = e.clientX;
-    prevPointer.y = e.clientY;
     return;
   }
 
@@ -575,17 +613,27 @@ function handlePointerDown(e) {
   isDragging = false;
   pointerStart.x = e.clientX;
   pointerStart.y = e.clientY;
-  prevPointer.x = e.clientX;
-  prevPointer.y = e.clientY;
 }
 
 function handlePointerUp(e) {
   isPointerDown = false;
-  if (!isDragging && state.hoveredInteractive) {
+  if (e.button === 0 && !isDragging && state.hoveredInteractive) {
     sound.playPop();
     state.hoveredInteractive.action();
   }
   isDragging = false;
+}
+
+function startZoomLimitBounce() {
+  if (!threeCamera || currentCamAnim) return;
+
+  zoomBounce = {
+    startZoom: ZOOM_BOUNDS.min * 0.965,
+    duration: 0.16,
+    elapsed: 0
+  };
+  threeCamera.zoom = zoomBounce.startZoom;
+  threeCamera.updateProjectionMatrix();
 }
 
 // Toast System
@@ -750,10 +798,22 @@ window.submitContact = function() {
 
 // Event Listeners Setup
 function setupEventListeners() {
-  // Canvas pointer raycasting and drag handling
+  // Canvas pointer raycasting and click handling. Orbit is constrained; panning is disabled.
   canvas.addEventListener('pointermove', handlePointerMove);
   canvas.addEventListener('pointerdown', handlePointerDown);
   canvas.addEventListener('pointerup', handlePointerUp);
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  // Capture the zoom before Spline handles the wheel event, then trigger the
+  // elastic response only when a zoom-out input is already at the minimum.
+  let zoomBeforeWheel = null;
+  canvas.addEventListener('wheel', () => {
+    zoomBeforeWheel = threeCamera?.zoom ?? null;
+  }, { capture: true, passive: true });
+  canvas.addEventListener('wheel', (e) => {
+    const atMinimumZoom = zoomBeforeWheel !== null && zoomBeforeWheel <= ZOOM_BOUNDS.min + 0.001;
+    if (e.deltaY > 0 && atMinimumZoom) startZoomLimitBounce();
+  }, { passive: true });
 
   // Top Nav Modal Buttons
   document.querySelectorAll('[data-modal]').forEach(btn => {

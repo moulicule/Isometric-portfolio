@@ -28,7 +28,7 @@ An interactive, real-time 3D isometric room portfolio webpage powered by **Splin
 - **Isometric (Default)**: Classic isometric architectural angle.
 - **Desk Focus**: Zooms directly into the workstation and computer screen.
 - **Bed Focus**: Zooms into the cozy reading and sleeping corner.
-- **Interactive Orbit / Pan**: Drag with pointer to tilt and inspect the room from custom vantage points; click "⟲" to glide back smoothly.
+- **Limited Orbit**: The room stays centered and can rotate up to 15° left or right from its starting view; use the perspective buttons to switch views.
 
 ### ⌨️ Keyboard Shortcuts
 - `L`: Toggle Bedside Lamp ON / OFF

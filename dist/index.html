@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Interactive Isometric Atelier | Moulik Nanda</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
+  <script type="module" crossorigin src="/assets/index-BPz0JKQx.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-RTLL6WIB-EjtlMISf.js">
+  <link rel="modulepreload" crossorigin href="/assets/preload-helper-BZ1Pz5am.js">
+  <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-CbXtAM7H.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-NSD7DU3P-01QKhTB_.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-2PT2WH66-xlOF4GJL.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-TZCHGFVF-3CJiZcdT.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-BVVSZMXD-BmXs1pf2.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-ML3Z74BL-NNqON7l0.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-K3UQCG3P-DylWZzZt.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-O4DZYPVY-BaLzlKAD.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-EFBUAWKV-CP4cJpJ5.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-4YV3EXSU-Bh3pxI7A.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-KMKMRLPZ-CCFzNEI0.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-UOMKVRCI-CP2vDu7n.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-4LXRVOKN-DSChra7k.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-F4F4DE36-BtDMtt75.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-CLMBU44E-B_SsgIIX.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-2VUO6A6S-DkpQ2cnc.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-TU4KDRKR-BQloPDK_.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-RYUGWEP5-CFxufUE4.js">
+  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-FQNSP44B-2UyJPVbm.js">
+  <link rel="stylesheet" crossorigin href="/assets/index-BCGJcf3M.css">
+</head>
+<body>
+  <div id="app" data-theme="night">
+    <!-- 3D Canvas -->
+    <canvas id="canvas3d"></canvas>
+
+    <!-- Rain Overlay (Active on rainy theme) -->
+    <div class="rain-overlay" id="rainOverlay"></div>
+
+    <!-- 3D Hotspot Pins Container -->
+    <div class="hotspot-container" id="hotspotContainer"></div>
+
+    <!-- Hover Tooltip -->
+    <div class="hover-tooltip" id="hoverTooltip">Click to interact</div>
+
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+      <div class="brand-pill">
+        <span class="brand-logo-dot"></span>
+        <span class="brand-name">ISOMETRIC ATELIER</span>
+        <span class="brand-tag">Moulik Nanda &bull; 3D Project Hub</span>
+      </div>
+
+      <nav class="top-nav-center">
+        <button class="nav-btn" data-modal="projects">
+          <span>💻</span>
+          <span>Projects</span>
+        </button>
+        <button class="nav-btn" data-modal="skills">
+          <span>📚</span>
+          <span>Skills & Books</span>
+        </button>
+        <button class="nav-btn" data-modal="about">
+          <span>👤</span>
+          <span>About & Contact</span>
+        </button>
+      </nav>
+
+      <div class="top-nav-right">
+        <!-- Lofi Ambient Chords Toggle -->
+        <button class="hud-btn" id="lofiBtn" title="Toggle Cozy Lofi Beats" aria-label="Toggle Lofi Ambient">
+          🎵
+        </button>
+        <!-- Rain Ambience Toggle -->
+        <button class="hud-btn" id="rainAudioBtn" title="Toggle Rain Sound" aria-label="Toggle Rain Audio">
+          🌧️
+        </button>
+        <!-- Master Sound Mute Toggle -->
+        <button class="hud-btn" id="muteBtn" title="Toggle Sound Effects" aria-label="Toggle Mute">
+          🔊
+        </button>
+      </div>
+    </header>
+
+    <!-- Bottom Dock Controls -->
+    <footer class="bottom-dock">
+      <!-- Lighting Atmosphere Modes -->
+      <div class="dock-group" id="themeGroup">
+        <button class="dock-btn" data-theme="day" title="Day Mode (Bright Sunlight)">
+          <span>☀️</span>
+          <span>Day</span>
+        </button>
+        <button class="dock-btn" data-theme="sunset" title="Golden Sunset">
+          <span>🌅</span>
+          <span>Sunset</span>
+        </button>
+        <button class="dock-btn active" data-theme="night" title="Cozy Night (Warm Lamp)">
+          <span>🌙</span>
+          <span>Night</span>
+        </button>
+        <button class="dock-btn" data-theme="rain" title="Cozy Lofi Rain">
+          <span>🌧️</span>
+          <span>Rain</span>
+        </button>
+      </div>
+
+      <div class="dock-divider"></div>
+
+      <!-- Camera Perspectives -->
+      <div class="dock-group" id="cameraGroup">
+        <button class="dock-btn active" data-cam="iso" title="Default Isometric View">
+          <span>📐</span>
+          <span>Isometric</span>
+        </button>
+        <button class="dock-btn" data-cam="desk" title="Focus Desk & Workstation">
+          <span>💻</span>
+          <span>Desk</span>
+        </button>
+        <button class="dock-btn" data-cam="bed" title="Focus Cozy Bed & Reading Corner">
+          <span>🛏️</span>
+          <span>Bed</span>
+        </button>
+        <button class="dock-btn" id="resetCamBtn" title="Reset View">
+          <span>⟲</span>
+        </button>
+      </div>
+
+      <div class="dock-divider"></div>
+
+      <!-- Quick Interactive Actions -->
+      <div class="dock-group">
+        <button class="dock-btn" id="toggleLampBtn" title="Toggle Bedside Lamp">
+          <span>💡</span>
+          <span>Lamp</span>
+        </button>
+        <button class="dock-btn" id="spinChairBtn" title="Spin Chair">
+          <span>🪑</span>
+          <span>Spin</span>
+        </button>
+        <button class="dock-btn" id="waterPlantBtn" title="Water House Plant">
+          <span>🌱</span>
+          <span>Water</span>
+        </button>
+        <button class="dock-btn active" id="togglePinsBtn" title="Toggle Hotspot Markers">
+          <span>📍</span>
+        </button>
+        <button class="dock-btn" id="fullscreenBtn" title="Toggle Fullscreen">
+          <span>⛶</span>
+        </button>
+      </div>
+    </footer>
+
+    <!-- Zen / Relax Mode Overlay -->
+    <div class="zen-overlay" id="zenOverlay">
+      <div class="zen-title">🌙 Cozy Zen Mode</div>
+      <div class="zen-clock" id="zenClock">00:00:00</div>
+      <div style="font-size: 0.88rem; color: var(--text-muted); text-align: center;">
+        Ambient lofi soundscapes active &bull; Press ESC or click anywhere to wake up
+      </div>
+      <button class="btn-primary" id="exitZenBtn" style="margin-top: 10px;">Wake Up</button>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Modals -->
+    <!-- 1. Projects Modal -->
+    <div class="modal-backdrop" id="projectsModal">
+      <div class="modal-window">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="modal-icon-badge">💻</div>
+            <div>
+              <div class="modal-title">Featured Projects & Work</div>
+              <div class="modal-subtitle">Interactive 3D web applications, spatial tools & creative software</div>
+            </div>
+          </div>
+          <button class="modal-close-btn" data-close>&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="projects-grid" id="projectsGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Skills & Bookshelf Modal -->
+    <div class="modal-backdrop" id="skillsModal">
+      <div class="modal-window">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="modal-icon-badge">📚</div>
+            <div>
+              <div class="modal-title">Tech Stack & Bookshelf</div>
+              <div class="modal-subtitle">Core technologies, 3D tooling & ongoing reading list</div>
+            </div>
+          </div>
+          <button class="modal-close-btn" data-close>&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="skills-container" id="skillsContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. About & Contact Modal -->
+    <div class="modal-backdrop" id="aboutModal">
+      <div class="modal-window" style="max-width: 680px;">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <div class="modal-icon-badge">👤</div>
+            <div>
+              <div class="modal-title">About & Contact</div>
+              <div class="modal-subtitle">Creative Technologist & 3D Web Engineer</div>
+            </div>
+          </div>
+          <button class="modal-close-btn" data-close>&times;</button>
+        </div>
+        <div class="modal-body" id="aboutContainer"></div>
+      </div>
+    </div>
+
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+      <div class="loader-spinner"></div>
+      <div class="loader-title">Assembling Isometric Atelier...</div>
+      <div class="loader-sub" id="loadingStatus">Loading Spline 3D room assets & lighting</div>
+    </div>
+  </div>
+
+</body>
+</html>

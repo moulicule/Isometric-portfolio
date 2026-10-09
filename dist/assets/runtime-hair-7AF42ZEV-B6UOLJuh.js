@@ -1,1 +1,0 @@
-import{n as e,r as t}from"./runtime-chunk-TZCHGFVF-3CJiZcdT.js";import"./runtime-chunk-BVVSZMXD-BmXs1pf2.js";import"./runtime-chunk-K3UQCG3P-DylWZzZt.js";import"./runtime-chunk-O4DZYPVY-BaLzlKAD.js";import"./runtime-chunk-EFBUAWKV-CP4cJpJ5.js";import{c as n}from"./runtime-chunk-6DV3OTS7-CGJ4uwzL.js";t(`Hair`,(e,t,r)=>new n(e,t,r)),e(`hair`);

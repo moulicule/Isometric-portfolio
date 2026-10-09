@@ -2,98 +2,77 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Interactive Isometric Atelier | Moulik Nanda</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
-  <script type="module" crossorigin src="/assets/index-NBZUKrFo.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-RTLL6WIB-EjtlMISf.js">
-  <link rel="modulepreload" crossorigin href="/assets/preload-helper-BZ1Pz5am.js">
-  <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-CbXtAM7H.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-NSD7DU3P-01QKhTB_.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-2PT2WH66-xlOF4GJL.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-TZCHGFVF-3CJiZcdT.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-BVVSZMXD-BmXs1pf2.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-ML3Z74BL-NNqON7l0.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-K3UQCG3P-DylWZzZt.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-O4DZYPVY-BaLzlKAD.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-EFBUAWKV-CP4cJpJ5.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-4YV3EXSU-Bh3pxI7A.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-KMKMRLPZ-CCFzNEI0.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-UOMKVRCI-CP2vDu7n.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-4LXRVOKN-DSChra7k.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-F4F4DE36-BtDMtt75.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-CLMBU44E-B_SsgIIX.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-2VUO6A6S-DkpQ2cnc.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-TU4KDRKR-BQloPDK_.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-RYUGWEP5-CFxufUE4.js">
-  <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-FQNSP44B-2UyJPVbm.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-CBpakKox.css">
+  <script type="module" crossorigin src="/assets/index-FApEwjhm.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-B_1ZOzSK.css">
 </head>
 <body>
-  <div id="app" data-theme="night">
+  <div id="app" data-theme="night" data-scene-state="loading">
     <!-- 3D Canvas -->
-    <canvas id="canvas3d"></canvas>
+    <canvas id="canvas3d" inert></canvas>
 
     <!-- Rain Overlay (Active on rainy theme) -->
     <div class="rain-overlay" id="rainOverlay"></div>
 
     <!-- 3D Hotspot Pins Container -->
-    <div class="hotspot-container" id="hotspotContainer"></div>
+    <div class="hotspot-container" id="hotspotContainer" inert></div>
 
     <!-- Hover Tooltip -->
     <div class="hover-tooltip" id="hoverTooltip">Click to interact</div>
 
     <!-- Left Side Navigation (Vertical List) -->
     <nav class="side-nav" id="sideNav" aria-label="Main Navigation">
-      <button class="nav-btn" data-modal="projects" title="Projects & Work">
-        <span>💻</span>
-        <span>Projects</span>
+      <button class="nav-btn" data-modal="projects" title="Projects & Work" aria-label="Projects & Work">
+        <span aria-hidden="true">💻</span>
+        <span class="nav-label">Projects</span>
       </button>
-      <button class="nav-btn" data-modal="skills" title="Skills & Reading Shelf">
-        <span>📚</span>
-        <span>Skills & Books</span>
+      <button class="nav-btn" data-modal="skills" title="Skills & Reading Shelf" aria-label="Skills & Reading Shelf">
+        <span aria-hidden="true">📚</span>
+        <span class="nav-label">Skills & Books</span>
       </button>
-      <button class="nav-btn" data-modal="about" title="About & Contact">
-        <span>👤</span>
-        <span>About & Contact</span>
+      <button class="nav-btn" data-modal="about" title="About & Contact" aria-label="About & Contact">
+        <span aria-hidden="true">👤</span>
+        <span class="nav-label">About & Contact</span>
       </button>
     </nav>
 
     <!-- Top Right Utility Controls -->
-    <div class="top-nav-right">
+    <div class="top-nav-right" inert>
       <!-- Fullscreen Toggle -->
-      <button class="hud-btn" id="fullscreenBtn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
+      <button class="hud-btn" id="fullscreenBtn" aria-pressed="false" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
         ⛶
       </button>
       <!-- Lofi Ambient Chords Toggle -->
-      <button class="hud-btn" id="lofiBtn" title="Toggle Cozy Lofi Beats" aria-label="Toggle Lofi Ambient">
+      <button class="hud-btn" id="lofiBtn" aria-pressed="false" title="Toggle Cozy Lofi Beats" aria-label="Toggle Lofi Ambient">
         🎵
       </button>
       <!-- Rain Ambience Toggle -->
-      <button class="hud-btn" id="rainAudioBtn" title="Toggle Rain Ambience" aria-label="Toggle Rain Audio">
+      <button class="hud-btn" id="rainAudioBtn" aria-pressed="false" title="Toggle Rain Ambience" aria-label="Toggle Rain Audio">
         🌧️
       </button>
       <!-- Master Sound Mute Toggle -->
-      <button class="hud-btn" id="muteBtn" title="Toggle Sound Effects" aria-label="Toggle Mute">
+      <button class="hud-btn" id="muteBtn" aria-pressed="false" title="Toggle Sound Effects" aria-label="Toggle Mute">
         🔊
       </button>
     </div>
 
     <!-- Bottom Dock Controls -->
-    <footer class="bottom-dock">
+    <footer class="bottom-dock" inert>
       <!-- Lighting Atmosphere Modes -->
       <div class="dock-group" id="themeGroup">
-        <button class="dock-btn" data-theme="day" title="Day Mode (Bright Sunlight)">
-          <span>☀️</span>
-          <span>Day</span>
+        <button class="dock-btn" data-theme="day" aria-pressed="false" title="Day Mode (Bright Sunlight)" aria-label="Day mode">
+          <span aria-hidden="true">☀️</span>
+          <span class="dock-label">Day</span>
         </button>
-        <button class="dock-btn" data-theme="sunset" title="Golden Sunset">
-          <span>🌅</span>
-          <span>Sunset</span>
+        <button class="dock-btn" data-theme="sunset" aria-pressed="false" title="Golden Sunset" aria-label="Sunset mode">
+          <span aria-hidden="true">🌅</span>
+          <span class="dock-label">Sunset</span>
         </button>
-        <button class="dock-btn active" data-theme="night" title="Cozy Night (Warm Lamp)">
-          <span>🌙</span>
-          <span>Night</span>
+        <button class="dock-btn active" data-theme="night" aria-pressed="true" title="Cozy Night (Warm Lamp)" aria-label="Night mode">
+          <span aria-hidden="true">🌙</span>
+          <span class="dock-label">Night</span>
         </button>
       </div>
 
@@ -101,20 +80,20 @@
 
       <!-- Camera Perspectives -->
       <div class="dock-group" id="cameraGroup">
-        <button class="dock-btn active" data-cam="iso" title="Default Isometric View">
-          <span>📐</span>
-          <span>Isometric</span>
+        <button class="dock-btn active" data-cam="iso" aria-pressed="true" title="Default Isometric View" aria-label="Isometric view">
+          <span aria-hidden="true">📐</span>
+          <span class="dock-label">Isometric</span>
         </button>
-        <button class="dock-btn" data-cam="desk" title="Focus Desk & Workstation">
-          <span>💻</span>
-          <span>Desk</span>
+        <button class="dock-btn" data-cam="desk" aria-pressed="false" title="Focus Desk & Workstation" aria-label="Desk view">
+          <span aria-hidden="true">💻</span>
+          <span class="dock-label">Desk</span>
         </button>
-        <button class="dock-btn" data-cam="bed" title="Focus Cozy Bed & Reading Corner">
-          <span>🛏️</span>
-          <span>Bed</span>
+        <button class="dock-btn" data-cam="bed" aria-pressed="false" title="Focus Cozy Bed & Reading Corner" aria-label="Bed view">
+          <span aria-hidden="true">🛏️</span>
+          <span class="dock-label">Bed</span>
         </button>
-        <button class="dock-btn" id="resetCamBtn" title="Reset View">
-          <span>⟲</span>
+        <button class="dock-btn" id="resetCamBtn" title="Reset View" aria-label="Reset view">
+          <span aria-hidden="true">⟲</span>
         </button>
       </div>
 
@@ -123,29 +102,29 @@
       <!-- Quick Interactive Actions Dropdown & Pins -->
       <div class="dock-group" id="actionsGroup">
         <div class="dropdown" id="interactionsDropdown">
-          <button class="dock-btn dropdown-toggle" id="interactionsToggleBtn" aria-expanded="false" aria-haspopup="true" title="Interactive Actions">
-            <span>⚡</span>
-            <span>Interactions</span>
-            <span class="dropdown-chevron">▾</span>
+          <button class="dock-btn dropdown-toggle" id="interactionsToggleBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="interactionsMenu" title="Interactive Actions" aria-label="Interactive actions">
+            <span aria-hidden="true">⚡</span>
+            <span class="dock-label">Interactions</span>
+            <span class="dropdown-chevron" aria-hidden="true">▾</span>
           </button>
-          <div class="dropdown-menu" id="interactionsMenu" role="menu">
-            <button class="dropdown-item" id="toggleLampBtn" role="menuitem">
-              <span>💡</span>
+          <div class="dropdown-menu" id="interactionsMenu" role="menu" aria-labelledby="interactionsToggleBtn" inert>
+            <button class="dropdown-item" id="toggleLampBtn" role="menuitemcheckbox" aria-checked="true" tabindex="-1">
+              <span aria-hidden="true">💡</span>
               <span>Bedside Lamp</span>
             </button>
-            <button class="dropdown-item" id="spinChairBtn" role="menuitem">
-              <span>🪑</span>
+            <button class="dropdown-item" id="spinChairBtn" role="menuitem" tabindex="-1">
+              <span aria-hidden="true">🪑</span>
               <span>Spin Chair</span>
             </button>
-            <button class="dropdown-item" id="waterPlantBtn" role="menuitem">
-              <span>🌱</span>
+            <button class="dropdown-item" id="waterPlantBtn" role="menuitem" tabindex="-1">
+              <span aria-hidden="true">🌱</span>
               <span>Water Plant</span>
             </button>
           </div>
         </div>
 
-        <button class="dock-btn active" id="togglePinsBtn" title="Toggle Hotspot Markers">
-          <span>📍</span>
+        <button class="dock-btn active" id="togglePinsBtn" title="Toggle Hotspot Markers" aria-label="Toggle hotspot markers" aria-pressed="true">
+          <span aria-hidden="true">📍</span>
         </button>
       </div>
     </footer>
@@ -155,76 +134,88 @@
       <div class="zen-title">🌙 Cozy Zen Mode</div>
       <div class="zen-clock" id="zenClock">00:00:00</div>
       <div style="font-size: 0.88rem; color: var(--text-muted); text-align: center;">
-        Ambient lofi soundscapes active &bull; Press ESC or click anywhere to wake up
+        Ambient lofi soundscapes active &bull; Press Escape or choose Wake Up to return
       </div>
       <button class="btn-primary" id="exitZenBtn" style="margin-top: 10px;">Wake Up</button>
     </div>
 
     <!-- Toast Notifications -->
-    <div class="toast-container" id="toastContainer"></div>
+    <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="false"></div>
 
     <!-- Modals -->
     <!-- 1. Projects Modal -->
-    <div class="modal-backdrop" id="projectsModal">
-      <div class="modal-window">
+    <div class="modal-backdrop" id="projectsModal" inert>
+      <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="projectsTitle" aria-describedby="projectsSubtitle" tabindex="-1">
         <div class="modal-header">
           <div class="modal-title-group">
-            <div class="modal-icon-badge">💻</div>
+            <div class="modal-icon-badge" aria-hidden="true">💻</div>
             <div>
-              <div class="modal-title">Featured Projects & Work</div>
-              <div class="modal-subtitle">Interactive 3D web applications, spatial tools & creative software</div>
+              <h2 class="modal-title" id="projectsTitle">Featured Projects & Work</h2>
+              <div class="modal-subtitle" id="projectsSubtitle">Interactive 3D web applications, spatial tools & creative software</div>
             </div>
           </div>
-          <button class="modal-close-btn" data-close>&times;</button>
+          <button class="modal-close-btn" data-close aria-label="Close projects dialog">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" tabindex="0" role="region" aria-labelledby="projectsTitle">
           <div class="projects-grid" id="projectsGrid"></div>
         </div>
       </div>
     </div>
 
     <!-- 2. Skills & Bookshelf Modal -->
-    <div class="modal-backdrop" id="skillsModal">
-      <div class="modal-window">
+    <div class="modal-backdrop" id="skillsModal" inert>
+      <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="skillsTitle" aria-describedby="skillsSubtitle" tabindex="-1">
         <div class="modal-header">
           <div class="modal-title-group">
-            <div class="modal-icon-badge">📚</div>
+            <div class="modal-icon-badge" aria-hidden="true">📚</div>
             <div>
-              <div class="modal-title">Tech Stack & Bookshelf</div>
-              <div class="modal-subtitle">Core technologies, 3D tooling & ongoing reading list</div>
+              <h2 class="modal-title" id="skillsTitle">Tech Stack & Bookshelf</h2>
+              <div class="modal-subtitle" id="skillsSubtitle">Core technologies, 3D tooling & ongoing reading list</div>
             </div>
           </div>
-          <button class="modal-close-btn" data-close>&times;</button>
+          <button class="modal-close-btn" data-close aria-label="Close skills dialog">&times;</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" tabindex="0" role="region" aria-labelledby="skillsTitle">
           <div class="skills-container" id="skillsContainer"></div>
         </div>
       </div>
     </div>
 
     <!-- 3. About & Contact Modal -->
-    <div class="modal-backdrop" id="aboutModal">
-      <div class="modal-window" style="max-width: 680px;">
+    <div class="modal-backdrop" id="aboutModal" inert>
+      <div class="modal-window" style="max-width: 680px;" role="dialog" aria-modal="true" aria-labelledby="aboutTitle" aria-describedby="aboutSubtitle" tabindex="-1">
         <div class="modal-header">
           <div class="modal-title-group">
-            <div class="modal-icon-badge">👤</div>
+            <div class="modal-icon-badge" aria-hidden="true">👤</div>
             <div>
-              <div class="modal-title">About & Contact</div>
-              <div class="modal-subtitle">Creative Technologist & 3D Web Engineer</div>
+              <h2 class="modal-title" id="aboutTitle">About & Contact</h2>
+              <div class="modal-subtitle" id="aboutSubtitle">Creative Technologist & 3D Web Engineer</div>
             </div>
           </div>
-          <button class="modal-close-btn" data-close>&times;</button>
+          <button class="modal-close-btn" data-close aria-label="Close about dialog">&times;</button>
         </div>
-        <div class="modal-body" id="aboutContainer"></div>
+        <div class="modal-body" id="aboutContainer" tabindex="0" role="region" aria-labelledby="aboutTitle"></div>
       </div>
     </div>
 
-    <!-- Loading Screen -->
-    <div class="loading-screen" id="loadingScreen">
-      <div class="loader-spinner"></div>
-      <div class="loader-title">Assembling Isometric Atelier...</div>
-      <div class="loader-sub" id="loadingStatus">Loading Spline 3D room assets & lighting</div>
-    </div>
+    <!-- Static identity/contact remain usable even without JavaScript or 3D. -->
+    <div class="loading-backdrop" id="loadingBackdrop" aria-hidden="true" inert></div>
+    <section class="loading-screen" id="loadingScreen" aria-labelledby="fallbackName" tabindex="0">
+      <h1 class="loader-title" id="fallbackName">Moulik Nanda</h1>
+      <p class="fallback-description">Personal website &amp; portfolio. Projects are a work in progress.</p>
+      <div class="scene-loading-status">
+        <div class="loader-spinner" id="loaderSpinner" aria-hidden="true" hidden></div>
+        <p class="loader-sub" id="loadingStatus" role="status">You can email me or visit my LinkedIn profile below.</p>
+      </div>
+      <div class="fallback-actions">
+        <button class="btn-secondary" id="loadingAboutBtn" data-modal="about" hidden>About &amp; Contact</button>
+        <a class="btn-primary" id="fallbackEmailLink" href="mailto:mouliknanda@gmail.com">Email me <span aria-hidden="true">&nearr;</span></a>
+        <a class="social-pill" id="fallbackLinkedInLink" href="https://www.linkedin.com/in/moulik-nanda-868469205/" target="_blank" rel="noopener noreferrer">LinkedIn <span aria-hidden="true">&nearr;</span></a>
+      </div>
+      <p class="contact-address" id="fallbackEmailAddress">mouliknanda@gmail.com</p>
+      <button class="btn-secondary" id="retrySceneBtn" hidden>Reload room</button>
+      <noscript><p class="loader-sub">JavaScript is off. The contact links above still work.</p></noscript>
+    </section>
   </div>
 
 </body>

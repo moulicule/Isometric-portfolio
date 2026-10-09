@@ -9,6 +9,7 @@ The architecture is intentionally small:
 ```text
 index.html + src/style.css       DOM shell and visual UI
 src/main.js                      application controller and scene integration
+src/scene-ready.js               asset/render readiness gate for the loading card
 public/scene.splinecode          3D room loaded at runtime
 src/data.js                      static portfolio/modal content
 src/audio.js                     local procedural Web Audio engine
@@ -25,7 +26,7 @@ npm run build
 npm run preview
 ```
 
-`npm run build` is the only available verification command. It rebuilds `dist/`, including hashed assets. The current build can emit Vite's large-chunk advisory; that is a warning, not a failure.
+`npm run build` rebuilds `dist/`, including hashed assets. The current build can emit Vite's large-chunk advisory; that is a warning, not a failure. The readiness adapter also has dependency-free regression checks: `node --test tests/scene-ready.test.mjs`.
 
 ## Libraries and ownership boundaries
 
@@ -34,16 +35,17 @@ npm run preview
 | Bundling/dev server | Vite | No framework, TypeScript, or test runner. |
 | 3D scene loading/rendering/input | `@splinetool/runtime` | Owns WebGL/WebGPU rendering, the Spline scene graph, and native camera controls. |
 | Scene inspection/raycasting/math | `three` | Imported separately in `src/main.js`; used for `Raycaster`, `Vector3`, camera interpolations, and colors. |
-| Celebration particles | `canvas-confetti` | Used for projects, plant watering, and contact submission. |
+| Celebration particles | `canvas-confetti` | Used for projects and plant watering. |
 | Sound | Native Web Audio API | Implemented in `src/audio.js`; no media files or audio service. |
 | Application UI | Browser DOM + CSS | All modals, tooltips, pins, dock controls, and overlays are custom DOM. |
 
-The project does not use any external backend. The social/project URLs in `src/data.js` are ordinary links, and the contact form only shows a local success effect—it does not send email.
+The project does not use any external backend. The social/project URLs in `src/data.js` are ordinary links. Contact uses a direct `mailto:` link to `PORTFOLIO_DATA.developer.email`, opening the visitor's email app.
 
 ## Files to edit
 
 - `index.html` — fixed DOM shell and all button/modal IDs.
 - `src/main.js` — lifecycle, camera behavior, scene object lookups, interactions, rendering loop, modals, and event listeners.
+- `src/scene-ready.js` — awaits scene media/fonts, material resources, completed renderer frames, GPU submission, and browser presentation before dismissing the card.
 - `src/style.css` — all responsive and visual styling.
 - `src/data.js` — developer profile, projects, skills, and books rendered into modals.
 - `src/audio.js` — the procedural `SoundEngine` singleton.
@@ -52,13 +54,17 @@ The project does not use any external backend. The social/project URLs in `src/d
 
 ## Startup and lifecycle (`src/main.js`)
 
-1. `init()` creates the Spline `Application` around `#canvas3d` and awaits `splineApp.load('/scene.splinecode')`.
-2. It reads the Spline runtime's scene and active camera into `threeScene` and `threeCamera`.
-3. `configureCameraControls()` adjusts the runtime camera controls.
-4. `setupSceneReferences()`, `setupHotspots()`, `setupLightingAndTheme()`, `renderContent()`, and `setupEventListeners()` prepare the rest of the page.
-5. `animateLoop()` then continuously updates clock hands, chair animation, camera transitions/boundary feedback, and DOM hotspot positions.
+1. `initPage()` renders portfolio content and binds DOM navigation/dialog controls immediately, then starts `init()`.
+2. `init()` dynamically imports the Spline runtime, creates its `Application`, and awaits `splineApp.load('/scene.splinecode')`. Renderer construction/import/load failures are caught without blocking About or contact.
+3. It reads the runtime scene/camera, applies the default and responsive zoom, configures camera controls, and caches scene references/hotspots/lighting.
+4. `setupSceneInput()` binds canvas input **after Spline**. This preserves the wheel handler order: app capture → Spline wheel handling → app boundary feedback.
+5. The app enters `data-scene-state="preparing"`: the canvas can render behind the still-visible card, while room input remains inert. `waitForSceneReady()` awaits image/video/font resources and checks material resources and pending WebGPU work on Spline's `rendered` events. It requires two consecutive complete frames, GPU queue completion when applicable, and a browser presentation frame. Only then does the app enter `ready`, enable room controls, hide the card, and start `animateLoop()`.
 
-If the Spline asset fails to load, only the loader error state is shown. There is no fallback renderer.
+The static HTML loading card includes the confirmed name, direct email, and LinkedIn link, so those remain usable without the application module or JavaScript. Keep these initial HTML values in sync with `PORTFOLIO_DATA.developer`; `renderContent()` updates name/email when JavaScript runs. No replacement renderer is used on failure. The card instead explains the error and offers Reload room; after 12 seconds a stalled load also offers reload. Navigation and modals stay usable in both cases.
+
+Canvas, hotspots, utility controls, and the dock start inert and the scene controls stay hidden until ready. `setBaseInert()` updates the saved background state if a modal is open when loading completes, so the newly ready room does not become interactive behind that dialog. Closing a loading-card dialog after readiness returns focus to the About navigation button because the card's opener has disappeared.
+
+`Application.load()` alone is insufficient for visual readiness in Spline 2.0.60: media/fonts and WebGPU shaders may still be pending. The readiness adapter temporarily uses Spline's continuous render mode and restores its original mode afterward. Do not hide the preparing canvas with opacity/visibility/display: that can defer rendering and prevent completion. Instead, `#loadingBackdrop` stays opaque above the canvas until readiness, then fades out in the same frame and with the same transition as `#loadingScreen`. Navigation and dialogs stay above the backdrop. The adapter uses runtime internals (`_sharedAssetsManager`, `_renderer`, pending pipeline flags); revalidate them when upgrading Spline. Stalled/failed readiness keeps the contact card and backdrop available and routes to the existing error/reload state after 60 seconds; the deadline never hides them.
 
 ## Spline scene contract
 
@@ -78,7 +84,7 @@ If the Spline asset fails to load, only the loader error state is shown. There i
 
 ## Camera behavior: preserve this carefully
 
-The camera is an orthographic Spline camera. Its preset transforms are in `CAMERA_PRESETS`; `setCameraPreset()` interpolates position, quaternion, and zoom itself rather than invoking a Spline preset.
+The camera is an orthographic Spline camera. Its preset transforms are in `CAMERA_PRESETS`; `setCameraPreset()` interpolates position, quaternion, and zoom itself rather than invoking a Spline preset. Compact layouts apply `cameraZoomScale` to each preset zoom. `syncResponsiveCameraZoom()` fits the served room's base footprint (`OVERVIEW_FRAME_SIZE`, currently 840px including orbit margin) to the available space above the dock. A canvas `ResizeObserver` rescales current zoom and active animations without resetting the original rotation limits.
 
 The current requested interaction rules are:
 
@@ -86,7 +92,7 @@ The current requested interaction rules are:
 - Panning is disabled.
 - Horizontal and vertical rotation are limited to ±15° around the initial camera view.
 - The limits use Spline's elastic mode for a small boundary bounce.
-- Zooming out is bounded at 70% of the default zoom (`ZOOM_BOUNDS.min`).
+- Zooming out is bounded at 70% of the default zoom for the current viewport (`ZOOM_BOUNDS.min`).
 - Zooming out while already at that minimum triggers a short custom zoom bounce; the upper bound still permits the desk and bed preset zooms.
 
 `configureCameraControls()` accesses `splineApp._controls?.orbitControls`. `_controls` is a runtime implementation detail, but it is the current practical integration point. Do **not** replace this wholesale with Three `OrbitControls`: that would create competing input systems and break Spline's camera ownership.
@@ -107,7 +113,7 @@ The properties `minTheta`, `maxTheta`, `minPhi`, and `maxPhi` are Spline runtime
 
 Spline's elastic rotation mode temporarily clears its internal `isPointerDown` flag once an edge is reached. `keepOrbitDragActive()` restores that flag while the user is still holding a pointer button, so a user can immediately drag back in the opposite direction without releasing and clicking again. Keep this listener paired with the elastic rotation configuration.
 
-When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is derived from the largest preset. If changing the default view, update `DEFAULT_CAM_*` and re-evaluate the 70% minimum.
+When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is derived from the largest preset and the current responsive scale. If changing the default view or scene asset, update `DEFAULT_CAM_*`, recalibrate `OVERVIEW_FRAME_SIZE`, and re-evaluate the 70% minimum.
 
 ## Application features (`src/main.js`)
 
@@ -118,10 +124,10 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 | Chair | `spinChair` + `animateLoop` | Turns cached chair over one full revolution. |
 | Plant | `waterPlant` | Increases local hydration state, computes plant screen location, and fires green confetti. |
 | Coffee | `drinkCoffee` | Local sound/toast only. |
-| Zen mode | `toggleZenMode` | Activates DOM overlay, ambient audio, and night theme. |
-| Modals | `openModal`, `closeAllModals`, `renderContent` | Renders unescaped static data from `PORTFOLIO_DATA`; opens project/skills/about modals. |
-| Notifications | `showToast` | Creates DOM toast and removes it after its exit animation. |
-| Contact | `window.submitContact` | Called by the inline HTML form handler; cosmetic only, no submission. |
+| Zen mode | `toggleZenMode` | Activates DOM overlay, ambient audio, and night theme; focuses Wake Up and restores focus on exit. Repeated exit requests do nothing. |
+| Modals | `openModal`, `closeAllModals`, `trapModalFocus`, `renderContent` | Renders trusted static data, opens named dialogs, makes background content inert, contains keyboard focus, and restores the opener on close. |
+| Notifications | `showToast` | Creates DOM toast in a polite live region and removes it after its exit animation. |
+| Contact | `renderContent` | Renders a direct email link from `PORTFOLIO_DATA.developer.email`; no form or simulated submission. |
 
 ## Input and UI behavior
 
@@ -130,7 +136,10 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 - Only primary-button `pointerup` activates a hotspot; right click does not activate scene interactions, and the browser context menu is suppressed on the canvas.
 - The canvas uses `touch-action: manipulation` and a grab cursor.
 - `setupEventListeners()` binds navigation, sound, theme, camera, quick actions, fullscreen, modal closing, and keyboard shortcuts.
-- Keyboard shortcuts: `L` lamp, `C` chair spin, `1`–`4` themes, `Escape` closes modals/exits Zen mode.
+- Keyboard shortcuts: `L` lamp, `C` chair spin, `1`–`3` themes, `4` rain. Shortcuts ignore editable fields, composition, repeats, modifier chords, open dialogs, and the open actions menu.
+- Escape closes the active dialog, then the actions menu, then Zen mode (one active layer per keypress). It has no effect when none are active.
+- Dialog backdrops start inert. `openModal()` saves the background's inert state and focuses the dialog after it becomes visible. Tab/Shift+Tab wrap through the close button, scrollable content region, and links. Closing restores the opener; a matching navigation button is the fallback if a resized/hidden hotspot cannot receive focus.
+- The Interactions menu supports Up/Down, Home/End, Enter/Space activation, Escape, and Tab back into the page. Closed menus are inert. Lamp uses `aria-checked`; theme, camera, audio, Pins, and fullscreen controls synchronize `aria-pressed` with their visual states.
 
 ## Audio (`src/audio.js`)
 
@@ -146,6 +155,10 @@ Keep all audio local unless the task explicitly asks for externally hosted media
 ## Styling and layout (`src/style.css`)
 
 The CSS owns the full-screen canvas layering, glass panels, dock, hotspots, tooltip, loader, rain effect, modals, Zen overlay, and responsive breakpoints. UI elements sit above the canvas and selectively use `pointer-events` so canvas interaction remains reachable. Before changing z-index or pointer-event rules, verify hotspot clicks and dock buttons still work.
+
+Compact layouts (width up to 840px or height up to 500px) use 44px icon controls and named `.dock-label` spans, and initially hide markers. Phones up to 560px use a two-row dock. The Pins button reveals named, keyboard-accessible icon buttons; `updateHotspots()` separates these markers from each other and the controls. Desktop pins retain their labels. The app uses dynamic viewport height and safe-area spacing.
+
+Dialog close targets are 44px, content is selectable, and scroll regions are focusable. Small phones use tighter dialog padding; skill/book grids shrink to available width. Dialog/menu visibility becomes immediate on opening; descendant hover transitions exclude inherited visibility so focus is available immediately.
 
 ## Safe change workflow
 

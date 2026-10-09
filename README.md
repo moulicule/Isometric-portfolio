@@ -1,8 +1,6 @@
 # 🏠 Interactive Isometric Atelier | 3D Project Webpage
 
-An interactive, real-time 3D isometric room portfolio webpage powered by **Spline 3D** (`@splinetool/runtime`), **Three.js**, and modern web standards. Built from the project's native `scene (1).splinecode` asset.
-
-![Isometric Room Preview](file:///Users/mouliknanda/.gemini/antigravity/brain/9956607a-94ed-4328-8f4a-bb2535b0f499/.user_uploaded/media_1790674324195.jpg)
+An interactive, real-time 3D isometric room portfolio webpage powered by **Spline 3D** (`@splinetool/runtime`), **Three.js**, and modern web standards. The served scene is `public/scene.splinecode`. Portfolio projects are a work in progress.
 
 ---
 
@@ -18,7 +16,8 @@ An interactive, real-time 3D isometric room portfolio webpage powered by **Splin
 - **🌤️ Skylight Window**: Click the skylight to cycle through dynamic atmospheric moods: **Day**, **Golden Sunset**, **Cozy Night**, and **Rainy Lofi**.
 - **☕ Coffee Mug**: Click to take a coffee break with focus stats boost.
 - **⏰ Live Wall Clock**: The hour (`Cylinder 19`) and minute (`Cylinder 18`) hands on the 3D wall clock tick and rotate in real-time according to the user's system clock.
-- **👤 Sticky Notes**: Click the colorful sticky notes on the wall to open the **Developer Profile & Quick Contact Form**.
+- **👤 Sticky Notes**: Click the colorful sticky notes on the wall to open **About & Contact**, with direct email and LinkedIn links.
+- **Loading**: About and contact remain available while the room loads. An opaque backdrop covers incomplete rendering; the backdrop and introduction card fade together after assets and rendering are ready.
 
 ### 🎧 Procedural Web Audio Engine (100% Offline)
 - Synthesizes realistic mechanical switch clicks, hover pops, chair swooshes, and water chimes using the native **Web Audio API**.
@@ -62,6 +61,11 @@ npm run build
 npm run preview
 ```
 
+### Readiness Regression Checks
+```bash
+node --test tests/scene-ready.test.mjs
+```
+
 ---
 
 ## 📁 Project Architecture
@@ -72,6 +76,7 @@ npm run preview
 │   └── scene.splinecode    # Static Spline 3D binary scene asset
 ├── src/
 │   ├── main.js             # Spline runtime controller, raycasting, camera transitions & UI
+│   ├── scene-ready.js      # Asset/render readiness before revealing the room
 │   ├── audio.js            # Procedural Web Audio API sound synthesis engine
 │   ├── data.js             # Project showcase, skills, and developer profile data
 │   └── style.css           # Glassmorphic UI styles, animations, and responsive layouts

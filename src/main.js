@@ -1,14 +1,18 @@
-import { Application } from '@splinetool/runtime';
 import * as THREE from 'three';
 import confetti from 'canvas-confetti';
 import { sound } from './audio.js';
 import { PORTFOLIO_DATA } from './data.js';
+import { waitForSceneReady } from './scene-ready.js';
 
 // DOM References
 const appEl = document.getElementById('app');
 const canvas = document.getElementById('canvas3d');
 const loadingScreen = document.getElementById('loadingScreen');
+const loadingBackdrop = document.getElementById('loadingBackdrop');
 const loadingStatus = document.getElementById('loadingStatus');
+const loaderSpinner = document.getElementById('loaderSpinner');
+const loadingAboutBtn = document.getElementById('loadingAboutBtn');
+const retrySceneBtn = document.getElementById('retrySceneBtn');
 const hotspotContainer = document.getElementById('hotspotContainer');
 const hoverTooltip = document.getElementById('hoverTooltip');
 const toastContainer = document.getElementById('toastContainer');
@@ -19,6 +23,11 @@ const zenClock = document.getElementById('zenClock');
 const projectsModal = document.getElementById('projectsModal');
 const skillsModal = document.getElementById('skillsModal');
 const aboutModal = document.getElementById('aboutModal');
+let activeModal = null;
+let modalReturnFocus = null;
+let modalReturnFallback = null;
+const modalBackgroundState = new Map();
+let zenReturnFocus = null;
 
 // Buttons
 const lofiBtn = document.getElementById('lofiBtn');
@@ -34,9 +43,15 @@ const exitZenBtn = document.getElementById('exitZenBtn');
 const interactionsDropdown = document.getElementById('interactionsDropdown');
 const interactionsToggleBtn = document.getElementById('interactionsToggleBtn');
 const rainOverlay = document.getElementById('rainOverlay');
+const compactLayoutMedia = window.matchMedia('(max-width: 840px), (max-height: 500px)');
+
+// Nearby alternatives keep compact 44px markers from covering one another.
+const COMPACT_PIN_OFFSETS = [-2, -1, 0, 1, 2]
+  .flatMap(x => [-2, -1, 0, 1, 2].map(y => ({ x: x * 52, y: y * 52 })))
+  .sort((a, b) => a.x * a.x + a.y * a.y - b.x * b.x - b.y * b.y);
 
 // Spline & Three.js State
-const splineApp = new Application(canvas);
+let splineApp = null;
 let threeScene = null;
 let threeCamera = null;
 const raycaster = new THREE.Raycaster();
@@ -56,7 +71,7 @@ const state = {
   chairAngle: 0,
   chairSpinning: false,
   plantHydration: 80,
-  pinsVisible: true,
+  pinsVisible: !compactLayoutMedia.matches,
   zenMode: false,
   hoveredInteractive: null
 };
@@ -69,6 +84,9 @@ const DEFAULT_CAM_ROT = new THREE.Euler(
   THREE.MathUtils.degToRad(17.83)
 );
 const DEFAULT_CAM_ZOOM = 2.1096;
+// The served room occupies an approximately 800px square at the base zoom.
+// Leave a little extra space for its constrained orbit when fitting small screens.
+const OVERVIEW_FRAME_SIZE = 840;
 
 // Camera Target Presets
 const CAMERA_PRESETS = {
@@ -103,6 +121,7 @@ const CAMERA_PRESETS = {
 
 let currentCamAnim = null;
 let zoomBounce = null;
+let cameraZoomScale = 1;
 const ZOOM_BOUNDS = {
   min: DEFAULT_CAM_ZOOM * 0.7,
   max: Math.max(...Object.values(CAMERA_PRESETS).map(({ zoom }) => zoom)) * 1.1
@@ -170,49 +189,125 @@ const objects = {
 
 // Hotspot definitions mapped to 3D room objects
 const HOTSPOTS = [
-  { id: 'projects', name: 'Computer', label: 'Projects & Work', icon: '💻', objKey: 'computer', offsetY: 65, action: () => openModal('projects') },
+  { id: 'projects', name: 'Computer', label: 'Projects & Work', icon: '💻', objKey: 'computer', offsetY: 65, action: trigger => openModal('projects', trigger) },
   { id: 'lamp', name: 'Bed Table', label: 'Bedside Lamp', icon: '💡', objKey: 'bedTable', offsetY: 60, action: () => toggleLamp() },
   { id: 'chair', name: 'Chair', label: 'Swivel Chair', icon: '🪑', objKey: 'chair', offsetY: 50, action: () => spinChair() },
-  { id: 'skills', name: 'Books', label: 'Skills & Stack', icon: '📚', objKey: 'books', offsetY: 40, action: () => openModal('skills') },
+  { id: 'skills', name: 'Books', label: 'Skills & Stack', icon: '📚', objKey: 'books', offsetY: 40, action: trigger => openModal('skills', trigger) },
   { id: 'plant', name: 'Plant', label: 'House Plant', icon: '🌱', objKey: 'plant', offsetY: 75, action: () => waterPlant() },
   { id: 'bed', name: 'Bed', label: 'Zen Mode', icon: '🛏️', objKey: 'bed', offsetY: 50, action: () => toggleZenMode() },
   { id: 'window', name: 'Window', label: 'Atmosphere & Sky', icon: '🌤️', objKey: 'window', offsetY: 60, action: () => cycleTheme() },
   { id: 'coffee', name: ' Coffee Cup', label: 'Coffee Break', icon: '☕', objKey: 'coffee', offsetY: 30, action: () => drinkCoffee() },
-  { id: 'about', name: 'Sticky Notes', label: 'About & Bio', icon: '👤', objKey: 'stickyNotes', offsetY: 40, action: () => openModal('about') }
+  { id: 'about', name: 'Sticky Notes', label: 'About & Bio', icon: '👤', objKey: 'stickyNotes', offsetY: 40, action: trigger => openModal('about', trigger) }
 ];
 
-// Initialize Spline Application
+// The DOM portfolio is usable before renderer download, construction, or loading.
+function initPage() {
+  renderContent();
+  setupEventListeners();
+  appEl.classList.add('ui-ready');
+  loadingAboutBtn.hidden = false;
+  retrySceneBtn.addEventListener('click', () => window.location.reload());
+  init();
+}
+
+// Update the baseline without re-enabling room input behind an open dialog.
+function setBaseInert(element, isInert) {
+  if (modalBackgroundState.has(element)) modalBackgroundState.set(element, isInert);
+  else element.inert = isInert;
+}
+
+// Initialize Spline independently of portfolio content and navigation.
 async function init() {
+  loaderSpinner.hidden = false;
+  loadingStatus.textContent = 'Loading the interactive room. About and contact are available now.';
+  const slowLoadTimer = setTimeout(() => {
+    loadingStatus.textContent = 'The room is taking longer than usual. You can still browse About or contact me.';
+    retrySceneBtn.hidden = false;
+  }, 12000);
   try {
-    loadingStatus.textContent = 'Loading 3D isometric room model...';
+    const { Application } = await import('@splinetool/runtime');
+    splineApp = new Application(canvas);
     await splineApp.load('/scene.splinecode');
 
     threeScene = splineApp._scene;
     threeCamera = splineApp._camera;
-    if (threeCamera) {
-      threeCamera.zoom = DEFAULT_CAM_ZOOM;
-      threeCamera.updateProjectionMatrix();
-    }
+    if (!threeScene || !threeCamera) throw new Error('The room scene or camera is unavailable.');
+    threeCamera.zoom = DEFAULT_CAM_ZOOM;
+    syncResponsiveCameraZoom();
     configureCameraControls();
-
-    loadingStatus.textContent = 'Connecting scene lighting & physics...';
     setupSceneReferences();
     setupHotspots();
     setupLightingAndTheme();
-    renderContent();
-    setupEventListeners();
-
-    // Hide loader smoothly
-    setTimeout(() => {
-      loadingScreen.classList.add('hidden');
-      showToast('🏠 Interactive Isometric Atelier ready! Click objects to explore.', '✨');
-    }, 450);
+    setupSceneInput();
+    new ResizeObserver(syncResponsiveCameraZoom).observe(canvas);
+    loadingStatus.textContent = 'Preparing room assets, materials, and lighting…';
+    appEl.dataset.sceneState = 'preparing';
+    await waitForSceneReady(splineApp);
+    appEl.dataset.sceneState = 'ready';
+    for (const element of [canvas, hotspotContainer, document.querySelector('.top-nav-right'), document.querySelector('.bottom-dock')]) {
+      setBaseInert(element, false);
+    }
+    loadingStatus.textContent = 'The interactive room is ready.';
+    loadingBackdrop.classList.add('hidden');
+    loadingScreen.classList.add('hidden');
+    setBaseInert(loadingScreen, true);
+    // A loading-card opener disappears here; preserve keyboard access.
+    if (!activeModal && loadingScreen.contains(document.activeElement)) {
+      document.querySelector('#sideNav [data-modal="about"]').focus({ preventScroll: true });
+    }
+    showToast('🏠 Interactive Isometric Atelier ready! Click objects to explore.', '✨');
 
     // Start render/update loop
     requestAnimationFrame(animateLoop);
   } catch (err) {
     console.error('Failed to initialize Spline scene:', err);
-    loadingStatus.innerHTML = '<span style="color: #ef4444;">Failed to load 3D scene. Please refresh.</span>';
+    appEl.dataset.sceneState = 'error';
+    loadingStatus.textContent = 'The 3D room could not load. About and contact are still available, or you can try loading the room again.';
+    retrySceneBtn.hidden = false;
+    threeScene = null;
+    threeCamera = null;
+    splineApp?.dispose();
+    splineApp = null;
+  } finally {
+    clearTimeout(slowLoadTimer);
+    loaderSpinner.hidden = true;
+  }
+}
+
+// Fit the room's measured base footprint to compact layouts, leaving space
+// for the top controls and dock.
+function syncResponsiveCameraZoom() {
+  if (!threeCamera) return;
+
+  const rect = canvas.getBoundingClientRect();
+  let nextScale = 1;
+  if (compactLayoutMedia.matches && rect.height > 0) {
+    const dockRect = document.querySelector('.bottom-dock').getBoundingClientRect();
+    const topRect = document.querySelector('.top-nav-right').getBoundingClientRect();
+    const availableWidth = Math.max(1, rect.width - 32);
+    const availableHeight = Math.max(1, dockRect.top - topRect.bottom - 32);
+    nextScale = Math.min(1, availableWidth / OVERVIEW_FRAME_SIZE, availableHeight / OVERVIEW_FRAME_SIZE);
+  }
+
+  const ratio = nextScale / cameraZoomScale;
+  cameraZoomScale = nextScale;
+  ZOOM_BOUNDS.min = DEFAULT_CAM_ZOOM * cameraZoomScale * 0.7;
+  ZOOM_BOUNDS.max = Math.max(...Object.values(CAMERA_PRESETS).map(({ zoom }) => zoom)) * cameraZoomScale * 1.1;
+
+  // Preserve the user's relative zoom and any transition when rotating/resizing.
+  threeCamera.zoom *= ratio;
+  if (currentCamAnim) {
+    currentCamAnim.startZoom *= ratio;
+    currentCamAnim.targetZoom *= ratio;
+  }
+  if (zoomBounce) zoomBounce.startZoom *= ratio;
+  threeCamera.updateProjectionMatrix();
+
+  // Only update zoom bounds here; keep the original rotation limits anchored.
+  const orbitControls = splineApp?._controls?.orbitControls;
+  if (orbitControls) {
+    orbitControls.minZoom = ZOOM_BOUNDS.min;
+    orbitControls.maxZoom = ZOOM_BOUNDS.max;
   }
 }
 
@@ -274,17 +369,21 @@ function setupSceneReferences() {
 function setupHotspots() {
   hotspotContainer.innerHTML = '';
   HOTSPOTS.forEach(spot => {
-    const el = document.createElement('div');
+    const el = document.createElement('button');
+    el.type = 'button';
     el.className = 'hotspot-pin';
     el.id = `hotspot-${spot.id}`;
+    el.setAttribute('aria-label', spot.label);
+    el.title = spot.label;
+    el.hidden = true;
     el.innerHTML = `
-      <div class="hotspot-icon">${spot.icon}</div>
+      <div class="hotspot-icon" aria-hidden="true">${spot.icon}</div>
       <div class="hotspot-label">${spot.label}</div>
     `;
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       sound.playPop();
-      spot.action();
+      spot.action(el);
     });
     hotspotContainer.appendChild(el);
     spot.domElement = el;
@@ -301,10 +400,19 @@ function updateHotspots() {
 
   const rect = canvas.getBoundingClientRect();
   const v = new THREE.Vector3();
+  const compactPins = compactLayoutMedia.matches;
+  const placedPins = [];
+  const obstacles = compactPins
+    ? [...document.querySelectorAll('.side-nav, .top-nav-right, .bottom-dock')].map(el => el.getBoundingClientRect())
+    : [];
 
   HOTSPOTS.forEach(spot => {
     const obj = objects[spot.objKey];
-    if (!obj || !spot.domElement) return;
+    if (!spot.domElement) return;
+    if (!obj) {
+      spot.domElement.hidden = true;
+      return;
+    }
 
     obj.getWorldPosition(v);
     v.y += spot.offsetY || 40;
@@ -312,13 +420,35 @@ function updateHotspots() {
 
     // Check if within frustum bounds
     const isVisible = v.z < 1 && v.x >= -1.2 && v.x <= 1.2 && v.y >= -1.2 && v.y <= 1.2;
+    spot.domElement.hidden = !isVisible;
     if (!isVisible) {
       spot.domElement.style.opacity = '0';
       return;
     }
 
-    const x = (v.x * 0.5 + 0.5) * rect.width;
-    const y = (-v.y * 0.5 + 0.5) * rect.height;
+    let x = (v.x * 0.5 + 0.5) * rect.width;
+    let y = (-v.y * 0.5 + 0.5) * rect.height;
+
+    if (compactPins) {
+      const position = COMPACT_PIN_OFFSETS
+        .map(offset => ({
+          x: THREE.MathUtils.clamp(x + offset.x, 28, rect.width - 28),
+          y: THREE.MathUtils.clamp(y + offset.y, 28, rect.height - 28)
+        }))
+        .find(point => (
+          placedPins.every(other => Math.abs(point.x - other.x) >= 52 || Math.abs(point.y - other.y) >= 52)
+          && obstacles.every(obstacle => (
+            point.x + 26 < obstacle.left - rect.left || point.x - 26 > obstacle.right - rect.left
+            || point.y + 26 < obstacle.top - rect.top || point.y - 26 > obstacle.bottom - rect.top
+          ))
+        ));
+      if (!position) {
+        spot.domElement.hidden = true;
+        return;
+      }
+      ({ x, y } = position);
+      placedPins.push(position);
+    }
 
     spot.domElement.style.opacity = '1';
     spot.domElement.style.left = `${x}px`;
@@ -416,8 +546,9 @@ function setCameraPreset(presetName) {
   sound.playPop(1.1);
 
   // Update dock buttons
-  document.querySelectorAll('#cameraGroup .dock-btn').forEach(btn => {
+  document.querySelectorAll('#cameraGroup [data-cam]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.cam === presetName);
+    btn.setAttribute('aria-pressed', String(btn.dataset.cam === presetName));
   });
 
   const startQuat = threeCamera.quaternion.clone();
@@ -428,8 +559,8 @@ function setCameraPreset(presetName) {
     targetPos: preset.pos.clone(),
     startQuat: startQuat,
     targetQuat: targetQuat,
-    startZoom: threeCamera.zoom || DEFAULT_CAM_ZOOM,
-    targetZoom: preset.zoom || DEFAULT_CAM_ZOOM,
+    startZoom: threeCamera.zoom,
+    targetZoom: preset.zoom * cameraZoomScale,
     duration: 1.2,
     elapsed: 0
   };
@@ -453,6 +584,7 @@ function setTheme(themeName) {
   // Update dock buttons
   document.querySelectorAll('#themeGroup .dock-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.theme === themeName);
+    btn.setAttribute('aria-pressed', String(btn.dataset.theme === themeName));
   });
 
   // Apply Directional Sun & Sky lighting
@@ -470,9 +602,6 @@ function setTheme(themeName) {
     state.lampOn = true;
   }
   updateLampLighting();
-  if (toggleLampBtn) {
-    toggleLampBtn.classList.toggle('active', state.lampOn);
-  }
 
   showToast(`Atmosphere set to ${theme.label}`, '🌤️');
 }
@@ -488,6 +617,7 @@ function toggleRain(enable = null) {
   const isPlaying = sound.toggleRain(enable);
   state.raining = isPlaying;
   rainAudioBtn.classList.toggle('active', isPlaying);
+  rainAudioBtn.setAttribute('aria-pressed', String(isPlaying));
   if (rainOverlay) {
     rainOverlay.classList.toggle('active', isPlaying);
   }
@@ -498,9 +628,6 @@ function toggleRain(enable = null) {
 
 function setupLightingAndTheme() {
   setTheme('night');
-  if (toggleLampBtn) {
-    toggleLampBtn.classList.toggle('active', state.lampOn);
-  }
 }
 
 // Bedside Lamp Toggle
@@ -509,7 +636,6 @@ function toggleLamp() {
   sound.playSwitch(state.lampOn);
   updateLampLighting();
 
-  toggleLampBtn.classList.toggle('active', state.lampOn);
   showToast(`Bedside lamp turned ${state.lampOn ? 'ON' : 'OFF'}`, state.lampOn ? '💡' : '🌑');
 }
 
@@ -517,6 +643,8 @@ function updateLampLighting() {
   const intensity = state.lampOn ? (THEMES[state.theme]?.lampIntensity || 1.6) : 0.0;
   if (objects.lampLight1) objects.lampLight1.intensity = intensity;
   if (objects.lampLight2) objects.lampLight2.intensity = intensity;
+  toggleLampBtn.classList.toggle('active', state.lampOn);
+  toggleLampBtn.setAttribute('aria-checked', String(state.lampOn));
 }
 
 // Chair Swivel
@@ -559,15 +687,29 @@ function drinkCoffee() {
 
 // Zen / Relax Mode Toggle
 function toggleZenMode(enable = null) {
-  state.zenMode = enable !== null ? enable : !state.zenMode;
+  const nextMode = enable !== null ? enable : !state.zenMode;
+  if (nextMode === state.zenMode) return;
+  state.zenMode = nextMode;
   if (state.zenMode) {
+    zenReturnFocus = document.activeElement;
     sound.toggleAmbient(true);
     lofiBtn.classList.add('active');
+    lofiBtn.setAttribute('aria-pressed', 'true');
     zenOverlay.classList.add('active');
+    requestAnimationFrame(() => {
+      if (state.zenMode && !activeModal) exitZenBtn.focus({ preventScroll: true });
+    });
     setTheme('night');
     showToast('Entered Cozy Zen Mode', '🌙');
   } else {
+    const shouldRestoreFocus = zenOverlay.contains(document.activeElement);
     zenOverlay.classList.remove('active');
+    if (shouldRestoreFocus) {
+      const target = zenReturnFocus instanceof HTMLElement && zenReturnFocus.getClientRects().length && zenReturnFocus !== document.body
+        ? zenReturnFocus : resetCamBtn;
+      target.focus({ preventScroll: true });
+    }
+    zenReturnFocus = null;
     showToast('Exited Zen Mode', '☀️');
   }
 }
@@ -645,8 +787,8 @@ function handlePointerUp(e) {
 // Spline's elastic rotation limit clears this internal flag at the outer edge,
 // which otherwise makes a held drag stop responding until the next click.
 function keepOrbitDragActive(e) {
-  const orbitControls = splineApp._controls?.orbitControls;
-  if (e.buttons !== 0 && orbitControls?.state !== -1) {
+  const orbitControls = splineApp?._controls?.orbitControls;
+  if (e.buttons !== 0 && orbitControls && orbitControls.state !== -1) {
     orbitControls.isPointerDown = true;
   }
 }
@@ -679,25 +821,73 @@ function showToast(message, icon = '✨') {
 }
 
 // Modal Handlers
-function openModal(modalName) {
+function openModal(modalName, trigger = null) {
+  const targetModal = { projects: projectsModal, skills: skillsModal, about: aboutModal }[modalName];
+  if (!targetModal) return;
+  const focused = trigger || document.activeElement;
+  const returnTarget = focused instanceof HTMLElement && focused !== document.body && !activeModal?.contains(focused)
+    ? focused
+    : modalReturnFocus || document.querySelector(`[data-modal="${modalName}"]`);
+  closeAllModals({ restoreFocus: false });
+  setInteractionsOpen(false);
   sound.playPop(1.2);
-  closeAllModals();
-
-  let targetModal = null;
-  if (modalName === 'projects') targetModal = projectsModal;
-  if (modalName === 'skills') targetModal = skillsModal;
-  if (modalName === 'about') targetModal = aboutModal;
-
-  if (targetModal) {
-    targetModal.classList.add('open');
-    if (modalName === 'projects') {
-      confetti({ particleCount: 25, spread: 70, origin: { y: 0.6 } });
-    }
+  activeModal = targetModal;
+  modalReturnFocus = returnTarget;
+  modalReturnFallback = document.querySelector(`[data-modal="${modalName}"]`);
+  // Disable the room and inactive dialogs without making the active dialog inert.
+  for (const child of appEl.children) {
+    if (child === targetModal || child === toastContainer) continue;
+    modalBackgroundState.set(child, child.inert);
+    child.inert = true;
+  }
+  targetModal.inert = false;
+  targetModal.classList.add('open');
+  targetModal.querySelector('.modal-body').scrollTop = 0;
+  // Wait for the visibility change before focusing the previously hidden dialog.
+  requestAnimationFrame(() => {
+    if (activeModal === targetModal) targetModal.querySelector('[role="dialog"]').focus({ preventScroll: true });
+  });
+  hoverTooltip.classList.remove('visible');
+  if (modalName === 'projects') {
+    confetti({ particleCount: 25, spread: 70, origin: { y: 0.6 } });
   }
 }
 
-function closeAllModals() {
-  document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('open'));
+function closeAllModals({ restoreFocus = true } = {}) {
+  if (!activeModal) return;
+  activeModal.classList.remove('open');
+  activeModal.inert = true;
+  activeModal = null;
+  for (const [element, wasInert] of modalBackgroundState) element.inert = wasInert;
+  modalBackgroundState.clear();
+  const canFocus = el => el?.isConnected && !el.closest('[inert]') && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
+  const returnTarget = canFocus(modalReturnFocus) ? modalReturnFocus : modalReturnFallback;
+  modalReturnFocus = null;
+  modalReturnFallback = null;
+  if (restoreFocus && canFocus(returnTarget)) {
+    returnTarget.focus({ preventScroll: true });
+  }
+}
+
+function trapModalFocus(event) {
+  const dialog = activeModal.querySelector('[role="dialog"]');
+  const focusable = [...dialog.querySelectorAll('a[href], button, input, select, textarea, [tabindex]')]
+    .filter(el => !el.disabled && el.tabIndex >= 0 && !el.closest('[inert]') && el.getClientRects().length);
+  const first = focusable[0] || dialog;
+  const last = focusable.at(-1) || dialog;
+  const focused = document.activeElement;
+  if (!focusable.includes(focused) || (event.shiftKey ? focused === first : focused === last)) {
+    event.preventDefault();
+    (event.shiftKey ? last : first).focus();
+  }
+}
+
+function setInteractionsOpen(isOpen, restoreFocus = false) {
+  interactionsDropdown.classList.toggle('open', isOpen);
+  interactionsToggleBtn.setAttribute('aria-expanded', String(isOpen));
+  interactionsToggleBtn.classList.toggle('active', isOpen);
+  document.getElementById('interactionsMenu').inert = !isOpen;
+  if (restoreFocus) interactionsToggleBtn.focus();
 }
 
 // Render Project Showcase & Skills Content
@@ -782,6 +972,9 @@ function renderContent() {
   // 3. About & Contact
   const aboutContainer = document.getElementById('aboutContainer');
   const dev = PORTFOLIO_DATA.developer;
+  document.getElementById('fallbackName').textContent = dev.name;
+  document.getElementById('fallbackEmailLink').href = `mailto:${dev.email}`;
+  document.getElementById('fallbackEmailAddress').textContent = dev.email;
   if (aboutContainer) {
     aboutContainer.innerHTML = `
       <div class="profile-card">
@@ -795,36 +988,28 @@ function renderContent() {
 
         <div class="profile-socials">
           ${dev.socials.map(s => `
-            <a href="${s.url}" target="_blank" class="social-pill">
+            <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="social-pill">
               <span>${s.label}</span>
-              <span>&nearr;</span>
+              <span aria-hidden="true">&nearr;</span>
             </a>
           `).join('')}
         </div>
 
-        <div style="margin-top: 10px;">
-          <div class="skill-category-title">✉️ Send a Message</div>
-          <form class="contact-form" id="contactForm" onsubmit="event.preventDefault(); window.submitContact();">
-            <input type="text" class="form-input" placeholder="Your Name" required>
-            <input type="email" class="form-input" placeholder="Your Email" required>
-            <textarea class="form-textarea" rows="3" placeholder="Tell me about your project..." required></textarea>
-            <button type="submit" class="btn-primary" style="align-self: flex-start;">Send Message 🚀</button>
-          </form>
-        </div>
+        <section class="contact-section" aria-labelledby="contactHeading">
+          <h3 class="skill-category-title" id="contactHeading">Let's connect</h3>
+          <p class="contact-description">For projects, collaborations, or a hello.</p>
+          <a href="mailto:${dev.email}" class="btn-primary contact-email-link">
+            Email me <span aria-hidden="true">&nearr;</span>
+          </a>
+          <p class="contact-address">${dev.email}</p>
+        </section>
       </div>
     `;
   }
 }
 
-window.submitContact = function() {
-  sound.playPop(1.5);
-  confetti({ particleCount: 30, spread: 70, origin: { y: 0.7 } });
-  showToast('Message sent successfully! Thanks for reaching out.', '💌');
-  closeAllModals();
-};
-
-// Event Listeners Setup
-function setupEventListeners() {
+// Bind after Spline so its wheel handler stays between our capture/bubble handlers.
+function setupSceneInput() {
   // Canvas pointer raycasting and click handling. Orbit is constrained; panning is disabled.
   canvas.addEventListener('pointermove', handlePointerMove);
   canvas.addEventListener('pointermove', keepOrbitDragActive);
@@ -842,11 +1027,14 @@ function setupEventListeners() {
     const atMinimumZoom = zoomBeforeWheel !== null && zoomBeforeWheel <= ZOOM_BOUNDS.min + 0.001;
     if (e.deltaY > 0 && atMinimumZoom) startZoomLimitBounce();
   }, { passive: true });
+}
 
+// DOM controls are available independently of the renderer.
+function setupEventListeners() {
   // Top Nav Modal Buttons
   document.querySelectorAll('[data-modal]').forEach(btn => {
     btn.addEventListener('click', () => {
-      openModal(btn.dataset.modal);
+      openModal(btn.dataset.modal, btn);
     });
   });
 
@@ -864,6 +1052,7 @@ function setupEventListeners() {
   lofiBtn.addEventListener('click', () => {
     const isPlaying = sound.toggleAmbient();
     lofiBtn.classList.toggle('active', isPlaying);
+    lofiBtn.setAttribute('aria-pressed', String(isPlaying));
     showToast(`Cozy Lofi Chords: ${isPlaying ? 'ON' : 'OFF'}`, '🎵');
   });
 
@@ -875,6 +1064,7 @@ function setupEventListeners() {
     const isMuted = sound.toggleMute();
     muteBtn.textContent = isMuted ? '🔇' : '🔊';
     muteBtn.classList.toggle('active', isMuted);
+    muteBtn.setAttribute('aria-pressed', String(isMuted));
     showToast(`Sound Effects: ${isMuted ? 'MUTED' : 'ENABLED'}`, isMuted ? '🔇' : '🔊');
   });
 
@@ -893,27 +1083,41 @@ function setupEventListeners() {
   if (interactionsToggleBtn && interactionsDropdown) {
     interactionsToggleBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const isOpen = interactionsDropdown.classList.toggle('open');
-      interactionsToggleBtn.setAttribute('aria-expanded', String(isOpen));
-      interactionsToggleBtn.classList.toggle('active', isOpen);
+      const isOpen = !interactionsDropdown.classList.contains('open');
+      setInteractionsOpen(isOpen);
+      if (isOpen) interactionsDropdown.querySelector('.dropdown-item').focus();
       sound.playPop();
     });
 
     // Close dropdown on action selection
     interactionsDropdown.querySelectorAll('.dropdown-item').forEach(item => {
       item.addEventListener('click', () => {
-        interactionsDropdown.classList.remove('open');
-        interactionsToggleBtn.setAttribute('aria-expanded', 'false');
-        interactionsToggleBtn.classList.remove('active');
+        setInteractionsOpen(false, true);
       });
     });
 
     // Close on outside click
     document.addEventListener('click', (e) => {
       if (!interactionsDropdown.contains(e.target)) {
-        interactionsDropdown.classList.remove('open');
-        interactionsToggleBtn.setAttribute('aria-expanded', 'false');
-        interactionsToggleBtn.classList.remove('active');
+        setInteractionsOpen(false);
+      }
+    });
+    interactionsDropdown.addEventListener('focusout', (e) => {
+      if (!interactionsDropdown.contains(e.relatedTarget)) setInteractionsOpen(false);
+    });
+    interactionsDropdown.addEventListener('keydown', (e) => {
+      const items = [...interactionsDropdown.querySelectorAll('.dropdown-item')];
+      const index = items.indexOf(document.activeElement);
+      if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+        e.preventDefault();
+        setInteractionsOpen(true);
+        const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1
+          : index < 0 ? (e.key === 'ArrowUp' ? items.length - 1 : 0)
+          : (index + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+        items[next].focus();
+      } else if (e.key === 'Tab' && index >= 0) {
+        // Move from the menu back into the ordinary page tab sequence.
+        setInteractionsOpen(false, true);
       }
     });
   }
@@ -923,9 +1127,12 @@ function setupEventListeners() {
   if (spinChairBtn) spinChairBtn.addEventListener('click', spinChair);
   if (waterPlantBtn) waterPlantBtn.addEventListener('click', waterPlant);
 
+  togglePinsBtn.classList.toggle('active', state.pinsVisible);
+  togglePinsBtn.setAttribute('aria-pressed', String(state.pinsVisible));
   togglePinsBtn.addEventListener('click', () => {
     state.pinsVisible = !state.pinsVisible;
     togglePinsBtn.classList.toggle('active', state.pinsVisible);
+    togglePinsBtn.setAttribute('aria-pressed', String(state.pinsVisible));
     hotspotContainer.style.display = state.pinsVisible ? 'block' : 'none';
     sound.playPop();
     showToast(`Hotspot Pins: ${state.pinsVisible ? 'VISIBLE' : 'HIDDEN'}`, '📍');
@@ -941,6 +1148,7 @@ function setupEventListeners() {
 
   document.addEventListener('fullscreenchange', () => {
     fullscreenBtn.classList.toggle('active', !!document.fullscreenElement);
+    fullscreenBtn.setAttribute('aria-pressed', String(!!document.fullscreenElement));
   });
 
   exitZenBtn.addEventListener('click', () => toggleZenMode(false));
@@ -950,15 +1158,21 @@ function setupEventListeners() {
 
   // Keyboard Shortcuts
   window.addEventListener('keydown', (e) => {
+    if (e.defaultPrevented || e.isComposing) return;
     if (e.key === 'Escape') {
-      closeAllModals();
-      toggleZenMode(false);
-      if (interactionsDropdown) {
-        interactionsDropdown.classList.remove('open');
-        interactionsToggleBtn?.setAttribute('aria-expanded', 'false');
-        interactionsToggleBtn?.classList.remove('active');
-      }
-    } else if (e.key === 'l' || e.key === 'L') {
+      if (activeModal) closeAllModals();
+      else if (interactionsDropdown.classList.contains('open')) setInteractionsOpen(false, true);
+      else if (state.zenMode) toggleZenMode(false);
+      return;
+    }
+    if (activeModal) {
+      if (e.key === 'Tab') trapModalFocus(e);
+      return;
+    }
+    if (appEl.dataset.sceneState !== 'ready') return;
+    const isEditing = e.target instanceof HTMLElement && (e.target.isContentEditable || e.target.closest('input, textarea, select'));
+    if (isEditing || e.repeat || e.ctrlKey || e.metaKey || e.altKey || interactionsDropdown.classList.contains('open')) return;
+    if (e.key === 'l' || e.key === 'L') {
       toggleLamp();
     } else if (e.key === 'c' || e.key === 'C') {
       spinChair();
@@ -975,4 +1189,4 @@ function setupEventListeners() {
 }
 
 // Start application
-init();
+initPage();

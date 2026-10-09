@@ -7,11 +7,9 @@ export const PORTFOLIO_DATA = {
     bio: "I craft immersive 3D web experiences, creative interfaces, and robust modern web applications at the intersection of design, engineering, and spatial computing.",
     location: "San Francisco, CA / Remote",
     status: "Available for ambitious projects",
+    email: "mouliknanda@gmail.com",
     socials: [
-      { label: "GitHub", url: "https://github.com", icon: "github" },
-      { label: "LinkedIn", url: "https://linkedin.com", icon: "linkedin" },
-      { label: "X / Twitter", url: "https://twitter.com", icon: "twitter" },
-      { label: "Email", url: "mailto:hello@example.com", icon: "mail" }
+      { label: "LinkedIn", url: "https://www.linkedin.com/in/moulik-nanda-868469205/", icon: "linkedin" }
     ]
   },
   projects: [

@@ -105,6 +105,8 @@ The properties `minTheta`, `maxTheta`, `minPhi`, and `maxPhi` are Spline runtime
 
 `startZoomLimitBounce()` and the `wheel` capture/bubble listeners provide feedback that the Spline control does not natively provide for orthographic zoom limits. Do not remove the capture listener: it records the pre-Spline zoom value, which is how the code knows that the user was already at the boundary.
 
+Spline's elastic rotation mode temporarily clears its internal `isPointerDown` flag once an edge is reached. `keepOrbitDragActive()` restores that flag while the user is still holding a pointer button, so a user can immediately drag back in the opposite direction without releasing and clicking again. Keep this listener paired with the elastic rotation configuration.
+
 When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is derived from the largest preset. If changing the default view, update `DEFAULT_CAM_*` and re-evaluate the 70% minimum.
 
 ## Application features (`src/main.js`)

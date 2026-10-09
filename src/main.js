@@ -64,7 +64,7 @@ const DEFAULT_CAM_ROT = new THREE.Euler(
   THREE.MathUtils.degToRad(34.53),
   THREE.MathUtils.degToRad(17.83)
 );
-const DEFAULT_CAM_ZOOM = 1.758;
+const DEFAULT_CAM_ZOOM = 2.1096;
 
 // Camera Target Presets
 const CAMERA_PRESETS = {
@@ -75,7 +75,7 @@ const CAMERA_PRESETS = {
       THREE.MathUtils.degToRad(34.53),
       THREE.MathUtils.degToRad(17.83)
     ),
-    zoom: 1.758
+    zoom: DEFAULT_CAM_ZOOM
   },
   desk: {
     pos: new THREE.Vector3(260, 190, 480),
@@ -185,6 +185,10 @@ async function init() {
 
     threeScene = splineApp._scene;
     threeCamera = splineApp._camera;
+    if (threeCamera) {
+      threeCamera.zoom = DEFAULT_CAM_ZOOM;
+      threeCamera.updateProjectionMatrix();
+    }
     configureCameraControls();
 
     loadingStatus.textContent = 'Connecting scene lighting & physics...';
@@ -624,6 +628,15 @@ function handlePointerUp(e) {
   isDragging = false;
 }
 
+// Spline's elastic rotation limit clears this internal flag at the outer edge,
+// which otherwise makes a held drag stop responding until the next click.
+function keepOrbitDragActive(e) {
+  const orbitControls = splineApp._controls?.orbitControls;
+  if (e.buttons !== 0 && orbitControls?.state !== -1) {
+    orbitControls.isPointerDown = true;
+  }
+}
+
 function startZoomLimitBounce() {
   if (!threeCamera || currentCamAnim) return;
 
@@ -800,6 +813,7 @@ window.submitContact = function() {
 function setupEventListeners() {
   // Canvas pointer raycasting and click handling. Orbit is constrained; panning is disabled.
   canvas.addEventListener('pointermove', handlePointerMove);
+  canvas.addEventListener('pointermove', keepOrbitDragActive);
   canvas.addEventListener('pointerdown', handlePointerDown);
   canvas.addEventListener('pointerup', handlePointerUp);
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());

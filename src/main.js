@@ -31,6 +31,9 @@ const togglePinsBtn = document.getElementById('togglePinsBtn');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
 const resetCamBtn = document.getElementById('resetCamBtn');
 const exitZenBtn = document.getElementById('exitZenBtn');
+const interactionsDropdown = document.getElementById('interactionsDropdown');
+const interactionsToggleBtn = document.getElementById('interactionsToggleBtn');
+const rainOverlay = document.getElementById('rainOverlay');
 
 // Spline & Three.js State
 const splineApp = new Application(canvas);
@@ -48,6 +51,7 @@ const pointerStart = { x: 0, y: 0 };
 const state = {
   lampOn: true,
   theme: 'night',
+  raining: false,
   cameraPreset: 'iso',
   chairAngle: 0,
   chairSpinning: false,
@@ -462,31 +466,41 @@ function setTheme(themeName) {
   }
 
   // Bedside Lamp behavior based on theme
-  if (themeName === 'night' || themeName === 'rain') {
+  if (themeName === 'night') {
     state.lampOn = true;
   }
   updateLampLighting();
-
-  // Rain sound sync
-  if (themeName === 'rain') {
-    sound.toggleRain(true);
-    rainAudioBtn.classList.add('active');
-  } else if (!rainAudioBtn.dataset.manual) {
-    sound.toggleRain(false);
-    rainAudioBtn.classList.remove('active');
+  if (toggleLampBtn) {
+    toggleLampBtn.classList.toggle('active', state.lampOn);
   }
 
   showToast(`Atmosphere set to ${theme.label}`, '🌤️');
 }
 
 function cycleTheme() {
-  const themes = ['night', 'day', 'sunset', 'rain'];
+  const themes = ['night', 'day', 'sunset'];
   const nextIdx = (themes.indexOf(state.theme) + 1) % themes.length;
   setTheme(themes[nextIdx]);
 }
 
+// Rain Atmosphere Toggle (Independent of Day/Night cycle)
+function toggleRain(enable = null) {
+  const isPlaying = sound.toggleRain(enable);
+  state.raining = isPlaying;
+  rainAudioBtn.classList.toggle('active', isPlaying);
+  if (rainOverlay) {
+    rainOverlay.classList.toggle('active', isPlaying);
+  }
+  appEl.classList.toggle('is-raining', isPlaying);
+  showToast(`Rain Ambience: ${isPlaying ? 'ON' : 'OFF'}`, '🌧️');
+  return isPlaying;
+}
+
 function setupLightingAndTheme() {
   setTheme('night');
+  if (toggleLampBtn) {
+    toggleLampBtn.classList.toggle('active', state.lampOn);
+  }
 }
 
 // Bedside Lamp Toggle
@@ -854,10 +868,7 @@ function setupEventListeners() {
   });
 
   rainAudioBtn.addEventListener('click', () => {
-    rainAudioBtn.dataset.manual = 'true';
-    const isPlaying = sound.toggleRain();
-    rainAudioBtn.classList.toggle('active', isPlaying);
-    showToast(`Rain Ambience: ${isPlaying ? 'ON' : 'OFF'}`, '🌧️');
+    toggleRain();
   });
 
   muteBtn.addEventListener('click', () => {
@@ -878,10 +889,39 @@ function setupEventListeners() {
   });
   resetCamBtn.addEventListener('click', resetCamera);
 
-  // Quick Action Buttons
-  toggleLampBtn.addEventListener('click', toggleLamp);
-  spinChairBtn.addEventListener('click', spinChair);
-  waterPlantBtn.addEventListener('click', waterPlant);
+  // Interactions Dropdown
+  if (interactionsToggleBtn && interactionsDropdown) {
+    interactionsToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = interactionsDropdown.classList.toggle('open');
+      interactionsToggleBtn.setAttribute('aria-expanded', String(isOpen));
+      interactionsToggleBtn.classList.toggle('active', isOpen);
+      sound.playPop();
+    });
+
+    // Close dropdown on action selection
+    interactionsDropdown.querySelectorAll('.dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        interactionsDropdown.classList.remove('open');
+        interactionsToggleBtn.setAttribute('aria-expanded', 'false');
+        interactionsToggleBtn.classList.remove('active');
+      });
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (!interactionsDropdown.contains(e.target)) {
+        interactionsDropdown.classList.remove('open');
+        interactionsToggleBtn.setAttribute('aria-expanded', 'false');
+        interactionsToggleBtn.classList.remove('active');
+      }
+    });
+  }
+
+  // Quick Action Buttons inside dropdown
+  if (toggleLampBtn) toggleLampBtn.addEventListener('click', toggleLamp);
+  if (spinChairBtn) spinChairBtn.addEventListener('click', spinChair);
+  if (waterPlantBtn) waterPlantBtn.addEventListener('click', waterPlant);
 
   togglePinsBtn.addEventListener('click', () => {
     state.pinsVisible = !state.pinsVisible;
@@ -899,6 +939,10 @@ function setupEventListeners() {
     }
   });
 
+  document.addEventListener('fullscreenchange', () => {
+    fullscreenBtn.classList.toggle('active', !!document.fullscreenElement);
+  });
+
   exitZenBtn.addEventListener('click', () => toggleZenMode(false));
   zenOverlay.addEventListener('click', (e) => {
     if (e.target === zenOverlay) toggleZenMode(false);
@@ -909,6 +953,11 @@ function setupEventListeners() {
     if (e.key === 'Escape') {
       closeAllModals();
       toggleZenMode(false);
+      if (interactionsDropdown) {
+        interactionsDropdown.classList.remove('open');
+        interactionsToggleBtn?.setAttribute('aria-expanded', 'false');
+        interactionsToggleBtn?.classList.remove('active');
+      }
     } else if (e.key === 'l' || e.key === 'L') {
       toggleLamp();
     } else if (e.key === 'c' || e.key === 'C') {
@@ -920,7 +969,7 @@ function setupEventListeners() {
     } else if (e.key === '3') {
       setTheme('night');
     } else if (e.key === '4') {
-      setTheme('rain');
+      toggleRain();
     }
   });
 }

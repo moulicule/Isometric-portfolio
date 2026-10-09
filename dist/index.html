@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Interactive Isometric Atelier | Moulik Nanda</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
-  <script type="module" crossorigin src="/assets/index-ybetOnqu.js"></script>
+  <script type="module" crossorigin src="/assets/index-NBZUKrFo.js"></script>
   <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-RTLL6WIB-EjtlMISf.js">
   <link rel="modulepreload" crossorigin href="/assets/preload-helper-BZ1Pz5am.js">
   <link rel="modulepreload" crossorigin href="/assets/rolldown-runtime-CbXtAM7H.js">
@@ -27,7 +27,7 @@
   <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-TU4KDRKR-BQloPDK_.js">
   <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-RYUGWEP5-CFxufUE4.js">
   <link rel="modulepreload" crossorigin href="/assets/runtime-chunk-FQNSP44B-2UyJPVbm.js">
-  <link rel="stylesheet" crossorigin href="/assets/index-BMpC88f2.css">
+  <link rel="stylesheet" crossorigin href="/assets/index-CBpakKox.css">
 </head>
 <body>
   <div id="app" data-theme="night">
@@ -43,44 +43,41 @@
     <!-- Hover Tooltip -->
     <div class="hover-tooltip" id="hoverTooltip">Click to interact</div>
 
-    <!-- Top Navigation Bar -->
-    <header class="top-nav">
-      <div class="brand-pill">
-        <span class="brand-logo-dot"></span>
-        <span class="brand-name">ISOMETRIC ATELIER</span>
-        <span class="brand-tag">Moulik Nanda &bull; 3D Project Hub</span>
-      </div>
+    <!-- Left Side Navigation (Vertical List) -->
+    <nav class="side-nav" id="sideNav" aria-label="Main Navigation">
+      <button class="nav-btn" data-modal="projects" title="Projects & Work">
+        <span>💻</span>
+        <span>Projects</span>
+      </button>
+      <button class="nav-btn" data-modal="skills" title="Skills & Reading Shelf">
+        <span>📚</span>
+        <span>Skills & Books</span>
+      </button>
+      <button class="nav-btn" data-modal="about" title="About & Contact">
+        <span>👤</span>
+        <span>About & Contact</span>
+      </button>
+    </nav>
 
-      <nav class="top-nav-center">
-        <button class="nav-btn" data-modal="projects">
-          <span>💻</span>
-          <span>Projects</span>
-        </button>
-        <button class="nav-btn" data-modal="skills">
-          <span>📚</span>
-          <span>Skills & Books</span>
-        </button>
-        <button class="nav-btn" data-modal="about">
-          <span>👤</span>
-          <span>About & Contact</span>
-        </button>
-      </nav>
-
-      <div class="top-nav-right">
-        <!-- Lofi Ambient Chords Toggle -->
-        <button class="hud-btn" id="lofiBtn" title="Toggle Cozy Lofi Beats" aria-label="Toggle Lofi Ambient">
-          🎵
-        </button>
-        <!-- Rain Ambience Toggle -->
-        <button class="hud-btn" id="rainAudioBtn" title="Toggle Rain Sound" aria-label="Toggle Rain Audio">
-          🌧️
-        </button>
-        <!-- Master Sound Mute Toggle -->
-        <button class="hud-btn" id="muteBtn" title="Toggle Sound Effects" aria-label="Toggle Mute">
-          🔊
-        </button>
-      </div>
-    </header>
+    <!-- Top Right Utility Controls -->
+    <div class="top-nav-right">
+      <!-- Fullscreen Toggle -->
+      <button class="hud-btn" id="fullscreenBtn" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
+        ⛶
+      </button>
+      <!-- Lofi Ambient Chords Toggle -->
+      <button class="hud-btn" id="lofiBtn" title="Toggle Cozy Lofi Beats" aria-label="Toggle Lofi Ambient">
+        🎵
+      </button>
+      <!-- Rain Ambience Toggle -->
+      <button class="hud-btn" id="rainAudioBtn" title="Toggle Rain Ambience" aria-label="Toggle Rain Audio">
+        🌧️
+      </button>
+      <!-- Master Sound Mute Toggle -->
+      <button class="hud-btn" id="muteBtn" title="Toggle Sound Effects" aria-label="Toggle Mute">
+        🔊
+      </button>
+    </div>
 
     <!-- Bottom Dock Controls -->
     <footer class="bottom-dock">
@@ -97,10 +94,6 @@
         <button class="dock-btn active" data-theme="night" title="Cozy Night (Warm Lamp)">
           <span>🌙</span>
           <span>Night</span>
-        </button>
-        <button class="dock-btn" data-theme="rain" title="Cozy Lofi Rain">
-          <span>🌧️</span>
-          <span>Rain</span>
         </button>
       </div>
 
@@ -127,25 +120,32 @@
 
       <div class="dock-divider"></div>
 
-      <!-- Quick Interactive Actions -->
-      <div class="dock-group">
-        <button class="dock-btn" id="toggleLampBtn" title="Toggle Bedside Lamp">
-          <span>💡</span>
-          <span>Lamp</span>
-        </button>
-        <button class="dock-btn" id="spinChairBtn" title="Spin Chair">
-          <span>🪑</span>
-          <span>Spin</span>
-        </button>
-        <button class="dock-btn" id="waterPlantBtn" title="Water House Plant">
-          <span>🌱</span>
-          <span>Water</span>
-        </button>
+      <!-- Quick Interactive Actions Dropdown & Pins -->
+      <div class="dock-group" id="actionsGroup">
+        <div class="dropdown" id="interactionsDropdown">
+          <button class="dock-btn dropdown-toggle" id="interactionsToggleBtn" aria-expanded="false" aria-haspopup="true" title="Interactive Actions">
+            <span>⚡</span>
+            <span>Interactions</span>
+            <span class="dropdown-chevron">▾</span>
+          </button>
+          <div class="dropdown-menu" id="interactionsMenu" role="menu">
+            <button class="dropdown-item" id="toggleLampBtn" role="menuitem">
+              <span>💡</span>
+              <span>Bedside Lamp</span>
+            </button>
+            <button class="dropdown-item" id="spinChairBtn" role="menuitem">
+              <span>🪑</span>
+              <span>Spin Chair</span>
+            </button>
+            <button class="dropdown-item" id="waterPlantBtn" role="menuitem">
+              <span>🌱</span>
+              <span>Water Plant</span>
+            </button>
+          </div>
+        </div>
+
         <button class="dock-btn active" id="togglePinsBtn" title="Toggle Hotspot Markers">
           <span>📍</span>
-        </button>
-        <button class="dock-btn" id="fullscreenBtn" title="Toggle Fullscreen">
-          <span>⛶</span>
         </button>
       </div>
     </footer>

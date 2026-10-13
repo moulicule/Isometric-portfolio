@@ -60,10 +60,6 @@ body, html {
 #app[data-theme="night"] {
   background: radial-gradient(circle at 60% 50%, #161224 0%, #08070d 100%);
 }
-#app[data-theme="rain"] {
-  background: radial-gradient(circle at 45% 45%, #18222d 0%, #0a0f16 100%);
-}
-
 #canvas3d {
   width: 100%;
   height: 100%;
@@ -77,35 +73,6 @@ body, html {
 }
 #canvas3d.pointer-cursor {
   cursor: pointer;
-}
-
-/* Rain Effect Overlay */
-.rain-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    105deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0) 70%,
-    rgba(165, 215, 255, 0.12) 75%,
-    rgba(255, 255, 255, 0) 80%
-  );
-  background-size: 80px 240px;
-  animation: rainMotion 0.6s linear infinite;
-  opacity: 0;
-  transition: opacity 1s ease;
-  z-index: 5;
-}
-#app[data-theme="rain"] .rain-overlay,
-.rain-overlay.active,
-#app.is-raining .rain-overlay {
-  opacity: 1;
-}
-
-@keyframes rainMotion {
-  0% { background-position: 0 0; }
-  100% { background-position: -40px 240px; }
 }
 
 /* Cover unfinished rendering without hiding the canvas from Spline. Navigation
@@ -208,49 +175,18 @@ body, html {
   to { transform: rotate(360deg); }
 }
 
-/* Left Side Navigation (Vertical List) */
+/* Top Left Navigation Controls */
 .side-nav {
+  --nav-size: 40px;
   position: absolute;
   top: 20px;
   left: 24px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  background: var(--panel-bg);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--panel-border);
-  padding: 6px;
-  border-radius: var(--radius-md);
-  box-shadow: var(--glass-shadow);
+  align-items: flex-start;
+  gap: 10px;
   z-index: 20;
   pointer-events: auto;
-}
-.side-nav .nav-btn {
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  font-weight: 500;
-  padding: 8px 14px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  justify-content: flex-start;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-.side-nav .nav-btn:hover {
-  color: var(--text-main);
-  background: rgba(255, 255, 255, 0.08);
-}
-.side-nav .nav-btn.active {
-  color: var(--text-main);
-  background: rgba(245, 158, 11, 0.2);
-  border-color: rgba(245, 158, 11, 0.4);
 }
 
 /* Top Right Utility Controls */
@@ -291,6 +227,37 @@ body, html {
   border-color: var(--accent-amber);
   color: var(--accent-amber);
   box-shadow: var(--glow-amber);
+}
+.side-nav .nav-btn {
+  --nav-expansion: 0px;
+  position: relative;
+  width: calc(var(--nav-size) + var(--nav-expansion));
+  height: var(--nav-size);
+  flex-shrink: 0;
+  justify-content: flex-start;
+  border-radius: 999px;
+  overflow: hidden;
+  transition-property: background-color, border-color, box-shadow;
+}
+.side-nav .nav-btn:hover {
+  transform: none;
+}
+.nav-icon {
+  width: calc(var(--nav-size) - 2px);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nav-label {
+  position: absolute;
+  left: calc(var(--nav-size) - 2px);
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
 }
 
 /* Floating 3D Hotspot Markers */
@@ -373,6 +340,97 @@ body, html {
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
   border-top: 6px solid rgba(24, 20, 28, 0.85);
+}
+
+/* GSAP moves the bubble independently from the fixed circle/button anchor. */
+.hotspot-pin.hotspot-secondary {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  gap: 0;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  transform: translate(-50%, -50%);
+  transition: none;
+  z-index: 1;
+}
+.hotspot-secondary.is-revealed {
+  z-index: 2;
+}
+.hotspot-secondary::after {
+  display: none;
+}
+.hotspot-secondary.is-revealed::before {
+  content: '';
+  position: absolute;
+  width: 44px;
+  left: 0;
+  top: calc(22px - var(--pin-lift, 44px));
+  bottom: 22px;
+  pointer-events: auto;
+}
+.hotspot-ring {
+  position: absolute;
+  inset: 10px;
+  transform: scale(0.8);
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 50%;
+  background: radial-gradient(circle, white 0 2px, transparent 3px 6px, rgba(255, 255, 255, 0.85) 7px 8px, transparent 9px) rgba(24, 20, 28, 0.4);
+  box-shadow: 0 0 0 4px rgba(24, 20, 28, 0.5), 0 2px 8px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.hotspot-bubble {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+  min-height: 44px;
+  padding: 6px 12px 6px 8px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(24, 20, 28, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  transform: translate(-50%, -50%) scale(0.45);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+.hotspot-secondary .hotspot-label {
+  display: block;
+}
+.hotspot-secondary.is-revealed .hotspot-bubble {
+  pointer-events: auto;
+}
+.hotspot-secondary:is(:hover, :focus-visible) .hotspot-bubble {
+  border-color: var(--accent-amber);
+}
+.hotspot-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 6px solid rgba(24, 20, 28, 0.9);
+}
+.hotspot-secondary:focus-visible {
+  outline: none;
+}
+.hotspot-secondary:focus-visible .hotspot-bubble {
+  outline: 2px solid var(--accent-amber);
+  outline-offset: 3px;
 }
 
 /* Object Hover Tooltip */
@@ -794,7 +852,7 @@ body, html {
   background: rgba(255, 255, 255, 0.14);
 }
 
-/* Skills & Books Grid */
+/* Skills Grid */
 .skills-container {
   display: flex;
   flex-direction: column;
@@ -840,41 +898,6 @@ body, html {
   background: linear-gradient(90deg, var(--accent-amber), #f97316);
   border-radius: 9999px;
   transition: width 1s ease;
-}
-
-/* Books Grid */
-.books-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
-  gap: 14px;
-  margin-top: 10px;
-}
-.book-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--panel-border);
-  border-left: 4px solid var(--accent-amber);
-  padding: 14px;
-  border-radius: var(--radius-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.book-title {
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--text-main);
-}
-.book-author {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-}
-.book-progress-wrapper {
-  margin-top: 6px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.75rem;
-  color: var(--text-muted);
 }
 
 /* About / Contact Profile */
@@ -992,27 +1015,15 @@ body, html {
   #app:not([data-scene-state="ready"]) .side-nav {
     flex-direction: row;
   }
-  #app:not([data-scene-state="ready"]) .side-nav .nav-label {
-    display: none;
-  }
-  #app:not([data-scene-state="ready"]) .side-nav .nav-btn {
-    min-width: 44px;
-    justify-content: center;
-  }
   .loading-screen {
     inset: 68px 0 12px;
     max-height: calc(100dvh - 80px);
     padding: 24px;
   }
   .side-nav {
+    --nav-size: 44px;
     left: calc(12px + env(safe-area-inset-left, 0px));
     top: calc(12px + env(safe-area-inset-top, 0px));
-    padding: 4px;
-    gap: 4px;
-  }
-  .side-nav .nav-btn {
-    padding: 6px 10px;
-    font-size: 0.8rem;
     gap: 6px;
   }
   .top-nav-right {
@@ -1059,9 +1070,6 @@ body, html {
   .dropdown-item {
     min-height: 44px;
   }
-  .side-nav .nav-btn {
-    min-height: 44px;
-  }
   .hotspot-pin {
     min-width: 44px;
     min-height: 44px;
@@ -1105,14 +1113,6 @@ body, html {
   }
   .modal-title {
     font-size: 1.1rem;
-  }
-  .side-nav .nav-label {
-    display: none;
-  }
-  .side-nav .nav-btn {
-    padding: 8px;
-    justify-content: center;
-    min-width: 44px;
   }
   .bottom-dock {
     display: grid;

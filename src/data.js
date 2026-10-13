@@ -25,7 +25,7 @@ export const PORTFOLIO_DATA = {
         github: "https://github.com"
       },
       stats: { fps: "60 FPS", drawCalls: "32 calls", size: "140 KB" },
-      highlights: ["Real-time point & directional light modulation", "Interactive raycasted furniture", "Procedural lofi synth & rain synthesis"]
+      highlights: ["Real-time point & directional light modulation", "Interactive raycasted furniture", "Procedural lofi synth & sound effects"]
     },
     {
       id: "neural-studio",
@@ -110,11 +110,5 @@ export const PORTFOLIO_DATA = {
         { name: "Performance Profiling (CWV, FPS)", level: 94 }
       ]
     }
-  ],
-  books: [
-    { title: "Designing Data-Intensive Applications", author: "Martin Kleppmann", status: "Completed", progress: 100, color: "#f97316" },
-    { title: "Real-Time Rendering (4th Edition)", author: "Tomas Akenine-Möller et al.", status: "Currently Reading", progress: 74, color: "#3b82f6" },
-    { title: "The Nature of Code", author: "Daniel Shiffman", status: "Completed", progress: 100, color: "#10b981" },
-    { title: "Structure & Interpretation of Computer Programs", author: "Abelson & Sussman", status: "Reference Guide", progress: 85, color: "#8b5cf6" }
   ]
 };

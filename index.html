@@ -8,12 +8,9 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
 </head>
 <body>
-  <div id="app" data-theme="night" data-scene-state="loading">
+  <div id="app" data-theme="sunset" data-scene-state="loading">
     <!-- 3D Canvas -->
     <canvas id="canvas3d" inert></canvas>
-
-    <!-- Rain Overlay (Active on rainy theme) -->
-    <div class="rain-overlay" id="rainOverlay"></div>
 
     <!-- 3D Hotspot Pins Container -->
     <div class="hotspot-container" id="hotspotContainer" inert></div>
@@ -21,19 +18,19 @@
     <!-- Hover Tooltip -->
     <div class="hover-tooltip" id="hoverTooltip">Click to interact</div>
 
-    <!-- Left Side Navigation (Vertical List) -->
+    <!-- Top Left Navigation Controls -->
     <nav class="side-nav" id="sideNav" aria-label="Main Navigation">
-      <button class="nav-btn" data-modal="projects" title="Projects & Work" aria-label="Projects & Work">
-        <span aria-hidden="true">💻</span>
-        <span class="nav-label">Projects</span>
+      <button class="nav-btn hud-btn" data-modal="about" aria-label="About & Contact">
+        <span class="nav-icon" aria-hidden="true">👤</span>
+        <span class="nav-label" aria-hidden="true">About Me</span>
       </button>
-      <button class="nav-btn" data-modal="skills" title="Skills & Reading Shelf" aria-label="Skills & Reading Shelf">
-        <span aria-hidden="true">📚</span>
-        <span class="nav-label">Skills & Books</span>
+      <button class="nav-btn hud-btn" data-modal="skills" aria-label="Skills & Tech Stack">
+        <span class="nav-icon" aria-hidden="true">📚</span>
+        <span class="nav-label" aria-hidden="true">Skills</span>
       </button>
-      <button class="nav-btn" data-modal="about" title="About & Contact" aria-label="About & Contact">
-        <span aria-hidden="true">👤</span>
-        <span class="nav-label">About & Contact</span>
+      <button class="nav-btn hud-btn" data-modal="projects" aria-label="Projects & Work">
+        <span class="nav-icon" aria-hidden="true">💻</span>
+        <span class="nav-label" aria-hidden="true">Projects</span>
       </button>
     </nav>
 
@@ -46,10 +43,6 @@
       <!-- Lofi Ambient Chords Toggle -->
       <button class="hud-btn" id="lofiBtn" aria-pressed="false" title="Toggle Cozy Lofi Beats" aria-label="Toggle Lofi Ambient">
         🎵
-      </button>
-      <!-- Rain Ambience Toggle -->
-      <button class="hud-btn" id="rainAudioBtn" aria-pressed="false" title="Toggle Rain Ambience" aria-label="Toggle Rain Audio">
-        🌧️
       </button>
       <!-- Master Sound Mute Toggle -->
       <button class="hud-btn" id="muteBtn" aria-pressed="false" title="Toggle Sound Effects" aria-label="Toggle Mute">
@@ -65,11 +58,11 @@
           <span aria-hidden="true">☀️</span>
           <span class="dock-label">Day</span>
         </button>
-        <button class="dock-btn" data-theme="sunset" aria-pressed="false" title="Golden Sunset" aria-label="Sunset mode">
+        <button class="dock-btn active" data-theme="sunset" aria-pressed="true" title="Golden Sunset" aria-label="Sunset mode">
           <span aria-hidden="true">🌅</span>
           <span class="dock-label">Sunset</span>
         </button>
-        <button class="dock-btn active" data-theme="night" aria-pressed="true" title="Cozy Night (Warm Lamp)" aria-label="Night mode">
+        <button class="dock-btn" data-theme="night" aria-pressed="false" title="Cozy Night (Warm Lamp)" aria-label="Night mode">
           <span aria-hidden="true">🌙</span>
           <span class="dock-label">Night</span>
         </button>
@@ -161,15 +154,15 @@
       </div>
     </div>
 
-    <!-- 2. Skills & Bookshelf Modal -->
+    <!-- 2. Skills Modal -->
     <div class="modal-backdrop" id="skillsModal" inert>
       <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="skillsTitle" aria-describedby="skillsSubtitle" tabindex="-1">
         <div class="modal-header">
           <div class="modal-title-group">
             <div class="modal-icon-badge" aria-hidden="true">📚</div>
             <div>
-              <h2 class="modal-title" id="skillsTitle">Tech Stack & Bookshelf</h2>
-              <div class="modal-subtitle" id="skillsSubtitle">Core technologies, 3D tooling & ongoing reading list</div>
+              <h2 class="modal-title" id="skillsTitle">Skills & Tech Stack</h2>
+              <div class="modal-subtitle" id="skillsSubtitle">Core technologies, 3D tooling & workflow</div>
             </div>
           </div>
           <button class="modal-close-btn" data-close aria-label="Close skills dialog">&times;</button>

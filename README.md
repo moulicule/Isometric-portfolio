@@ -10,18 +10,19 @@ An interactive, real-time 3D isometric room portfolio webpage powered by **Splin
 - **💻 Computer Workstation**: Click the monitor or keyboard to launch the interactive **Project Showcase modal** featuring live demos, tech tags, and code repositories.
 - **💡 Bedside Lamp**: Click the lamp or the nightstand to toggle the bedside light ON/OFF. Dynamically modulates the Point Light intensity, casting real-time warm golden radiance across the room.
 - **🪑 Swivel Chair**: Click the office chair to trigger a 360-degree spring-damped swivel animation with spatial sound.
-- **📚 Bookshelf**: Click the wall bookshelf to open the **Tech Stack & Atelier Reading Shelf** with categorized proficiencies and book progress.
+- **📚 Bookshelf**: Click the wall bookshelf to open the **Skills & Tech Stack** with categorized proficiencies.
 - **🌱 House Plant**: Click the potted plant to water it, displaying hydration levels and blooming emerald confetti celebrations!
 - **🛏️ Cozy Bed**: Click the bed to enter **Zen Mode**—dimming room lights, launching soothing ambient lofi soundscapes, and displaying a live digital focus clock.
-- **🌤️ Skylight Window**: Click the skylight to cycle through dynamic atmospheric moods: **Day**, **Golden Sunset**, **Cozy Night**, and **Rainy Lofi**.
+- **🌤️ Skylight Window**: The room starts at **Golden Sunset** and smoothly cycles through **Cozy Night**, **Day**, and back to sunset every **10 minutes** once ready. Click the skylight, use the theme buttons, or press `1`–`3` to fade into a phase over **1 second** and continue the cycle from there. Zen mode holds night lighting; exiting resumes from night.
 - **☕ Coffee Mug**: Click to take a coffee break with focus stats boost.
 - **⏰ Live Wall Clock**: The hour (`Cylinder 19`) and minute (`Cylinder 18`) hands on the 3D wall clock tick and rotate in real-time according to the user's system clock.
 - **👤 Sticky Notes**: Click the colorful sticky notes on the wall to open **About & Contact**, with direct email and LinkedIn links.
+- **Markers**: All visible interactions, including About Me, Projects, and Skills, use small circle markers that animate into labels above their objects on hover or keyboard focus, with reduced-motion support.
 - **Loading**: About and contact remain available while the room loads. An opaque backdrop covers incomplete rendering; the backdrop and introduction card fade together after assets and rendering are ready.
 
 ### 🎧 Procedural Web Audio Engine (100% Offline)
 - Synthesizes realistic mechanical switch clicks, hover pops, chair swooshes, and water chimes using the native **Web Audio API**.
-- Includes toggleable **Cozy Lofi Harmonic Synth Pad** and procedural **Filtered Rain Generator** with zero external mp3 dependencies.
+- Includes a toggleable **Cozy Lofi Harmonic Synth Pad** with zero external mp3 dependencies.
 
 ### 📐 Camera & Perspectives
 - **Isometric (Default)**: Classic isometric architectural angle.
@@ -35,7 +36,6 @@ An interactive, real-time 3D isometric room portfolio webpage powered by **Splin
 - `1`: Switch to Day Mode
 - `2`: Switch to Sunset Mode
 - `3`: Switch to Night Mode
-- `4`: Switch to Rainy Mode
 - `ESC`: Close open modals / Exit Zen Mode
 
 ---
@@ -80,5 +80,5 @@ node --test tests/scene-ready.test.mjs
 │   ├── audio.js            # Procedural Web Audio API sound synthesis engine
 │   ├── data.js             # Project showcase, skills, and developer profile data
 │   └── style.css           # Glassmorphic UI styles, animations, and responsive layouts
-└── package.json            # Project dependencies (@splinetool/runtime, three, canvas-confetti, vite)
+└── package.json            # Project dependencies (@splinetool/runtime, three, canvas-confetti, gsap, vite)
 ```

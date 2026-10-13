@@ -9,6 +9,7 @@ The architecture is intentionally small:
 ```text
 index.html + src/style.css       DOM shell and visual UI
 src/main.js                      application controller and scene integration
+src/day-night-cycle.js           ten-minute lighting phase calculation
 src/scene-ready.js               asset/render readiness gate for the loading card
 public/scene.splinecode          3D room loaded at runtime
 src/data.js                      static portfolio/modal content
@@ -36,6 +37,7 @@ npm run preview
 | 3D scene loading/rendering/input | `@splinetool/runtime` | Owns WebGL/WebGPU rendering, the Spline scene graph, and native camera controls. |
 | Scene inspection/raycasting/math | `three` | Imported separately in `src/main.js`; used for `Raycaster`, `Vector3`, camera interpolations, and colors. |
 | Celebration particles | `canvas-confetti` | Used for projects and plant watering. |
+| Hotspot reveal animations | `gsap` | Reversible timelines for circle-to-pin reveals; honors reduced motion. |
 | Sound | Native Web Audio API | Implemented in `src/audio.js`; no media files or audio service. |
 | Application UI | Browser DOM + CSS | All modals, tooltips, pins, dock controls, and overlays are custom DOM. |
 
@@ -45,9 +47,10 @@ The project does not use any external backend. The social/project URLs in `src/d
 
 - `index.html` — fixed DOM shell and all button/modal IDs.
 - `src/main.js` — lifecycle, camera behavior, scene object lookups, interactions, rendering loop, modals, and event listeners.
+- `src/day-night-cycle.js` — ten-minute sunset → night → day → sunset timing and smooth blend calculation. Checks: `node --test tests/day-night-cycle.test.mjs`.
 - `src/scene-ready.js` — awaits scene media/fonts, material resources, completed renderer frames, GPU submission, and browser presentation before dismissing the card.
 - `src/style.css` — all responsive and visual styling.
-- `src/data.js` — developer profile, projects, skills, and books rendered into modals.
+- `src/data.js` — developer profile, projects, and skills rendered into modals.
 - `src/audio.js` — the procedural `SoundEngine` singleton.
 - `public/scene.splinecode` — the runtime scene asset actually fetched by the app at `/scene.splinecode`.
 - `scene.splinecode` and `scene (1).splinecode` — source/copy assets. Do not assume editing either changes the served scene; copy the finalized asset into `public/scene.splinecode` if the scene is updated.
@@ -80,7 +83,7 @@ Canvas, hotspots, utility controls, and the dock start inert and the scene contr
 | ` Coffee Cup` (leading space) or `Coffee Cup` | Coffee hotspot |
 | `Clock`, `Cylinder 19`, `Cylinder 18` | Live clock and its hour/minute hands |
 
-`HOTSPOTS` is the one source of truth for custom DOM pins. Each entry maps a scene name/object cache key to an action. Pins use projected 3D positions in `updateHotspots()`. Scene clicking is not handled by Spline events here: the app raycasts the Spline scene with Three's `Raycaster` and walks parents in `findInteractiveParent()`.
+`HOTSPOTS` is the one source of truth for custom DOM pins. All visible hotspots, including About Me, Projects, and Skills, use concentric-circle markers that reveal labels above their objects on object/marker hover or keyboard focus. GSAP animates ring/label transforms and opacity on reversible timelines; projected geometry bounds set the default label clearance while the circle anchor stays fixed. Projects, Skills, Chair, Plant, Bed, and Lamp use calibrated `revealOffsetY` heights so labels stay close to the interaction area; the lamp clears its shade above the bedside-table pivot. Coffee uses `offsetX` to center both its circle and label over the cup body rather than its handle, scaled with camera zoom. Reduced-motion users get the same raised labels immediately. `secondary` selects this presentation; `pin: false` keeps the Window interaction without a DOM marker. Each entry maps a scene name/object cache key to an action. Pins use projected 3D positions in `updateHotspots()`. Scene clicking is not handled by Spline events here: the app raycasts the Spline scene with Three's `Raycaster` and walks parents in `findInteractiveParent()`.
 
 ## Camera behavior: preserve this carefully
 
@@ -119,7 +122,7 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 
 | Area | Functions | Behavior |
 | --- | --- | --- |
-| Lighting/theme | `setTheme`, `cycleTheme`, `setupLightingAndTheme` | Applies palette colors/intensities to Spline lights and synchronizes rain audio. |
+| Lighting/theme | `setTheme`, `cycleTheme`, `setupLightingAndTheme`, `updateDayNightCycle` | Boots at Sunset; after readiness, blends Sunset → Night → Day → Sunset over ten minutes. Manual theme selection fades the current background and lighting into the selected phase over 1 second, then resumes the cycle; repeated clicks retarget from the visible colours. Zen fades to Night, holds it, and resumes from Night on exit. |
 | Lamp | `toggleLamp`, `updateLampLighting` | Sets the two named Spline point-light intensities. |
 | Chair | `spinChair` + `animateLoop` | Turns cached chair over one full revolution. |
 | Plant | `waterPlant` | Increases local hydration state, computes plant screen location, and fires green confetti. |
@@ -136,7 +139,7 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 - Only primary-button `pointerup` activates a hotspot; right click does not activate scene interactions, and the browser context menu is suppressed on the canvas.
 - The canvas uses `touch-action: manipulation` and a grab cursor.
 - `setupEventListeners()` binds navigation, sound, theme, camera, quick actions, fullscreen, modal closing, and keyboard shortcuts.
-- Keyboard shortcuts: `L` lamp, `C` chair spin, `1`–`3` themes, `4` rain. Shortcuts ignore editable fields, composition, repeats, modifier chords, open dialogs, and the open actions menu.
+- Keyboard shortcuts: `L` lamp, `C` chair spin, `1`–`3` themes. Shortcuts ignore editable fields, composition, repeats, modifier chords, open dialogs, and the open actions menu.
 - Escape closes the active dialog, then the actions menu, then Zen mode (one active layer per keypress). It has no effect when none are active.
 - Dialog backdrops start inert. `openModal()` saves the background's inert state and focuses the dialog after it becomes visible. Tab/Shift+Tab wrap through the close button, scrollable content region, and links. Closing restores the opener; a matching navigation button is the fallback if a resized/hidden hotspot cannot receive focus.
 - The Interactions menu supports Up/Down, Home/End, Enter/Space activation, Escape, and Tab back into the page. Closed menus are inert. Lamp uses `aria-checked`; theme, camera, audio, Pins, and fullscreen controls synchronize `aria-pressed` with their visual states.
@@ -147,18 +150,17 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 
 - `playSwitch`, `playPop`, `playWhoosh`, `playWaterChime` synthesize short effects.
 - `toggleAmbient` creates a recurring lofi chord loop using oscillators.
-- `toggleRain` creates a looped filtered noise buffer.
 - `toggleMute` changes gain levels; it does not destroy or recreate active sources.
 
 Keep all audio local unless the task explicitly asks for externally hosted media.
 
 ## Styling and layout (`src/style.css`)
 
-The CSS owns the full-screen canvas layering, glass panels, dock, hotspots, tooltip, loader, rain effect, modals, Zen overlay, and responsive breakpoints. UI elements sit above the canvas and selectively use `pointer-events` so canvas interaction remains reachable. Before changing z-index or pointer-event rules, verify hotspot clicks and dock buttons still work.
+The CSS owns the full-screen canvas layering, glass panels, dock, hotspots, tooltip, loader, modals, Zen overlay, and responsive breakpoints. UI elements sit above the canvas and selectively use `pointer-events` so canvas interaction remains reachable. Before changing z-index or pointer-event rules, verify hotspot clicks and dock buttons still work.
 
-Compact layouts (width up to 840px or height up to 500px) use 44px icon controls and named `.dock-label` spans, and initially hide markers. Phones up to 560px use a two-row dock. The Pins button reveals named, keyboard-accessible icon buttons; `updateHotspots()` separates these markers from each other and the controls. Desktop pins retain their labels. The app uses dynamic viewport height and safe-area spacing.
+Compact layouts (width up to 840px or height up to 500px) use 44px icon controls and named `.dock-label` spans, and initially hide markers. Phones up to 560px use a two-row dock. The Pins button reveals keyboard-accessible circle markers. Circles stay anchored to their objects, with expanded labels kept inside the viewport. The app uses dynamic viewport height and safe-area spacing.
 
-Dialog close targets are 44px, content is selectable, and scroll regions are focusable. Small phones use tighter dialog padding; skill/book grids shrink to available width. Dialog/menu visibility becomes immediate on opening; descendant hover transitions exclude inherited visibility so focus is available immediately.
+Dialog close targets are 44px, content is selectable, and scroll regions are focusable. Small phones use tighter dialog padding; skill grids shrink to available width. Dialog/menu visibility becomes immediate on opening; descendant hover transitions exclude inherited visibility so focus is available immediately.
 
 ## Safe change workflow
 
@@ -166,7 +168,7 @@ Dialog close targets are 44px, content is selectable, and scroll regions are foc
 2. If editing the 3D model, preserve the scene object-name contract above and copy the intended `.splinecode` into `public/`.
 3. Run `npm run build`.
 4. Check `git diff --check`.
-5. Manually check at least: scene load, all three camera presets, constrained orbit/pan/zoom, one hotspot, lamp, theme/rain, modal opening, and mobile/touch behavior.
+5. Manually check at least: scene load, all three camera presets, constrained orbit/pan/zoom, one hotspot, lamp, themes, modal opening, and mobile/touch behavior.
 
 ## Common pitfalls
 

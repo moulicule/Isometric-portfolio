@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import confetti from 'canvas-confetti';
+import { gsap } from 'gsap';
 import { sound } from './audio.js';
 import { PORTFOLIO_DATA } from './data.js';
 import { waitForSceneReady } from './scene-ready.js';
+import { DAY_NIGHT_CYCLE_MS, DAY_NIGHT_PHASES, getDayNightPhase } from './day-night-cycle.js';
 
 // DOM References
 const appEl = document.getElementById('app');
@@ -31,7 +33,6 @@ let zenReturnFocus = null;
 
 // Buttons
 const lofiBtn = document.getElementById('lofiBtn');
-const rainAudioBtn = document.getElementById('rainAudioBtn');
 const muteBtn = document.getElementById('muteBtn');
 const toggleLampBtn = document.getElementById('toggleLampBtn');
 const spinChairBtn = document.getElementById('spinChairBtn');
@@ -42,7 +43,6 @@ const resetCamBtn = document.getElementById('resetCamBtn');
 const exitZenBtn = document.getElementById('exitZenBtn');
 const interactionsDropdown = document.getElementById('interactionsDropdown');
 const interactionsToggleBtn = document.getElementById('interactionsToggleBtn');
-const rainOverlay = document.getElementById('rainOverlay');
 const compactLayoutMedia = window.matchMedia('(max-width: 840px), (max-height: 500px)');
 
 // Nearby alternatives keep compact 44px markers from covering one another.
@@ -65,8 +65,7 @@ const pointerStart = { x: 0, y: 0 };
 // Room State
 const state = {
   lampOn: true,
-  theme: 'night',
-  raining: false,
+  theme: 'sunset',
   cameraPreset: 'iso',
   chairAngle: 0,
   chairSpinning: false,
@@ -75,6 +74,7 @@ const state = {
   zenMode: false,
   hoveredInteractive: null
 };
+let dayNightCycleStart = null;
 
 // Base Camera Settings
 const DEFAULT_CAM_POS = new THREE.Vector3(585.13, 336.63, 729.21);
@@ -130,7 +130,7 @@ const ZOOM_BOUNDS = {
 // Lighting Palettes
 const THEMES = {
   night: {
-    bg: '#0d0b0f',
+    bg: new THREE.Color('#30262c'),
     sunColor: new THREE.Color(0.25, 0.35, 0.7),
     sunIntensity: 0.35,
     skyColor: new THREE.Color(0.15, 0.22, 0.45),
@@ -139,7 +139,7 @@ const THEMES = {
     label: 'Cozy Night'
   },
   day: {
-    bg: '#182030',
+    bg: new THREE.Color('#8a674e'),
     sunColor: new THREE.Color(1.0, 0.96, 0.88),
     sunIntensity: 1.3,
     skyColor: new THREE.Color(0.55, 0.78, 1.0),
@@ -148,24 +148,19 @@ const THEMES = {
     label: 'Bright Daylight'
   },
   sunset: {
-    bg: '#1a0d16',
+    bg: new THREE.Color('#70452e'),
     sunColor: new THREE.Color(1.0, 0.5, 0.22),
     sunIntensity: 1.2,
     skyColor: new THREE.Color(0.85, 0.35, 0.65),
     skyIntensity: 0.55,
     lampIntensity: 1.3,
     label: 'Golden Sunset'
-  },
-  rain: {
-    bg: '#0a0f16',
-    sunColor: new THREE.Color(0.35, 0.48, 0.65),
-    sunIntensity: 0.35,
-    skyColor: new THREE.Color(0.22, 0.32, 0.48),
-    skyIntensity: 0.3,
-    lampIntensity: 1.7,
-    label: 'Rainy Lofi'
   }
 };
+const cycleBackgroundColor = new THREE.Color();
+let appliedBackground = null;
+let themeTransition = null;
+const THEME_FADE_MS = 1000;
 
 // Cached scene object pointers
 const objects = {
@@ -189,15 +184,15 @@ const objects = {
 
 // Hotspot definitions mapped to 3D room objects
 const HOTSPOTS = [
-  { id: 'projects', name: 'Computer', label: 'Projects & Work', icon: '💻', objKey: 'computer', offsetY: 65, action: trigger => openModal('projects', trigger) },
-  { id: 'lamp', name: 'Bed Table', label: 'Bedside Lamp', icon: '💡', objKey: 'bedTable', offsetY: 60, action: () => toggleLamp() },
-  { id: 'chair', name: 'Chair', label: 'Swivel Chair', icon: '🪑', objKey: 'chair', offsetY: 50, action: () => spinChair() },
-  { id: 'skills', name: 'Books', label: 'Skills & Stack', icon: '📚', objKey: 'books', offsetY: 40, action: trigger => openModal('skills', trigger) },
-  { id: 'plant', name: 'Plant', label: 'House Plant', icon: '🌱', objKey: 'plant', offsetY: 75, action: () => waterPlant() },
-  { id: 'bed', name: 'Bed', label: 'Zen Mode', icon: '🛏️', objKey: 'bed', offsetY: 50, action: () => toggleZenMode() },
-  { id: 'window', name: 'Window', label: 'Atmosphere & Sky', icon: '🌤️', objKey: 'window', offsetY: 60, action: () => cycleTheme() },
-  { id: 'coffee', name: ' Coffee Cup', label: 'Coffee Break', icon: '☕', objKey: 'coffee', offsetY: 30, action: () => drinkCoffee() },
-  { id: 'about', name: 'Sticky Notes', label: 'About & Bio', icon: '👤', objKey: 'stickyNotes', offsetY: 40, action: trigger => openModal('about', trigger) }
+  { id: 'projects', name: 'Computer', label: 'Projects', icon: '💻', objKey: 'computer', offsetY: 0, revealOffsetY: 27, secondary: true, action: trigger => openModal('projects', trigger) },
+  { id: 'lamp', name: 'Bed Table', label: 'Bedside Lamp', icon: '💡', objKey: 'bedTable', offsetY: 50, revealOffsetY: 65, secondary: true, action: () => toggleLamp() },
+  { id: 'chair', name: 'Chair', label: 'Swivel Chair', icon: '🪑', objKey: 'chair', offsetY: 0, revealOffsetY: 45, secondary: true, action: () => spinChair() },
+  { id: 'skills', name: 'Books', label: 'Skills', icon: '📚', objKey: 'books', offsetY: 0, revealOffsetY: 27, secondary: true, action: trigger => openModal('skills', trigger) },
+  { id: 'plant', name: 'Plant', label: 'House Plant', icon: '🌱', objKey: 'plant', offsetY: 0, revealOffsetY: 50, secondary: true, action: () => waterPlant() },
+  { id: 'bed', name: 'Bed', label: 'Zen Mode', icon: '🛏️', objKey: 'bed', offsetY: 0, revealOffsetY: 25, secondary: true, action: () => toggleZenMode() },
+  { id: 'window', name: 'Window', label: 'Atmosphere & Sky', icon: '🌤️', objKey: 'window', pin: false, action: () => cycleTheme() },
+  { id: 'coffee', name: ' Coffee Cup', label: 'Coffee Break', icon: '☕', objKey: 'coffee', offsetY: 0, offsetX: -6, secondary: true, action: () => drinkCoffee() },
+  { id: 'about', name: 'Sticky Notes', label: 'About Me', icon: '👤', objKey: 'stickyNotes', offsetY: 0, secondary: true, action: trigger => openModal('about', trigger) }
 ];
 
 // The DOM portfolio is usable before renderer download, construction, or loading.
@@ -255,9 +250,9 @@ async function init() {
     if (!activeModal && loadingScreen.contains(document.activeElement)) {
       document.querySelector('#sideNav [data-modal="about"]').focus({ preventScroll: true });
     }
-    showToast('🏠 Interactive Isometric Atelier ready! Click objects to explore.', '✨');
 
     // Start render/update loop
+    dayNightCycleStart = performance.now();
     requestAnimationFrame(animateLoop);
   } catch (err) {
     console.error('Failed to initialize Spline scene:', err);
@@ -369,17 +364,40 @@ function setupSceneReferences() {
 function setupHotspots() {
   hotspotContainer.innerHTML = '';
   HOTSPOTS.forEach(spot => {
+    if (spot.pin === false) return;
     const el = document.createElement('button');
     el.type = 'button';
-    el.className = 'hotspot-pin';
+    el.className = spot.secondary ? 'hotspot-pin hotspot-secondary' : 'hotspot-pin';
     el.id = `hotspot-${spot.id}`;
     el.setAttribute('aria-label', spot.label);
-    el.title = spot.label;
+    if (!spot.secondary) el.title = spot.label;
     el.hidden = true;
-    el.innerHTML = `
+    const content = `
       <div class="hotspot-icon" aria-hidden="true">${spot.icon}</div>
       <div class="hotspot-label">${spot.label}</div>
     `;
+    el.innerHTML = spot.secondary
+      ? `<span class="hotspot-ring" aria-hidden="true"></span><span class="hotspot-bubble">${content}</span>`
+      : content;
+    if (spot.secondary) {
+      spot.bubble = el.querySelector('.hotspot-bubble');
+      spot.ring = el.querySelector('.hotspot-ring');
+      const obj = objects[spot.objKey];
+      const bounds = obj && spot.revealOffsetY === undefined && new THREE.Box3().setFromObject(obj);
+      spot.bounds = [];
+      if (bounds && !bounds.isEmpty()) {
+        // Cache geometry bounds once; project their corners as the camera moves.
+        for (const x of [bounds.min.x, bounds.max.x]) {
+          for (const y of [bounds.min.y, bounds.max.y]) {
+            for (const z of [bounds.min.z, bounds.max.z]) {
+              spot.bounds.push(obj.worldToLocal(new THREE.Vector3(x, y, z)));
+            }
+          }
+        }
+      }
+      el.addEventListener('pointerenter', () => { spot.pinHovered = true; });
+      el.addEventListener('pointerleave', () => { spot.pinHovered = false; });
+    }
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       sound.playPop();
@@ -388,12 +406,46 @@ function setupHotspots() {
     hotspotContainer.appendChild(el);
     spot.domElement = el;
   });
+  gsap.matchMedia().add({ motion: '(prefers-reduced-motion: no-preference)', reduced: '(prefers-reduced-motion: reduce)' }, context => {
+    HOTSPOTS.filter(spot => spot.secondary).forEach(spot => {
+      spot.reducedMotion = context.conditions.reduced;
+      spot.revealed = null;
+      spot.domElement.classList.remove('is-revealed');
+      spot.motion = { rise: 0 };
+      gsap.set(spot.ring, { scale: 0.8, y: 0, autoAlpha: 1 });
+      gsap.set(spot.bubble, { xPercent: -50, yPercent: -50, scale: 0.45, autoAlpha: 0 });
+      spot.setBubbleX = gsap.quickSetter(spot.bubble, 'x', 'px');
+      spot.setBubbleY = gsap.quickSetter(spot.bubble, 'y', 'px');
+      spot.revealTimeline = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' }, onReverseComplete: () => spot.domElement.classList.remove('is-revealed') })
+        .to(spot.motion, { rise: 1, duration: 0.36 }, 0)
+        .to(spot.ring, { y: -12, scaleX: 1.4, scaleY: 0.5, autoAlpha: 0, duration: 0.16 }, 0)
+        .to(spot.bubble, { scale: 1, autoAlpha: 1, duration: 0.26 }, 0.07);
+    });
+  });
+}
+
+function setHotspotRevealed(spot, revealed) {
+  if (spot.revealed === revealed) return;
+  spot.revealed = revealed;
+  if (revealed) spot.domElement.classList.add('is-revealed');
+  if (spot.reducedMotion) {
+    spot.revealTimeline.progress(revealed ? 1 : 0).pause();
+    spot.domElement.classList.toggle('is-revealed', revealed);
+  } else if (revealed) {
+    spot.revealTimeline.play();
+  } else {
+    spot.revealTimeline.reverse();
+  }
 }
 
 // Update Hotspot Screen Positions
 function updateHotspots() {
   if (!state.pinsVisible || !threeCamera) {
     hotspotContainer.style.display = 'none';
+    HOTSPOTS.filter(spot => spot.secondary).forEach(spot => {
+      spot.pinHovered = false;
+      setHotspotRevealed(spot, false);
+    });
     return;
   }
   hotspotContainer.style.display = 'block';
@@ -402,6 +454,8 @@ function updateHotspots() {
   const v = new THREE.Vector3();
   const compactPins = compactLayoutMedia.matches;
   const placedPins = [];
+  // Read sizes together before updating positions or starting any tweens.
+  const bubbleSizes = new Map(HOTSPOTS.filter(spot => spot.secondary).map(spot => [spot, { width: spot.bubble.offsetWidth, height: spot.bubble.offsetHeight }]));
   const obstacles = compactPins
     ? [...document.querySelectorAll('.side-nav, .top-nav-right, .bottom-dock')].map(el => el.getBoundingClientRect())
     : [];
@@ -415,7 +469,7 @@ function updateHotspots() {
     }
 
     obj.getWorldPosition(v);
-    v.y += spot.offsetY || 40;
+    v.y += spot.offsetY ?? 40;
     v.project(threeCamera);
 
     // Check if within frustum bounds
@@ -426,10 +480,10 @@ function updateHotspots() {
       return;
     }
 
-    let x = (v.x * 0.5 + 0.5) * rect.width;
+    let x = (v.x * 0.5 + 0.5) * rect.width + (spot.offsetX ?? 0) * threeCamera.zoom / DEFAULT_CAM_ZOOM;
     let y = (-v.y * 0.5 + 0.5) * rect.height;
 
-    if (compactPins) {
+    if (compactPins && !spot.secondary) {
       const position = COMPACT_PIN_OFFSETS
         .map(offset => ({
           x: THREE.MathUtils.clamp(x + offset.x, 28, rect.width - 28),
@@ -448,6 +502,29 @@ function updateHotspots() {
       }
       ({ x, y } = position);
       placedPins.push(position);
+    }
+    if (spot.secondary) {
+      const { width, height } = bubbleSizes.get(spot);
+      let objectTop = y;
+      // Use tuned reveal heights for large objects instead of their full bounds.
+      if (spot.revealOffsetY !== undefined) {
+        obj.getWorldPosition(v);
+        v.y += spot.revealOffsetY;
+        v.project(threeCamera);
+        objectTop = Math.min(objectTop, (-v.y * 0.5 + 0.5) * rect.height);
+      }
+      for (const corner of spot.bounds) {
+        v.copy(corner);
+        obj.localToWorld(v);
+        v.project(threeCamera);
+        objectTop = Math.min(objectTop, (-v.y * 0.5 + 0.5) * rect.height);
+      }
+      const lift = Math.max(44, y - objectTop + height / 2 + 14);
+      const bubbleY = Math.max(8 + height / 2, y - lift);
+      spot.domElement.style.setProperty('--pin-lift', `${y - bubbleY}px`);
+      setHotspotRevealed(spot, isVisible && !activeModal && !isDragging && (state.hoveredInteractive === spot || spot.pinHovered || spot.domElement.matches(':focus-visible')));
+      spot.setBubbleX((THREE.MathUtils.clamp(x, width / 2 + 8, rect.width - width / 2 - 8) - x) * spot.motion.rise);
+      spot.setBubbleY((bubbleY - y) * spot.motion.rise);
     }
 
     spot.domElement.style.opacity = '1';
@@ -484,6 +561,8 @@ function animateLoop(now) {
   requestAnimationFrame(animateLoop);
   const delta = (now - lastTime) / 1000;
   lastTime = now;
+
+  updateDayNightCycle(now);
 
   // 1. Clock hands update
   updateClockHands();
@@ -574,10 +653,29 @@ function resetCamera() {
 }
 
 // Lighting & Atmosphere Transition
-function setTheme(themeName) {
+function setTheme(themeName, { notify = true, restartCycle = true } = {}) {
   const theme = THEMES[themeName];
   if (!theme) return;
 
+  const now = performance.now();
+  if (restartCycle && dayNightCycleStart !== null) {
+    const current = THEMES[state.theme];
+    // Capture what is actually visible so repeated clicks can retarget mid-fade.
+    themeTransition = {
+      start: now,
+      from: {
+        bg: cycleBackgroundColor.clone(),
+        sunColor: objects.sunLight?.color.clone() ?? current.sunColor.clone(),
+        sunIntensity: objects.sunLight?.intensity ?? current.sunIntensity,
+        skyColor: objects.skyLight?.color.clone() ?? current.skyColor.clone(),
+        skyIntensity: objects.skyLight?.intensity ?? current.skyIntensity,
+        lampIntensity: objects.lampLight1?.intensity ?? (state.lampOn ? current.lampIntensity : 0)
+      },
+      to: theme
+    };
+    dayNightCycleStart = now + THEME_FADE_MS
+      - DAY_NIGHT_PHASES.indexOf(themeName) * (DAY_NIGHT_CYCLE_MS / DAY_NIGHT_PHASES.length);
+  }
   state.theme = themeName;
   appEl.setAttribute('data-theme', themeName);
 
@@ -587,23 +685,49 @@ function setTheme(themeName) {
     btn.setAttribute('aria-pressed', String(btn.dataset.theme === themeName));
   });
 
-  // Apply Directional Sun & Sky lighting
-  if (objects.sunLight) {
-    objects.sunLight.color.copy(theme.sunColor);
-    objects.sunLight.intensity = theme.sunIntensity;
-  }
-  if (objects.skyLight) {
-    objects.skyLight.color.copy(theme.skyColor);
-    objects.skyLight.intensity = theme.skyIntensity;
-  }
-
   // Bedside Lamp behavior based on theme
   if (themeName === 'night') {
     state.lampOn = true;
   }
-  updateLampLighting();
+  if (!themeTransition) applyThemeLighting(theme);
+  updateLampLighting({ applyIntensity: !themeTransition });
 
-  showToast(`Atmosphere set to ${theme.label}`, '🌤️');
+  if (notify) showToast(`Atmosphere set to ${theme.label}`, '🌤️');
+}
+
+function applyThemeLighting(from, to = from, blend = 0) {
+  const background = cycleBackgroundColor.copy(from.bg).lerp(to.bg, blend).getStyle();
+  if (background !== appliedBackground) {
+    // Spline's opaque canvas covers the CSS atmosphere behind it.
+    splineApp?.setBackgroundColor(background);
+    appEl.style.background = background;
+    appliedBackground = background;
+  }
+  if (objects.sunLight) {
+    objects.sunLight.color.copy(from.sunColor).lerp(to.sunColor, blend);
+    objects.sunLight.intensity = THREE.MathUtils.lerp(from.sunIntensity, to.sunIntensity, blend);
+  }
+  if (objects.skyLight) {
+    objects.skyLight.color.copy(from.skyColor).lerp(to.skyColor, blend);
+    objects.skyLight.intensity = THREE.MathUtils.lerp(from.skyIntensity, to.skyIntensity, blend);
+  }
+  const lampIntensity = state.lampOn ? THREE.MathUtils.lerp(from.lampIntensity, to.lampIntensity, blend) : 0;
+  if (objects.lampLight1) objects.lampLight1.intensity = lampIntensity;
+  if (objects.lampLight2) objects.lampLight2.intensity = lampIntensity;
+  splineApp?.requestRender();
+}
+
+function updateDayNightCycle(now) {
+  if (themeTransition) {
+    const progress = Math.min(1, Math.max(0, (now - themeTransition.start) / THEME_FADE_MS));
+    applyThemeLighting(themeTransition.from, themeTransition.to, progress * progress * (3 - 2 * progress));
+    if (progress === 1) themeTransition = null;
+    return;
+  }
+  if (dayNightCycleStart === null || state.zenMode) return;
+  const { from, to, blend } = getDayNightPhase(now - dayNightCycleStart);
+  if (state.theme !== from) setTheme(from, { notify: false, restartCycle: false });
+  applyThemeLighting(THEMES[from], THEMES[to], blend);
 }
 
 function cycleTheme() {
@@ -612,22 +736,8 @@ function cycleTheme() {
   setTheme(themes[nextIdx]);
 }
 
-// Rain Atmosphere Toggle (Independent of Day/Night cycle)
-function toggleRain(enable = null) {
-  const isPlaying = sound.toggleRain(enable);
-  state.raining = isPlaying;
-  rainAudioBtn.classList.toggle('active', isPlaying);
-  rainAudioBtn.setAttribute('aria-pressed', String(isPlaying));
-  if (rainOverlay) {
-    rainOverlay.classList.toggle('active', isPlaying);
-  }
-  appEl.classList.toggle('is-raining', isPlaying);
-  showToast(`Rain Ambience: ${isPlaying ? 'ON' : 'OFF'}`, '🌧️');
-  return isPlaying;
-}
-
 function setupLightingAndTheme() {
-  setTheme('night');
+  setTheme('sunset', { notify: false });
 }
 
 // Bedside Lamp Toggle
@@ -639,10 +749,12 @@ function toggleLamp() {
   showToast(`Bedside lamp turned ${state.lampOn ? 'ON' : 'OFF'}`, state.lampOn ? '💡' : '🌑');
 }
 
-function updateLampLighting() {
+function updateLampLighting({ applyIntensity = true } = {}) {
   const intensity = state.lampOn ? (THEMES[state.theme]?.lampIntensity || 1.6) : 0.0;
-  if (objects.lampLight1) objects.lampLight1.intensity = intensity;
-  if (objects.lampLight2) objects.lampLight2.intensity = intensity;
+  if (applyIntensity) {
+    if (objects.lampLight1) objects.lampLight1.intensity = intensity;
+    if (objects.lampLight2) objects.lampLight2.intensity = intensity;
+  }
   toggleLampBtn.classList.toggle('active', state.lampOn);
   toggleLampBtn.setAttribute('aria-checked', String(state.lampOn));
 }
@@ -702,6 +814,7 @@ function toggleZenMode(enable = null) {
     setTheme('night');
     showToast('Entered Cozy Zen Mode', '🌙');
   } else {
+    setTheme('night', { notify: false });
     const shouldRestoreFocus = zenOverlay.contains(document.activeElement);
     zenOverlay.classList.remove('active');
     if (shouldRestoreFocus) {
@@ -760,7 +873,8 @@ function handlePointerMove(e) {
     hoverTooltip.textContent = `${targetSpot.icon} ${targetSpot.label} — Click to interact`;
     hoverTooltip.style.left = `${e.clientX}px`;
     hoverTooltip.style.top = `${e.clientY}px`;
-    hoverTooltip.classList.add('visible');
+    const revealedPin = targetSpot.secondary && state.pinsVisible && targetSpot.domElement && !targetSpot.domElement.hidden;
+    hoverTooltip.classList.toggle('visible', !revealedPin);
   } else {
     state.hoveredInteractive = null;
     canvas.classList.remove('pointer-cursor');
@@ -928,7 +1042,7 @@ function renderContent() {
     `).join('');
   }
 
-  // 2. Skills & Books
+  // 2. Skills
   const skillsContainer = document.getElementById('skillsContainer');
   if (skillsContainer) {
     skillsContainer.innerHTML = `
@@ -950,22 +1064,6 @@ function renderContent() {
           </div>
         </div>
       `).join('')}
-
-      <div style="margin-top: 10px;">
-        <div class="skill-category-title">📖 Atelier Reading Shelf</div>
-        <div class="books-grid">
-          ${PORTFOLIO_DATA.books.map(b => `
-            <div class="book-card" style="border-left-color: ${b.color};">
-              <div class="book-title">${b.title}</div>
-              <div class="book-author">by ${b.author}</div>
-              <div class="book-progress-wrapper">
-                <span class="stat-val" style="color: ${b.color};">${b.progress}%</span>
-                <span>&bull; ${b.status}</span>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
     `;
   }
 
@@ -1012,6 +1110,11 @@ function renderContent() {
 function setupSceneInput() {
   // Canvas pointer raycasting and click handling. Orbit is constrained; panning is disabled.
   canvas.addEventListener('pointermove', handlePointerMove);
+  canvas.addEventListener('pointerleave', () => {
+    state.hoveredInteractive = null;
+    canvas.classList.remove('pointer-cursor');
+    hoverTooltip.classList.remove('visible');
+  });
   canvas.addEventListener('pointermove', keepOrbitDragActive);
   canvas.addEventListener('pointerdown', handlePointerDown);
   canvas.addEventListener('pointerup', handlePointerUp);
@@ -1029,8 +1132,42 @@ function setupSceneInput() {
   }, { passive: true });
 }
 
+function setupNavigationReveals() {
+  gsap.matchMedia().add({ motion: '(prefers-reduced-motion: no-preference)', reduced: '(prefers-reduced-motion: reduce)' }, context => {
+    const cleanups = Array.from(document.querySelectorAll('#sideNav .nav-btn'), btn => {
+      const label = btn.querySelector('.nav-label');
+      let hovered = btn.matches(':hover') && window.matchMedia('(any-hover: hover)').matches;
+      gsap.set(label, { x: -6, autoAlpha: 0 });
+      const timeline = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } })
+        .to(btn, { '--nav-expansion': `${label.offsetWidth + 16}px`, duration: 0.3 }, 0)
+        .to(label, { x: 0, autoAlpha: 1, duration: 0.2 }, 0.06);
+      const update = () => {
+        const expanded = hovered || document.activeElement === btn;
+        if (context.conditions.reduced) timeline.progress(expanded ? 1 : 0).pause();
+        else if (expanded) timeline.play();
+        else timeline.reverse();
+      };
+      const enter = event => { hovered = event.pointerType !== 'touch'; update(); };
+      const leave = () => { hovered = false; update(); };
+      btn.addEventListener('pointerenter', enter);
+      btn.addEventListener('pointerleave', leave);
+      btn.addEventListener('focus', update);
+      btn.addEventListener('blur', update);
+      update();
+      return () => {
+        btn.removeEventListener('pointerenter', enter);
+        btn.removeEventListener('pointerleave', leave);
+        btn.removeEventListener('focus', update);
+        btn.removeEventListener('blur', update);
+      };
+    });
+    return () => cleanups.forEach(cleanup => cleanup());
+  });
+}
+
 // DOM controls are available independently of the renderer.
 function setupEventListeners() {
+  setupNavigationReveals();
   // Top Nav Modal Buttons
   document.querySelectorAll('[data-modal]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1054,10 +1191,6 @@ function setupEventListeners() {
     lofiBtn.classList.toggle('active', isPlaying);
     lofiBtn.setAttribute('aria-pressed', String(isPlaying));
     showToast(`Cozy Lofi Chords: ${isPlaying ? 'ON' : 'OFF'}`, '🎵');
-  });
-
-  rainAudioBtn.addEventListener('click', () => {
-    toggleRain();
   });
 
   muteBtn.addEventListener('click', () => {
@@ -1182,8 +1315,6 @@ function setupEventListeners() {
       setTheme('sunset');
     } else if (e.key === '3') {
       setTheme('night');
-    } else if (e.key === '4') {
-      toggleRain();
     }
   });
 }

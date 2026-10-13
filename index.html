@@ -54,36 +54,48 @@
     <footer class="bottom-dock" inert>
       <!-- Lighting Atmosphere Modes -->
       <div class="dock-group" id="themeGroup">
-        <button class="dock-btn" data-theme="day" aria-pressed="false" title="Day Mode (Bright Sunlight)" aria-label="Day mode">
-          <span aria-hidden="true">☀️</span>
-          <span class="dock-label">Day</span>
-        </button>
-        <button class="dock-btn active" data-theme="sunset" aria-pressed="true" title="Golden Sunset" aria-label="Sunset mode">
-          <span aria-hidden="true">🌅</span>
-          <span class="dock-label">Sunset</span>
-        </button>
-        <button class="dock-btn" data-theme="night" aria-pressed="false" title="Cozy Night (Warm Lamp)" aria-label="Night mode">
-          <span aria-hidden="true">🌙</span>
-          <span class="dock-label">Night</span>
-        </button>
+        <div class="dropdown" id="themeDropdown">
+          <button class="dock-btn dropdown-toggle" id="themeToggleBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="themeMenu" title="Time of Day" aria-label="Time of day: Sunset">
+            <span aria-hidden="true">🌅</span>
+            <span class="dock-label">Time of Day</span>
+            <span class="dropdown-chevron" aria-hidden="true">▾</span>
+          </button>
+          <div class="dropdown-menu" id="themeMenu" role="menu" aria-labelledby="themeToggleBtn" inert>
+            <button class="dropdown-item" data-theme="day" role="menuitemradio" aria-checked="false" tabindex="-1">
+              <span aria-hidden="true">☀️</span><span>Day</span>
+            </button>
+            <button class="dropdown-item active" data-theme="sunset" role="menuitemradio" aria-checked="true" tabindex="-1">
+              <span aria-hidden="true">🌅</span><span>Sunset</span>
+            </button>
+            <button class="dropdown-item" data-theme="night" role="menuitemradio" aria-checked="false" tabindex="-1">
+              <span aria-hidden="true">🌙</span><span>Night</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <div class="dock-divider"></div>
 
       <!-- Camera Perspectives -->
       <div class="dock-group" id="cameraGroup">
-        <button class="dock-btn active" data-cam="iso" aria-pressed="true" title="Default Isometric View" aria-label="Isometric view">
-          <span aria-hidden="true">📐</span>
-          <span class="dock-label">Isometric</span>
-        </button>
-        <button class="dock-btn" data-cam="desk" aria-pressed="false" title="Focus Desk & Workstation" aria-label="Desk view">
-          <span aria-hidden="true">💻</span>
-          <span class="dock-label">Desk</span>
-        </button>
-        <button class="dock-btn" data-cam="bed" aria-pressed="false" title="Focus Cozy Bed & Reading Corner" aria-label="Bed view">
-          <span aria-hidden="true">🛏️</span>
-          <span class="dock-label">Bed</span>
-        </button>
+        <div class="dropdown" id="cameraDropdown">
+          <button class="dock-btn dropdown-toggle" id="cameraToggleBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="cameraMenu" title="Camera Angle" aria-label="Camera angle: Isometric">
+            <span aria-hidden="true">📐</span>
+            <span class="dock-label">Camera Angle</span>
+            <span class="dropdown-chevron" aria-hidden="true">▾</span>
+          </button>
+          <div class="dropdown-menu" id="cameraMenu" role="menu" aria-labelledby="cameraToggleBtn" inert>
+            <button class="dropdown-item active" data-cam="iso" role="menuitemradio" aria-checked="true" tabindex="-1">
+              <span aria-hidden="true">📐</span><span>Isometric</span>
+            </button>
+            <button class="dropdown-item" data-cam="desk" role="menuitemradio" aria-checked="false" tabindex="-1">
+              <span aria-hidden="true">💻</span><span>Desk</span>
+            </button>
+            <button class="dropdown-item" data-cam="bed" role="menuitemradio" aria-checked="false" tabindex="-1">
+              <span aria-hidden="true">🛏️</span><span>Bed</span>
+            </button>
+          </div>
+        </div>
         <button class="dock-btn" id="resetCamBtn" title="Reset View" aria-label="Reset view">
           <span aria-hidden="true">⟲</span>
         </button>

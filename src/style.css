@@ -466,14 +466,23 @@ body, html {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: var(--panel-bg);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--panel-border);
   padding: 8px 16px;
   border-radius: 9999px;
   box-shadow: var(--glass-shadow);
   z-index: 20;
+}
+/* Keep the dock's blur off the menu ancestor so menus can blur the room too. */
+.bottom-dock::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--panel-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  pointer-events: none;
+  z-index: -1;
 }
 .dock-group {
   display: flex;
@@ -509,7 +518,7 @@ body, html {
   border-color: rgba(245, 158, 11, 0.35);
 }
 
-/* Interactions Dropdown Menu */
+/* Dock Dropdown Menus */
 .dropdown {
   position: relative;
   display: inline-flex;
@@ -1067,6 +1076,10 @@ body, html {
   .dropdown.open .dropdown-menu {
     transform: translateY(0);
   }
+  #themeMenu, #cameraMenu {
+    left: 0;
+    right: auto;
+  }
   .dropdown-item {
     min-height: 44px;
   }
@@ -1113,27 +1126,5 @@ body, html {
   }
   .modal-title {
     font-size: 1.1rem;
-  }
-  .bottom-dock {
-    display: grid;
-    grid-template-columns: auto auto;
-    gap: 4px 12px;
-    border-radius: 24px;
-  }
-  .bottom-dock .dock-divider {
-    display: none;
-  }
-  #themeGroup {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  #actionsGroup {
-    grid-column: 2;
-    grid-row: 1;
-  }
-  #cameraGroup {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-content: center;
   }
 }

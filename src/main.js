@@ -41,8 +41,7 @@ const togglePinsBtn = document.getElementById('togglePinsBtn');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
 const resetCamBtn = document.getElementById('resetCamBtn');
 const exitZenBtn = document.getElementById('exitZenBtn');
-const interactionsDropdown = document.getElementById('interactionsDropdown');
-const interactionsToggleBtn = document.getElementById('interactionsToggleBtn');
+const dockDropdowns = [...document.querySelectorAll('.bottom-dock .dropdown')];
 const compactLayoutMedia = window.matchMedia('(max-width: 840px), (max-height: 500px)');
 
 // Nearby alternatives keep compact 44px markers from covering one another.
@@ -624,11 +623,15 @@ function setCameraPreset(presetName) {
   state.cameraPreset = presetName;
   sound.playPop(1.1);
 
-  // Update dock buttons
+  // Update the selected menu option and its trigger.
   document.querySelectorAll('#cameraGroup [data-cam]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.cam === presetName);
-    btn.setAttribute('aria-pressed', String(btn.dataset.cam === presetName));
+    btn.setAttribute('aria-checked', String(btn.dataset.cam === presetName));
   });
+  const cameraOption = document.querySelector(`#cameraMenu [data-cam="${presetName}"]`);
+  const cameraToggle = document.getElementById('cameraToggleBtn');
+  cameraToggle.firstElementChild.textContent = cameraOption.firstElementChild.textContent;
+  cameraToggle.setAttribute('aria-label', `Camera angle: ${cameraOption.lastElementChild.textContent}`);
 
   const startQuat = threeCamera.quaternion.clone();
   const targetQuat = new THREE.Quaternion().setFromEuler(preset.rot);
@@ -679,11 +682,15 @@ function setTheme(themeName, { notify = true, restartCycle = true } = {}) {
   state.theme = themeName;
   appEl.setAttribute('data-theme', themeName);
 
-  // Update dock buttons
-  document.querySelectorAll('#themeGroup .dock-btn').forEach(btn => {
+  // Keep menu selection in sync with manual changes and the day/night cycle.
+  document.querySelectorAll('#themeGroup [data-theme]').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.theme === themeName);
-    btn.setAttribute('aria-pressed', String(btn.dataset.theme === themeName));
+    btn.setAttribute('aria-checked', String(btn.dataset.theme === themeName));
   });
+  const themeOption = document.querySelector(`#themeMenu [data-theme="${themeName}"]`);
+  const themeToggle = document.getElementById('themeToggleBtn');
+  themeToggle.firstElementChild.textContent = themeOption.firstElementChild.textContent;
+  themeToggle.setAttribute('aria-label', `Time of day: ${themeOption.lastElementChild.textContent}`);
 
   // Bedside Lamp behavior based on theme
   if (themeName === 'night') {
@@ -943,7 +950,7 @@ function openModal(modalName, trigger = null) {
     ? focused
     : modalReturnFocus || document.querySelector(`[data-modal="${modalName}"]`);
   closeAllModals({ restoreFocus: false });
-  setInteractionsOpen(false);
+  dockDropdowns.forEach(dropdown => setDockDropdownOpen(dropdown, false));
   sound.playPop(1.2);
   activeModal = targetModal;
   modalReturnFocus = returnTarget;
@@ -996,12 +1003,16 @@ function trapModalFocus(event) {
   }
 }
 
-function setInteractionsOpen(isOpen, restoreFocus = false) {
-  interactionsDropdown.classList.toggle('open', isOpen);
-  interactionsToggleBtn.setAttribute('aria-expanded', String(isOpen));
-  interactionsToggleBtn.classList.toggle('active', isOpen);
-  document.getElementById('interactionsMenu').inert = !isOpen;
-  if (restoreFocus) interactionsToggleBtn.focus();
+function setDockDropdownOpen(dropdown, isOpen, restoreFocus = false) {
+  if (isOpen) {
+    dockDropdowns.filter(other => other !== dropdown).forEach(other => setDockDropdownOpen(other, false));
+  }
+  const toggle = dropdown.querySelector('.dropdown-toggle');
+  dropdown.classList.toggle('open', isOpen);
+  toggle.setAttribute('aria-expanded', String(isOpen));
+  toggle.classList.toggle('active', isOpen);
+  dropdown.querySelector('.dropdown-menu').inert = !isOpen;
+  if (restoreFocus) toggle.focus();
 }
 
 // Render Project Showcase & Skills Content
@@ -1201,59 +1212,60 @@ function setupEventListeners() {
     showToast(`Sound Effects: ${isMuted ? 'MUTED' : 'ENABLED'}`, isMuted ? '🔇' : '🔊');
   });
 
-  // Theme Dock Buttons
+  // Theme menu options
   document.querySelectorAll('#themeGroup [data-theme]').forEach(btn => {
     btn.addEventListener('click', () => setTheme(btn.dataset.theme));
   });
 
-  // Camera Dock Buttons
+  // Camera menu options
   document.querySelectorAll('#cameraGroup [data-cam]').forEach(btn => {
     btn.addEventListener('click', () => setCameraPreset(btn.dataset.cam));
   });
   resetCamBtn.addEventListener('click', resetCamera);
 
-  // Interactions Dropdown
-  if (interactionsToggleBtn && interactionsDropdown) {
-    interactionsToggleBtn.addEventListener('click', (e) => {
+  // All dock menus share the Interactions behavior.
+  dockDropdowns.forEach(dropdown => {
+    const toggle = dropdown.querySelector('.dropdown-toggle');
+    const items = [...dropdown.querySelectorAll('.dropdown-item')];
+    toggle.addEventListener('click', (e) => {
       e.stopPropagation();
-      const isOpen = !interactionsDropdown.classList.contains('open');
-      setInteractionsOpen(isOpen);
-      if (isOpen) interactionsDropdown.querySelector('.dropdown-item').focus();
+      const isOpen = !dropdown.classList.contains('open');
+      setDockDropdownOpen(dropdown, isOpen);
+      if (isOpen) (dropdown.querySelector('[aria-checked="true"]') || items[0]).focus();
       sound.playPop();
     });
 
     // Close dropdown on action selection
-    interactionsDropdown.querySelectorAll('.dropdown-item').forEach(item => {
+    items.forEach(item => {
       item.addEventListener('click', () => {
-        setInteractionsOpen(false, true);
+        setDockDropdownOpen(dropdown, false, true);
       });
     });
 
     // Close on outside click
     document.addEventListener('click', (e) => {
-      if (!interactionsDropdown.contains(e.target)) {
-        setInteractionsOpen(false);
+      if (!dropdown.contains(e.target)) {
+        setDockDropdownOpen(dropdown, false);
       }
     });
-    interactionsDropdown.addEventListener('focusout', (e) => {
-      if (!interactionsDropdown.contains(e.relatedTarget)) setInteractionsOpen(false);
+    dropdown.addEventListener('focusout', (e) => {
+      if (!dropdown.contains(e.relatedTarget)) setDockDropdownOpen(dropdown, false);
     });
-    interactionsDropdown.addEventListener('keydown', (e) => {
-      const items = [...interactionsDropdown.querySelectorAll('.dropdown-item')];
+    dropdown.addEventListener('keydown', (e) => {
       const index = items.indexOf(document.activeElement);
       if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
         e.preventDefault();
-        setInteractionsOpen(true);
+        setDockDropdownOpen(dropdown, true);
         const next = e.key === 'Home' ? 0 : e.key === 'End' ? items.length - 1
           : index < 0 ? (e.key === 'ArrowUp' ? items.length - 1 : 0)
           : (index + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
         items[next].focus();
       } else if (e.key === 'Tab' && index >= 0) {
         // Move from the menu back into the ordinary page tab sequence.
-        setInteractionsOpen(false, true);
+        setDockDropdownOpen(dropdown, false, true);
       }
     });
-  }
+  });
 
   // Quick Action Buttons inside dropdown
   if (toggleLampBtn) toggleLampBtn.addEventListener('click', toggleLamp);
@@ -1292,9 +1304,10 @@ function setupEventListeners() {
   // Keyboard Shortcuts
   window.addEventListener('keydown', (e) => {
     if (e.defaultPrevented || e.isComposing) return;
+    const openDropdown = dockDropdowns.find(dropdown => dropdown.classList.contains('open'));
     if (e.key === 'Escape') {
       if (activeModal) closeAllModals();
-      else if (interactionsDropdown.classList.contains('open')) setInteractionsOpen(false, true);
+      else if (openDropdown) setDockDropdownOpen(openDropdown, false, true);
       else if (state.zenMode) toggleZenMode(false);
       return;
     }
@@ -1304,7 +1317,7 @@ function setupEventListeners() {
     }
     if (appEl.dataset.sceneState !== 'ready') return;
     const isEditing = e.target instanceof HTMLElement && (e.target.isContentEditable || e.target.closest('input, textarea, select'));
-    if (isEditing || e.repeat || e.ctrlKey || e.metaKey || e.altKey || interactionsDropdown.classList.contains('open')) return;
+    if (isEditing || e.repeat || e.ctrlKey || e.metaKey || e.altKey || openDropdown) return;
     if (e.key === 'l' || e.key === 'L') {
       toggleLamp();
     } else if (e.key === 'c' || e.key === 'C') {

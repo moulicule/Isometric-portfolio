@@ -139,10 +139,10 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 - Only primary-button `pointerup` activates a hotspot; right click does not activate scene interactions, and the browser context menu is suppressed on the canvas.
 - The canvas uses `touch-action: manipulation` and a grab cursor.
 - `setupEventListeners()` binds navigation, sound, theme, camera, quick actions, fullscreen, modal closing, and keyboard shortcuts.
-- Keyboard shortcuts: `L` lamp, `C` chair spin, `1`–`3` themes. Shortcuts ignore editable fields, composition, repeats, modifier chords, open dialogs, and the open actions menu.
-- Escape closes the active dialog, then the actions menu, then Zen mode (one active layer per keypress). It has no effect when none are active.
+- Keyboard shortcuts: `L` lamp, `C` chair spin, `1`–`3` themes. Shortcuts ignore editable fields, composition, repeats, modifier chords, open dialogs, and any open dock menu.
+- Escape closes the active dialog, then the open dock menu, then Zen mode (one active layer per keypress). It has no effect when none are active.
 - Dialog backdrops start inert. `openModal()` saves the background's inert state and focuses the dialog after it becomes visible. Tab/Shift+Tab wrap through the close button, scrollable content region, and links. Closing restores the opener; a matching navigation button is the fallback if a resized/hidden hotspot cannot receive focus.
-- The Interactions menu supports Up/Down, Home/End, Enter/Space activation, Escape, and Tab back into the page. Closed menus are inert. Lamp uses `aria-checked`; theme, camera, audio, Pins, and fullscreen controls synchronize `aria-pressed` with their visual states.
+- Time of Day, Camera Angle, and Interactions share dropdown behavior: Up/Down, Home/End, Enter/Space activation, Escape, and Tab back into the page. Only one menu opens at a time; closed menus are inert. Theme and camera options use `menuitemradio` and `aria-checked`; the trigger icon and accessible name track the selection. Lamp uses `aria-checked`; audio, Pins, and fullscreen controls synchronize `aria-pressed` with their visual states.
 
 ## Audio (`src/audio.js`)
 
@@ -158,7 +158,7 @@ Keep all audio local unless the task explicitly asks for externally hosted media
 
 The CSS owns the full-screen canvas layering, glass panels, dock, hotspots, tooltip, loader, modals, Zen overlay, and responsive breakpoints. UI elements sit above the canvas and selectively use `pointer-events` so canvas interaction remains reachable. Before changing z-index or pointer-event rules, verify hotspot clicks and dock buttons still work.
 
-Compact layouts (width up to 840px or height up to 500px) use 44px icon controls and named `.dock-label` spans, and initially hide markers. Phones up to 560px use a two-row dock. The Pins button reveals keyboard-accessible circle markers. Circles stay anchored to their objects, with expanded labels kept inside the viewport. The app uses dynamic viewport height and safe-area spacing.
+Compact layouts (width up to 840px or height up to 500px) use 44px icon controls and named `.dock-label` spans, and initially hide markers. The five dock controls fit on one row on phones; dropdown menus stay within the viewport. The Pins button reveals keyboard-accessible circle markers. Circles stay anchored to their objects, with expanded labels kept inside the viewport. The app uses dynamic viewport height and safe-area spacing.
 
 Dialog close targets are 44px, content is selectable, and scroll regions are focusable. Small phones use tighter dialog padding; skill grids shrink to available width. Dialog/menu visibility becomes immediate on opening; descendant hover transitions exclude inherited visibility so focus is available immediately.
 

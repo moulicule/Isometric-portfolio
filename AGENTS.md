@@ -9,12 +9,12 @@ The architecture is intentionally small:
 ```text
 index.html + src/style.css       DOM shell and visual UI
 src/main.js                      application controller and scene integration
+src/scene-motion.js              chair swivel and wall-clock transforms
 src/day-night-cycle.js           ten-minute lighting phase calculation
 src/scene-ready.js               asset/render readiness gate for the loading card
 public/scene.splinecode          3D room loaded at runtime
 src/data.js                      static portfolio/modal content
 src/audio.js                     local procedural Web Audio engine
-canvas-confetti                  client-only confetti effects
 dist/                            generated production output; never hand-edit
 ```
 
@@ -36,7 +36,6 @@ npm run preview
 | Bundling/dev server | Vite | No framework, TypeScript, or test runner. |
 | 3D scene loading/rendering/input | `@splinetool/runtime` | Owns WebGL/WebGPU rendering, the Spline scene graph, and native camera controls. |
 | Scene inspection/raycasting/math | `three` | Imported separately in `src/main.js`; used for `Raycaster`, `Vector3`, camera interpolations, and colors. |
-| Celebration particles | `canvas-confetti` | Used for projects and plant watering. |
 | Hotspot reveal animations | `gsap` | Reversible timelines for circle-to-pin reveals; honors reduced motion. |
 | Sound | Native Web Audio API | Implemented in `src/audio.js`; no media files or audio service. |
 | Application UI | Browser DOM + CSS | All modals, tooltips, pins, dock controls, and overlays are custom DOM. |
@@ -47,6 +46,7 @@ The project does not use any external backend. The social/project URLs in `src/d
 
 - `index.html` — fixed DOM shell and all button/modal IDs.
 - `src/main.js` — lifecycle, camera behavior, scene object lookups, interactions, rendering loop, modals, and event listeners.
+- `src/scene-motion.js` — chair swivel and local-time wall clock. Checks: `node --test tests/scene-motion.test.mjs`.
 - `src/day-night-cycle.js` — ten-minute sunset → night → day → sunset timing and smooth blend calculation. Checks: `node --test tests/day-night-cycle.test.mjs`.
 - `src/scene-ready.js` — awaits scene media/fonts, material resources, completed renderer frames, GPU submission, and browser presentation before dismissing the card.
 - `src/style.css` — all responsive and visual styling.
@@ -76,6 +76,7 @@ Canvas, hotspots, utility controls, and the dock start inert and the scene contr
 | Spline object name | Used for |
 | --- | --- |
 | `Chair` | Chair rotation animation and chair hotspot |
+| `Cube 50`, `Cube 49`, `Cube 48` inside `Chair`; `Cylinder 12` | Swiveling seat, back support, backrest; fixed center-post pivot |
 | `Bed Table` | Lamp hotspot |
 | `Point Light 2`, `Point Light 3` | Bedside lamp intensity |
 | `Directional Light`, `Directional Light 2` | Theme sun/sky lighting |
@@ -83,7 +84,11 @@ Canvas, hotspots, utility controls, and the dock start inert and the scene contr
 | ` Coffee Cup` (leading space) or `Coffee Cup` | Coffee hotspot |
 | `Clock`, `Cylinder 19`, `Cylinder 18` | Live clock and its hour/minute hands |
 
+Chair and clock transforms use handles from `Application.findObjectById()`. The underlying Spline objects have `matrixAutoUpdate=false`; writing directly to their rotations does not commit a rendered transform. Keep the raw cached objects for raycasting and hotspot geometry. Clock hands are scoped to `Clock` and orbit its center while preserving the face tilt and each hand's depth. The clock updates once per second from the visitor's local time, including minute/second contributions to the hour hand. Chair animation turns only the seat and back around the fixed center post; legs and wheels remain stationary. Every tap adds a full turn and retargets from the current pose over 1.2 seconds, with no cooldown. After completing the turns, each part returns to its authored transform.
+
 `HOTSPOTS` is the one source of truth for custom DOM pins. All visible hotspots, including About Me, Projects, and Skills, use concentric-circle markers that reveal labels above their objects on object/marker hover or keyboard focus. GSAP animates ring/label transforms and opacity on reversible timelines; projected geometry bounds set the default label clearance while the circle anchor stays fixed. Projects, Skills, Chair, Plant, Bed, and Lamp use calibrated `revealOffsetY` heights so labels stay close to the interaction area; the lamp clears its shade above the bedside-table pivot. Coffee uses `offsetX` to center both its circle and label over the cup body rather than its handle, scaled with camera zoom. Reduced-motion users get the same raised labels immediately. `secondary` selects this presentation; `pin: false` keeps the Window interaction without a DOM marker. Each entry maps a scene name/object cache key to an action. Pins use projected 3D positions in `updateHotspots()`. Scene clicking is not handled by Spline events here: the app raycasts the Spline scene with Three's `Raycaster` and walks parents in `findInteractiveParent()`.
+
+`activateHotspot()` handles both scene clicks and DOM pin activation. A hotspot's optional `cameraPreset` starts the existing smooth camera transition before its action: Computer, Chair, Books, Coffee Cup, and Sticky Notes focus Desk; Bed focuses Bed before entering Zen mode. The Camera View menu selection stays synchronized with these transitions.
 
 ## Camera behavior: preserve this carefully
 
@@ -124,8 +129,8 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 | --- | --- | --- |
 | Lighting/theme | `setTheme`, `cycleTheme`, `setupLightingAndTheme`, `updateDayNightCycle` | Boots at Sunset; after readiness, blends Sunset → Night → Day → Sunset over ten minutes. Manual theme selection fades the current background and lighting into the selected phase over 1 second, then resumes the cycle; repeated clicks retarget from the visible colours. Zen fades to Night, holds it, and resumes from Night on exit. |
 | Lamp | `toggleLamp`, `updateLampLighting` | Sets the two named Spline point-light intensities. |
-| Chair | `spinChair` + `animateLoop` | Turns cached chair over one full revolution. |
-| Plant | `waterPlant` | Increases local hydration state, computes plant screen location, and fires green confetti. |
+| Chair | `spinChair` + `animateLoop` | Swivels the seat and back over one full revolution, leaving the base fixed. |
+| Plant | `waterPlant` | Increases local hydration state and plays a local watering chime and toast. |
 | Coffee | `drinkCoffee` | Local sound/toast only. |
 | Zen mode | `toggleZenMode` | Activates DOM overlay, ambient audio, and night theme; focuses Wake Up and restores focus on exit. Repeated exit requests do nothing. |
 | Modals | `openModal`, `closeAllModals`, `trapModalFocus`, `renderContent` | Renders trusted static data, opens named dialogs, makes background content inert, contains keyboard focus, and restores the opener on close. |
@@ -137,6 +142,7 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 - `pointermove` raycasts only when not dragging.
 - A movement distance over 6 pixels sets `isDragging`, preventing a drag from firing the click action on release.
 - Only primary-button `pointerup` activates a hotspot; right click does not activate scene interactions, and the browser context menu is suppressed on the canvas.
+- Activation raycasts at the release position, so touch taps work without a preceding hover.
 - The canvas uses `touch-action: manipulation` and a grab cursor.
 - `setupEventListeners()` binds navigation, sound, theme, camera, quick actions, fullscreen, modal closing, and keyboard shortcuts.
 - Keyboard shortcuts: `L` lamp, `C` chair spin, `1`–`3` themes. Shortcuts ignore editable fields, composition, repeats, modifier chords, open dialogs, and any open dock menu.

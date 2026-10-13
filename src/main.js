@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import confetti from 'canvas-confetti';
 import { gsap } from 'gsap';
 import { sound } from './audio.js';
 import { PORTFOLIO_DATA } from './data.js';
 import { waitForSceneReady } from './scene-ready.js';
 import { DAY_NIGHT_CYCLE_MS, DAY_NIGHT_PHASES, getDayNightPhase } from './day-night-cycle.js';
+import { createChairSwivel, createWallClock } from './scene-motion.js';
 
 // DOM References
 const appEl = document.getElementById('app');
@@ -65,14 +65,15 @@ const state = {
   lampOn: true,
   theme: 'sunset',
   cameraPreset: 'iso',
-  chairAngle: 0,
-  chairSpinning: false,
   plantHydration: 80,
   pinsVisible: !compactLayoutMedia.matches,
   zenMode: false,
   hoveredInteractive: null
 };
 let dayNightCycleStart = null;
+let chairSwivel = null;
+let wallClock = null;
+let lastClockSecond = null;
 
 // Base Camera Settings
 const DEFAULT_CAM_POS = new THREE.Vector3(585.13, 336.63, 729.21);
@@ -182,16 +183,22 @@ const objects = {
 
 // Hotspot definitions mapped to 3D room objects
 const HOTSPOTS = [
-  { id: 'projects', name: 'Computer', label: 'Projects', icon: '💻', objKey: 'computer', offsetY: 0, revealOffsetY: 27, secondary: true, action: trigger => openModal('projects', trigger) },
+  { id: 'projects', name: 'Computer', label: 'Projects', icon: '💻', objKey: 'computer', cameraPreset: 'desk', offsetY: 0, revealOffsetY: 27, secondary: true, action: trigger => openModal('projects', trigger) },
   { id: 'lamp', name: 'Bed Table', label: 'Bedside Lamp', icon: '💡', objKey: 'bedTable', offsetY: 50, revealOffsetY: 65, secondary: true, action: () => toggleLamp() },
-  { id: 'chair', name: 'Chair', label: 'Swivel Chair', icon: '🪑', objKey: 'chair', offsetY: 0, revealOffsetY: 45, secondary: true, action: () => spinChair() },
-  { id: 'skills', name: 'Books', label: 'Skills', icon: '📚', objKey: 'books', offsetY: 0, revealOffsetY: 27, secondary: true, action: trigger => openModal('skills', trigger) },
+  { id: 'chair', name: 'Chair', label: 'Swivel Chair', icon: '🪑', objKey: 'chair', cameraPreset: 'desk', offsetY: 0, revealOffsetY: 45, secondary: true, action: () => spinChair() },
+  { id: 'skills', name: 'Books', label: 'Skills', icon: '📚', objKey: 'books', cameraPreset: 'desk', offsetY: 0, revealOffsetY: 27, secondary: true, action: trigger => openModal('skills', trigger) },
   { id: 'plant', name: 'Plant', label: 'House Plant', icon: '🌱', objKey: 'plant', offsetY: 0, revealOffsetY: 50, secondary: true, action: () => waterPlant() },
-  { id: 'bed', name: 'Bed', label: 'Zen Mode', icon: '🛏️', objKey: 'bed', offsetY: 0, revealOffsetY: 25, secondary: true, action: () => toggleZenMode() },
+  { id: 'bed', name: 'Bed', label: 'Zen Mode', icon: '🛏️', objKey: 'bed', cameraPreset: 'bed', offsetY: 0, revealOffsetY: 25, secondary: true, action: () => toggleZenMode() },
   { id: 'window', name: 'Window', label: 'Atmosphere & Sky', icon: '🌤️', objKey: 'window', pin: false, action: () => cycleTheme() },
-  { id: 'coffee', name: ' Coffee Cup', label: 'Coffee Break', icon: '☕', objKey: 'coffee', offsetY: 0, offsetX: -6, secondary: true, action: () => drinkCoffee() },
-  { id: 'about', name: 'Sticky Notes', label: 'About Me', icon: '👤', objKey: 'stickyNotes', offsetY: 0, secondary: true, action: trigger => openModal('about', trigger) }
+  { id: 'coffee', name: ' Coffee Cup', label: 'Coffee Break', icon: '☕', objKey: 'coffee', cameraPreset: 'desk', offsetY: 0, offsetX: -6, secondary: true, action: () => drinkCoffee() },
+  { id: 'about', name: 'Sticky Notes', label: 'About Me', icon: '👤', objKey: 'stickyNotes', cameraPreset: 'desk', offsetY: 0, secondary: true, action: trigger => openModal('about', trigger) }
 ];
+
+function activateHotspot(spot, trigger = null) {
+  sound.playPop();
+  if (spot.cameraPreset) setCameraPreset(spot.cameraPreset);
+  spot.action(trigger);
+}
 
 // The DOM portfolio is usable before renderer download, construction, or loading.
 function initPage() {
@@ -229,6 +236,7 @@ async function init() {
     syncResponsiveCameraZoom();
     configureCameraControls();
     setupSceneReferences();
+    updateClockHands();
     setupHotspots();
     setupLightingAndTheme();
     setupSceneInput();
@@ -251,6 +259,7 @@ async function init() {
 
     // Start render/update loop
     dayNightCycleStart = performance.now();
+    lastTime = dayNightCycleStart;
     requestAnimationFrame(animateLoop);
   } catch (err) {
     console.error('Failed to initialize Spline scene:', err);
@@ -350,12 +359,32 @@ function setupSceneReferences() {
   objects.bed = threeScene.getObjectByName('Bed');
   objects.plant = threeScene.getObjectByName('Plant');
   objects.clock = threeScene.getObjectByName('Clock');
-  objects.clockHour = threeScene.getObjectByName('Cylinder 19');
-  objects.clockMin = threeScene.getObjectByName('Cylinder 18');
+  objects.clockHour = objects.clock?.getObjectByName('Cylinder 19');
+  objects.clockMin = objects.clock?.getObjectByName('Cylinder 18');
   objects.books = threeScene.getObjectByName('Books');
   objects.coffee = threeScene.getObjectByName(' Coffee Cup') || threeScene.getObjectByName('Coffee Cup');
   objects.window = threeScene.getObjectByName('Window');
   objects.stickyNotes = threeScene.getObjectByName('Sticky Notes');
+
+  if (objects.chair) {
+    const post = objects.chair.getObjectByName('Cylinder 12');
+    const seatParts = ['Cube 50', 'Cube 49', 'Cube 48']
+      .map(name => objects.chair.getObjectByName(name))
+      .filter(Boolean);
+    if (post) {
+      chairSwivel = createChairSwivel(
+        seatParts.map(part => splineApp.findObjectById(part.uuid)),
+        post.position.clone()
+      );
+    }
+  }
+  if (objects.clock) {
+    wallClock = createWallClock(
+      splineApp.findObjectById(objects.clock.uuid),
+      objects.clockHour && splineApp.findObjectById(objects.clockHour.uuid),
+      objects.clockMin && splineApp.findObjectById(objects.clockMin.uuid)
+    );
+  }
 }
 
 // Setup 3D Hotspot DOM Elements
@@ -398,8 +427,7 @@ function setupHotspots() {
     }
     el.addEventListener('click', (e) => {
       e.stopPropagation();
-      sound.playPop();
-      spot.action(el);
+      activateHotspot(spot, el);
     });
     hotspotContainer.appendChild(el);
     spot.domElement = el;
@@ -534,18 +562,10 @@ function updateHotspots() {
 // Real-Time Clock Hands Sync
 function updateClockHands() {
   const now = new Date();
-  const hours = now.getHours() % 12;
-  const minutes = now.getMinutes();
-  const seconds = now.getSeconds();
-
-  if (objects.clockHour) {
-    const hourAngle = THREE.MathUtils.degToRad(-((hours + minutes / 60) * 30));
-    objects.clockHour.rotation.z = hourAngle;
-  }
-  if (objects.clockMin) {
-    const minAngle = THREE.MathUtils.degToRad(-((minutes + seconds / 60) * 6));
-    objects.clockMin.rotation.z = minAngle;
-  }
+  const second = Math.floor(now.getTime() / 1000);
+  if (second === lastClockSecond) return;
+  lastClockSecond = second;
+  wallClock?.update(now);
 
   // Update Zen Clock
   if (zenClock) {
@@ -566,15 +586,7 @@ function animateLoop(now) {
   updateClockHands();
 
   // 2. Chair spinning animation
-  if (state.chairSpinning && objects.chair) {
-    state.chairAngle += delta * 7.5;
-    objects.chair.rotation.y = state.chairAngle;
-    if (state.chairAngle >= Math.PI * 2) {
-      state.chairSpinning = false;
-      state.chairAngle = 0;
-      objects.chair.rotation.y = 0;
-    }
-  }
+  chairSwivel?.update(now);
 
   // 3. Camera transition animation
   if (currentCamAnim && threeCamera) {
@@ -760,9 +772,7 @@ function updateLampLighting({ applyIntensity = true } = {}) {
 
 // Chair Swivel
 function spinChair() {
-  if (state.chairSpinning) return;
-  state.chairSpinning = true;
-  state.chairAngle = 0;
+  if (!chairSwivel?.start(performance.now())) return;
   sound.playWhoosh();
   showToast('Swiveled the office chair!', '🪑');
 }
@@ -771,21 +781,6 @@ function spinChair() {
 function waterPlant() {
   state.plantHydration = Math.min(100, state.plantHydration + 15);
   sound.playWaterChime();
-
-  // Emerald confetti burst over plant
-  const v = new THREE.Vector3();
-  if (objects.plant && threeCamera) {
-    objects.plant.getWorldPosition(v);
-    v.project(threeCamera);
-    const screenX = (v.x * 0.5 + 0.5);
-    const screenY = (-v.y * 0.5 + 0.5);
-    confetti({
-      particleCount: 35,
-      spread: 60,
-      origin: { x: screenX, y: screenY },
-      colors: ['#10b981', '#34d399', '#6ee7b7', '#fef08a']
-    });
-  }
 
   showToast(`🌱 Plant watered! Hydration: ${state.plantHydration}%`, '💧');
 }
@@ -842,11 +837,17 @@ function findInteractiveParent(obj) {
   return null;
 }
 
-function handlePointerMove(e) {
+function getInteractiveAtPointer(e) {
+  if (!threeScene || !threeCamera) return null;
   const rect = canvas.getBoundingClientRect();
   mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
   mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(mouse, threeCamera);
+  const hits = raycaster.intersectObjects(threeScene.children, true);
+  return hits.length ? findInteractiveParent(hits[0].object) : null;
+}
 
+function handlePointerMove(e) {
   if (isPointerDown) {
     const distance = Math.hypot(e.clientX - pointerStart.x, e.clientY - pointerStart.y);
     if (distance > 6) {
@@ -856,15 +857,7 @@ function handlePointerMove(e) {
     return;
   }
 
-  if (!threeScene || !threeCamera) return;
-
-  raycaster.setFromCamera(mouse, threeCamera);
-  const hits = raycaster.intersectObjects(threeScene.children, true);
-
-  let targetSpot = null;
-  if (hits.length > 0) {
-    targetSpot = findInteractiveParent(hits[0].object);
-  }
+  const targetSpot = getInteractiveAtPointer(e);
 
   if (targetSpot) {
     state.hoveredInteractive = targetSpot;
@@ -890,9 +883,12 @@ function handlePointerDown(e) {
 
 function handlePointerUp(e) {
   isPointerDown = false;
-  if (e.button === 0 && !isDragging && state.hoveredInteractive) {
-    sound.playPop();
-    state.hoveredInteractive.action();
+  if (e.button === 0 && !isDragging) {
+    // Touch taps have no preceding hover, so pick at the release position.
+    const targetSpot = getInteractiveAtPointer(e);
+    if (targetSpot) {
+      activateHotspot(targetSpot);
+    }
   }
   isDragging = false;
 }
@@ -961,9 +957,6 @@ function openModal(modalName, trigger = null) {
     if (activeModal === targetModal) targetModal.querySelector('[role="dialog"]').focus({ preventScroll: true });
   });
   hoverTooltip.classList.remove('visible');
-  if (modalName === 'projects') {
-    confetti({ particleCount: 25, spread: 70, origin: { y: 0.6 } });
-  }
 }
 
 function closeAllModals({ restoreFocus = true } = {}) {

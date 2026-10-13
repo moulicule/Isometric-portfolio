@@ -590,7 +590,7 @@ body, html {
 /* Toast Notifications */
 .toast-container {
   position: absolute;
-  top: 80px;
+  top: calc(226px + env(safe-area-inset-top, 0px));
   right: 24px;
   display: flex;
   flex-direction: column;
@@ -1076,9 +1076,17 @@ body, html {
   .dropdown.open .dropdown-menu {
     transform: translateY(0);
   }
-  #themeMenu, #cameraMenu {
+  #themeMenu {
     left: 0;
     right: auto;
+  }
+  #cameraMenu {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%) translateY(8px);
+  }
+  .dropdown.open #cameraMenu {
+    transform: translateX(-50%) translateY(0);
   }
   .dropdown-item {
     min-height: 44px;
@@ -1094,7 +1102,7 @@ body, html {
     display: none;
   }
   .toast-container {
-    top: calc(172px + env(safe-area-inset-top, 0px));
+    top: calc(222px + env(safe-area-inset-top, 0px));
     right: 12px;
     max-width: calc(100vw - 24px);
   }

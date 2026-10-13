@@ -39,7 +39,6 @@ const spinChairBtn = document.getElementById('spinChairBtn');
 const waterPlantBtn = document.getElementById('waterPlantBtn');
 const togglePinsBtn = document.getElementById('togglePinsBtn');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
-const resetCamBtn = document.getElementById('resetCamBtn');
 const exitZenBtn = document.getElementById('exitZenBtn');
 const dockDropdowns = [...document.querySelectorAll('.bottom-dock .dropdown')];
 const compactLayoutMedia = window.matchMedia('(max-width: 840px), (max-height: 500px)');
@@ -630,8 +629,7 @@ function setCameraPreset(presetName) {
   });
   const cameraOption = document.querySelector(`#cameraMenu [data-cam="${presetName}"]`);
   const cameraToggle = document.getElementById('cameraToggleBtn');
-  cameraToggle.firstElementChild.textContent = cameraOption.firstElementChild.textContent;
-  cameraToggle.setAttribute('aria-label', `Camera angle: ${cameraOption.lastElementChild.textContent}`);
+  cameraToggle.setAttribute('aria-label', `Camera view: ${cameraOption.lastElementChild.textContent}`);
 
   const startQuat = threeCamera.quaternion.clone();
   const targetQuat = new THREE.Quaternion().setFromEuler(preset.rot);
@@ -648,11 +646,6 @@ function setCameraPreset(presetName) {
   };
 
   showToast(`Perspective switched to ${presetName.toUpperCase()}`, '📐');
-}
-
-// Reset Camera
-function resetCamera() {
-  setCameraPreset('iso');
 }
 
 // Lighting & Atmosphere Transition
@@ -689,8 +682,7 @@ function setTheme(themeName, { notify = true, restartCycle = true } = {}) {
   });
   const themeOption = document.querySelector(`#themeMenu [data-theme="${themeName}"]`);
   const themeToggle = document.getElementById('themeToggleBtn');
-  themeToggle.firstElementChild.textContent = themeOption.firstElementChild.textContent;
-  themeToggle.setAttribute('aria-label', `Time of day: ${themeOption.lastElementChild.textContent}`);
+  themeToggle.setAttribute('aria-label', `Lighting: ${themeOption.lastElementChild.textContent}`);
 
   // Bedside Lamp behavior based on theme
   if (themeName === 'night') {
@@ -826,7 +818,7 @@ function toggleZenMode(enable = null) {
     zenOverlay.classList.remove('active');
     if (shouldRestoreFocus) {
       const target = zenReturnFocus instanceof HTMLElement && zenReturnFocus.getClientRects().length && zenReturnFocus !== document.body
-        ? zenReturnFocus : resetCamBtn;
+        ? zenReturnFocus : document.getElementById('cameraToggleBtn');
       target.focus({ preventScroll: true });
     }
     zenReturnFocus = null;
@@ -1221,7 +1213,6 @@ function setupEventListeners() {
   document.querySelectorAll('#cameraGroup [data-cam]').forEach(btn => {
     btn.addEventListener('click', () => setCameraPreset(btn.dataset.cam));
   });
-  resetCamBtn.addEventListener('click', resetCamera);
 
   // All dock menus share the Interactions behavior.
   dockDropdowns.forEach(dropdown => {

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Interactive Isometric Atelier | Moulik Nanda</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
-  <script type="module" crossorigin src="/assets/index-CiaPfWyo.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-BzN-8NOo.css">
+  <script type="module" crossorigin src="/assets/index-GVwrha6i.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CQiMehki.css">
 </head>
 <body>
   <div id="app" data-theme="sunset" data-scene-state="loading">
@@ -41,6 +41,10 @@
       <button class="hud-btn" id="fullscreenBtn" aria-pressed="false" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
         ⛶
       </button>
+      <!-- Hotspot Markers Toggle -->
+      <button class="hud-btn active" id="togglePinsBtn" title="Toggle Hotspot Markers" aria-label="Toggle hotspot markers" aria-pressed="true">
+        <span aria-hidden="true">📍</span>
+      </button>
       <!-- Lofi Ambient Chords Toggle -->
       <button class="hud-btn" id="lofiBtn" aria-pressed="false" title="Toggle Cozy Lofi Beats" aria-label="Toggle Lofi Ambient">
         🎵
@@ -56,9 +60,9 @@
       <!-- Lighting Atmosphere Modes -->
       <div class="dock-group" id="themeGroup">
         <div class="dropdown" id="themeDropdown">
-          <button class="dock-btn dropdown-toggle" id="themeToggleBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="themeMenu" title="Time of Day" aria-label="Time of day: Sunset">
-            <span aria-hidden="true">🌅</span>
-            <span class="dock-label">Time of Day</span>
+          <button class="dock-btn dropdown-toggle" id="themeToggleBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="themeMenu" title="Lighting" aria-label="Lighting: Sunset">
+            <span aria-hidden="true">💡</span>
+            <span class="dock-label">Lighting</span>
             <span class="dropdown-chevron" aria-hidden="true">▾</span>
           </button>
           <div class="dropdown-menu" id="themeMenu" role="menu" aria-labelledby="themeToggleBtn" inert>
@@ -80,9 +84,9 @@
       <!-- Camera Perspectives -->
       <div class="dock-group" id="cameraGroup">
         <div class="dropdown" id="cameraDropdown">
-          <button class="dock-btn dropdown-toggle" id="cameraToggleBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="cameraMenu" title="Camera Angle" aria-label="Camera angle: Isometric">
-            <span aria-hidden="true">📐</span>
-            <span class="dock-label">Camera Angle</span>
+          <button class="dock-btn dropdown-toggle" id="cameraToggleBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="cameraMenu" title="Camera View" aria-label="Camera view: Isometric">
+            <span aria-hidden="true">📷</span>
+            <span class="dock-label">Camera View</span>
             <span class="dropdown-chevron" aria-hidden="true">▾</span>
           </button>
           <div class="dropdown-menu" id="cameraMenu" role="menu" aria-labelledby="cameraToggleBtn" inert>
@@ -97,14 +101,11 @@
             </button>
           </div>
         </div>
-        <button class="dock-btn" id="resetCamBtn" title="Reset View" aria-label="Reset view">
-          <span aria-hidden="true">⟲</span>
-        </button>
       </div>
 
       <div class="dock-divider"></div>
 
-      <!-- Quick Interactive Actions Dropdown & Pins -->
+      <!-- Quick Interactive Actions Dropdown -->
       <div class="dock-group" id="actionsGroup">
         <div class="dropdown" id="interactionsDropdown">
           <button class="dock-btn dropdown-toggle" id="interactionsToggleBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="interactionsMenu" title="Interactive Actions" aria-label="Interactive actions">
@@ -127,10 +128,6 @@
             </button>
           </div>
         </div>
-
-        <button class="dock-btn active" id="togglePinsBtn" title="Toggle Hotspot Markers" aria-label="Toggle hotspot markers" aria-pressed="true">
-          <span aria-hidden="true">📍</span>
-        </button>
       </div>
     </footer>
 

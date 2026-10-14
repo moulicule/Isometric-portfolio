@@ -1007,6 +1007,7 @@ function renderContent() {
   if (projectsGrid) {
     projectsGrid.innerHTML = PORTFOLIO_DATA.projects.map(p => `
       <div class="project-card">
+        <img class="project-image" src="${p.image}" alt="${p.imageAlt}" loading="lazy">
         <div class="project-card-header">
           <div>
             <div class="project-name">${p.title}</div>
@@ -1018,21 +1019,12 @@ function renderContent() {
         <div class="project-tags">
           ${p.tags.map(t => `<span class="project-tag">${t}</span>`).join('')}
         </div>
-        <div class="project-stats-row">
-          ${Object.entries(p.stats).map(([k, v]) => `
-            <div class="project-stat-item">
-              <span class="stat-val">${v}</span>
-              <span class="stat-lbl">${k.toUpperCase()}</span>
-            </div>
-          `).join('')}
-        </div>
         <div class="project-links">
-          <a href="${p.links.demo}" target="_blank" class="btn-primary">
-            <span>🚀 Live Demo</span>
-          </a>
-          <a href="${p.links.github}" target="_blank" class="btn-secondary">
-            <span>Code &rarr;</span>
-          </a>
+          ${p.links.map((link, index) => `
+            <a href="${link.url}" target="_blank" rel="noopener" class="${index === 0 ? 'btn-primary' : 'btn-secondary'}" aria-label="${link.label} (opens in a new tab)">
+              <span>${link.label} &nearr;</span>
+            </a>
+          `).join('')}
         </div>
       </div>
     `).join('');

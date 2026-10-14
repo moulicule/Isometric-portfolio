@@ -13,6 +13,7 @@ src/scene-motion.js              chair swivel and wall-clock transforms
 src/day-night-cycle.js           ten-minute lighting phase calculation
 src/scene-ready.js               asset/render readiness gate for the loading card
 public/scene.splinecode          3D room loaded at runtime
+public/projects/cap/             editable CAP case study, journal, and static assets
 src/data.js                      static portfolio/modal content
 src/audio.js                     local procedural Web Audio engine
 dist/                            generated production output; never hand-edit
@@ -51,6 +52,7 @@ The project does not use any external backend. The social/project URLs in `src/d
 - `src/scene-ready.js` — awaits scene media/fonts, material resources, completed renderer frames, GPU submission, and browser presentation before dismissing the card.
 - `src/style.css` — all responsive and visual styling.
 - `src/data.js` — developer profile, projects, and skills rendered into modals.
+- `public/projects/cap/` — the source files for CAP’s static case study and build journal. This is a real folder committed with the portfolio; the former external CAP folder is only a backup and is no longer linked. Edit here, then rebuild/redeploy the portfolio for hosted updates. Notes: `docs/cap.md`. Checks: `node --test tests/cap.test.mjs`.
 - `src/audio.js` — the procedural `SoundEngine` singleton.
 - `public/scene.splinecode` — the runtime scene asset actually fetched by the app at `/scene.splinecode`.
 - `scene.splinecode` and `scene (1).splinecode` — source/copy assets. Do not assume editing either changes the served scene; copy the finalized asset into `public/scene.splinecode` if the scene is updated.

@@ -14,60 +14,18 @@ export const PORTFOLIO_DATA = {
   },
   projects: [
     {
-      id: "isometric-room",
-      title: "Interactive 3D Isometric Room",
-      badge: "Active Experience",
-      category: "3D & Creative",
-      description: "A real-time WebGL interactive isometric bedroom & creative workstation with procedural day/night cycles, dynamic lighting, spatial raycasting, and Web Audio synthesis.",
-      tags: ["Spline", "Three.js", "WebGL", "Vite", "Web Audio API"],
-      links: {
-        demo: "#",
-        github: "https://github.com"
-      },
-      stats: { fps: "60 FPS", drawCalls: "32 calls", size: "140 KB" },
-      highlights: ["Real-time point & directional light modulation", "Interactive raycasted furniture", "Procedural lofi synth & sound effects"]
-    },
-    {
-      id: "neural-studio",
-      title: "Neural Canvas Studio",
-      badge: "Featured",
-      category: "Creative Tech",
-      description: "Next-generation generative creative studio running in-browser inference, custom WebGPU compute shaders, and reactive node graph architecture.",
-      tags: ["WebGPU", "TypeScript", "React", "Node Graphs", "WASM"],
-      links: {
-        demo: "https://example.com/neural-studio",
-        github: "https://github.com"
-      },
-      stats: { speed: "2.4ms frame", compute: "WebGPU TSL", format: "Lossless" },
-      highlights: ["Zero-latency local canvas processing", "Custom WebGPU shader nodes", "Export to 4K SVG/EXR"]
-    },
-    {
-      id: "veloce-telemetry",
-      title: "Veloce Real-Time Telemetry",
-      badge: "Enterprise",
-      category: "Web Platforms",
-      description: "High-throughput cloud monitoring dashboard processing 250,000 events/sec with sub-millisecond chart rendering, WebSocket multiplexing, and glassmorphic UI.",
-      tags: ["React 19", "WebSockets", "Canvas2D", "Tailwind", "Go"],
-      links: {
-        demo: "https://example.com/veloce",
-        github: "https://github.com"
-      },
-      stats: { throughput: "250k/sec", latency: "< 5ms", uptime: "99.99%" },
-      highlights: ["Direct canvas streaming pipeline", "Virtual scroll data tables", "Customizable HUD widgets"]
-    },
-    {
-      id: "apex-spatial",
-      title: "Apex Spatial Configurator",
-      badge: "WebXR",
-      category: "3D & Creative",
-      description: "Interactive architectural & spatial visualizer enabling instant CAD/GLTF inspection, material customizer, PBR reflections, and WebXR immersive mode.",
-      tags: ["Three.js", "WebXR", "GLTF", "PBR Materials", "Post-processing"],
-      links: {
-        demo: "https://example.com/apex-spatial",
-        github: "https://github.com"
-      },
-      stats: { polycount: "1.2M polys", shadow: "Cascaded", hdr: "Tone-mapped" },
-      highlights: ["Interactive physically based materials", "Instant VR head-tracking", "Real-time shadow casting"]
+      id: "cap",
+      title: "CAP (Catch a Pervert)",
+      badge: "Master’s Project",
+      category: "Experience Design & Physical Computing",
+      description: "Meet Cappy, a wearable privacy companion that explores recording and consent through expressive eyes and haptic alerts. Follow my design process, explore the hardware in 3D, and try Cappy’s reactions in an interactive browser simulation.",
+      image: "/projects/cap/assets/p19-1.webp",
+      imageAlt: "My orange Cappy 2.0 prototype with bright white eyes, sitting on a shelf",
+      tags: ["Product Design", "Critical Making", "Wearable Design", "ESP32", "Prototyping"],
+      links: [
+        { label: "Explore case study", url: "/projects/cap/index.html" },
+        { label: "Build journal", url: "/projects/cap/journal.html" }
+      ]
     }
   ],
   skills: [

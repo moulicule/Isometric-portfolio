@@ -755,6 +755,12 @@ body, html {
   transform: translateY(-2px);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
 }
+.project-image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
 .project-card-header {
   display: flex;
   align-items: flex-start;
@@ -795,30 +801,13 @@ body, html {
   border-radius: 6px;
   color: var(--text-muted);
 }
-.project-stats-row {
-  display: flex;
-  gap: 16px;
-  padding: 10px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-.project-stat-item {
-  display: flex;
-  flex-direction: column;
-}
-.stat-val {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--accent-amber);
-}
-.stat-lbl {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
 .project-links {
   display: flex;
   gap: 10px;
   margin-top: auto;
+}
+.project-links a {
+  min-height: 44px;
 }
 .btn-primary {
   flex: 1;
@@ -1120,6 +1109,12 @@ body, html {
 }
 
 @media (max-width: 560px) {
+  .project-card-header {
+    flex-wrap: wrap;
+  }
+  .project-links {
+    flex-direction: column;
+  }
   .modal-backdrop {
     padding: 12px;
   }

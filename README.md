@@ -1,6 +1,6 @@
 # 🏠 Interactive Isometric Atelier | 3D Project Webpage
 
-An interactive, real-time 3D isometric room portfolio webpage powered by **Spline 3D** (`@splinetool/runtime`), **Three.js**, and modern web standards. The served scene is `public/scene.splinecode`. Portfolio projects are a work in progress.
+An interactive, real-time 3D isometric room portfolio webpage powered by **Spline 3D** (`@splinetool/runtime`), **Three.js**, and modern web standards. The served scene is `public/scene.splinecode`. The Projects dialog features CAP, with its interactive case study and build journal.
 
 ---
 
@@ -60,6 +60,16 @@ npm run build
 # Preview production build locally
 npm run preview
 ```
+
+### CAP case study
+
+The Projects dialog links to CAP at `/projects/cap/index.html` and its build journal. All of CAP’s editable pages, scripts, styles, vendor libraries, and assets live in the real `public/projects/cap/` folder inside this repository. No external folder or separate CAP server is required.
+
+Edit `public/projects/cap/`, then reopen or refresh the case study from the running portfolio. The card’s summary lives in `src/data.js`; its photo comes from CAP. The former external CAP folder is retained as a backup and is no longer linked to the portfolio.
+
+`npm run build` includes the latest CAP files in the generated `dist/projects/cap/`. `npm run preview` shows that build snapshot. Commit and push the portfolio source together, and configure your hosting service to run `npm run build` and publish `dist/`.
+
+Run `node --test tests/cap.test.mjs` for the case-study checks. See [CAP documentation](docs/cap.md) for source notes and editing details. Do not hand-edit the portfolio’s generated `dist/`.
 
 ### Readiness Regression Checks
 ```bash

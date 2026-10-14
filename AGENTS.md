@@ -100,6 +100,7 @@ The current requested interaction rules are:
 
 - Rotation is enabled.
 - Panning is disabled.
+- Touch rotation uses one finger; two fingers retain pinch zoom through Spline's existing controls.
 - Horizontal and vertical rotation are limited to ±15° around the initial camera view.
 - The limits use Spline's elastic mode for a small boundary bounce.
 - Zooming out is bounded at 70% of the default zoom for the current viewport (`ZOOM_BOUNDS.min`).
@@ -145,7 +146,7 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 - A movement distance over 6 pixels sets `isDragging`, preventing a drag from firing the click action on release.
 - Only primary-button `pointerup` activates a hotspot; right click does not activate scene interactions, and the browser context menu is suppressed on the canvas.
 - Activation raycasts at the release position, so touch taps work without a preceding hover.
-- The canvas uses `touch-action: manipulation` and a grab cursor.
+- The canvas uses `touch-action: none` so browser gestures do not cancel room rotation, and a grab cursor.
 - `setupEventListeners()` binds navigation, sound, theme, camera, quick actions, fullscreen, modal closing, and keyboard shortcuts.
 - Keyboard shortcuts: `L` lamp, `C` chair spin, `1`–`3` themes. Shortcuts ignore editable fields, composition, repeats, modifier chords, open dialogs, and any open dock menu.
 - Escape closes the active dialog, then the open dock menu, then Zen mode (one active layer per keypress). It has no effect when none are active.
@@ -166,7 +167,7 @@ Keep all audio local unless the task explicitly asks for externally hosted media
 
 The CSS owns the full-screen canvas layering, glass panels, dock, hotspots, tooltip, loader, modals, Zen overlay, and responsive breakpoints. UI elements sit above the canvas and selectively use `pointer-events` so canvas interaction remains reachable. Before changing z-index or pointer-event rules, verify hotspot clicks and dock buttons still work.
 
-Compact layouts (width up to 840px or height up to 500px) use 44px icon controls and named `.dock-label` spans, and initially hide markers. The three dock menus fit on one row on phones; dropdown menus stay within the viewport. The Pins button sits in the top-right controls between Fullscreen and Lofi and reveals keyboard-accessible circle markers. Toasts sit below the four utility controls. Circles stay anchored to their objects, with expanded labels kept inside the viewport. The app uses dynamic viewport height and safe-area spacing.
+Compact layouts (width up to 840px or height up to 500px) use 44px utility controls and 44px-high dock buttons with visible `.dock-label` spans. Markers start visible on both desktop and mobile. The three dock menus fit on one row on phones; dropdown menus stay within the viewport. At widths up to 400px, dock text and spacing shrink and chevrons hide. The Pins button sits in the top-right controls between Fullscreen and Lofi and toggles keyboard-accessible circle markers. Toasts sit below the four utility controls. Circles stay anchored to their objects, with expanded labels kept inside the viewport. The app uses dynamic viewport height and safe-area spacing.
 
 Dialog close targets are 44px, content is selectable, and scroll regions are focusable. Small phones use tighter dialog padding; skill grids shrink to available width. Dialog/menu visibility becomes immediate on opening; descendant hover transitions exclude inherited visibility so focus is available immediately.
 

@@ -65,7 +65,7 @@ body, html {
   height: 100%;
   display: block;
   cursor: grab;
-  touch-action: manipulation;
+  touch-action: none;
   outline: none;
 }
 #canvas3d:active {
@@ -1037,23 +1037,23 @@ body, html {
   .bottom-dock {
     width: max-content;
     max-width: calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
-    padding: 6px;
+    padding: 6px 8px;
     bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-    gap: 8px;
+    gap: 4px;
   }
   .dock-group {
     gap: 4px;
   }
   .dock-btn {
-    width: 44px;
+    width: auto;
     height: 44px;
-    padding: 0;
+    padding: 0 6px;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 1rem;
+    font-size: 0.82rem;
   }
-  .dock-label, .dropdown-chevron {
-    display: none;
+  .dock-label {
+    white-space: nowrap;
   }
   .dropdown-menu {
     left: auto;
@@ -1105,6 +1105,17 @@ body, html {
   }
   .projects-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 400px) {
+  .dock-btn {
+    padding: 0 4px;
+    gap: 4px;
+    font-size: 0.68rem;
+  }
+  .dropdown-chevron {
+    display: none;
   }
 }
 

@@ -3,10 +3,9 @@
 export const PORTFOLIO_DATA = {
   developer: {
     name: "Moulik Nanda",
-    title: "Creative Technologist & Full-Stack 3D Web Engineer",
+    title: "Multidisciplinary Designer, M.A. Experience Design @Srishti Manipal",
     bio: "I craft immersive 3D web experiences, creative interfaces, and robust modern web applications at the intersection of design, engineering, and spatial computing.",
-    location: "San Francisco, CA / Remote",
-    status: "Available for ambitious projects",
+    location: "Bangalore, India",
     email: "mouliknanda@gmail.com",
     socials: [
       { label: "LinkedIn", url: "https://www.linkedin.com/in/moulik-nanda-868469205/", icon: "linkedin" }
@@ -18,9 +17,9 @@ export const PORTFOLIO_DATA = {
       title: "CAP (Catch a Pervert)",
       badge: "Master’s Project",
       category: "Experience Design & Physical Computing",
-      description: "Meet Cappy, a wearable privacy companion that explores recording and consent through expressive eyes and haptic alerts. Follow my design process, explore the hardware in 3D, and try Cappy’s reactions in an interactive browser simulation.",
+      description: "CAP is my wearable privacy project; Cappy is the expressive companion who lives on its screen. Together, they explore recording and consent through animated eyes and haptic alerts. Follow my design process, explore the hardware in 3D, and try Cappy’s reactions in an interactive browser simulation.",
       image: "/projects/cap/assets/p19-1.webp",
-      imageAlt: "My orange Cappy 2.0 prototype with bright white eyes, sitting on a shelf",
+      imageAlt: "My orange CAP 2.0 prototype on a shelf, with Cappy’s bright white eyes on its screen",
       tags: ["Product Design", "Critical Making", "Wearable Design", "ESP32", "Prototyping"],
       links: [
         { label: "Explore case study", url: "/projects/cap/index.html" },

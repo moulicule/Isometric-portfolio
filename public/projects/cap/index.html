@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#f7f6f2">
-<meta name="description" content="Meet Cappy, my wearable privacy companion. CAP — Catch a Pervert explores how an expressive face and haptic alerts can help us push back against covert recording.">
+<meta name="description" content="CAP — Catch a Pervert is my wearable privacy project. Cappy is the expressive companion who lives on its screen, reacting to nearby smart-glasses signals.">
 <title>Meet Cappy — CAP by Moulik Nanda</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,56 +20,83 @@
 <a class="skip" href="#main">Skip to content</a>
 <header class="nav">
   <a class="wordmark" href="#top" aria-label="CAP, back to top">CAP<span class="logo-eyes" aria-hidden="true"><i></i><i></i></span></a>
-  <nav aria-label="Main navigation"><a href="#idea">The concept</a><a href="#play">Meet Cappy</a><a href="#inside">Inside Cappy</a><a href="#field">In the wild</a><a href="journal.html">Build journal ↗</a></nav>
+  <nav aria-label="Main navigation"><a href="#idea">The concept</a><a href="#inside">Inside CAP</a><a href="#play">Meet Cappy</a><a href="#field">In the wild</a><a href="journal.html">Build journal ↗</a></nav>
   <span class="nav-credit">DESIGNED & MADE BY<br><b>MOULIK NANDA</b></span>
 </header>
 <main id="main">
 <section class="hero" id="top">
   <div class="hero-copy">
-    <p class="eyebrow project-name">CAP(Catch a Pervert)</p>
     <h1 class="pixel-lockup"><span>MEET</span><span class="pixel-word">CAPPY</span></h1>
     <p class="hero-description">Your little privacy companion. A wearable that sniffs out nearby smart glasses and gets mad on your behalf.</p>
-    <p class="hero-intro">I built Cappy to give the people around the camera a way to push back.</p>
+    <p class="hero-intro">CAP (short for Catch a Pervert) is a wearable privacy focused device that is constantly looking out for smart glasses users around you. Cappy is the cute companion living inside of it, reacting to the glasses with expressive eyes and haptic feedback.</p>
     <a class="button dark" href="#play">Try Cappy <span>↓</span></a>
     <a class="text-link" href="#idea">Why I made CAP ↓</a>
   </div>
   <div class="hero-object">
-    <div class="viewer hero-viewer" id="hero-viewer" role="img" aria-label="Interactive 3D model of Cappy 2.0. Drag to rotate. Arrow keys rotate, plus and minus zoom." aria-busy="true" tabindex="0">
-      <img class="model-fallback" src="assets/p18-3.webp" alt="My finished orange Cappy prototype, awake in my hand">
-      <div class="model-loading" role="status"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><p>Loading Cappy…</p></div>
+    <div class="viewer hero-viewer" id="hero-viewer" role="img" aria-label="Interactive 3D model of CAP 2.0, with Cappy on its screen. Drag to rotate. Arrow keys rotate, plus and minus zoom." aria-busy="true" tabindex="0">
+      <img class="model-fallback" src="assets/p18-3.webp" alt="My finished orange CAP prototype in my hand, with Cappy awake on its screen">
+      <div class="model-loading" role="status"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><p>Loading CAP…</p></div>
     </div>
-    <div class="model-caption"><span>CAPPY 2.0</span><div class="model-zoom" role="group" aria-label="Cappy 3D zoom"><button id="hero-zoom-out" type="button" aria-label="Zoom out" disabled>−</button><button id="hero-zoom-in" type="button" aria-label="Zoom in" disabled>+</button></div></div>
+    <div class="model-caption"><span>CAP 2.0</span><div class="model-zoom" role="group" aria-label="CAP 3D zoom"><button id="hero-zoom-out" type="button" aria-label="Zoom out" disabled>−</button><button id="hero-zoom-in" type="button" aria-label="Zoom in" disabled>+</button></div></div>
   </div>
-  <div class="hero-bottom"><span>THE MAKINGS OF A PERVERT DETECTOR</span><a href="#idea">M.A. Experience Design · Srishti <span>↓</span></a></div>
 </section>
+
+<aside class="project-details" aria-label="Project details">
+  <div class="project-facts">
+    <div><span>CONTEXT</span><p>M.A. Experience Design<br>Srishti, Core Studio Project</p></div>
+    <div><span>STUDIO</span><p>By Any Media Necessary</p></div>
+    <div><span>HARDWARE</span><p>ESP32-S3-Zero<br>GC9A01 LCD · ADXL345 accelerometer</p></div>
+    <div><span>DESIGN</span><p>figma, fusion 360, adobe after effects</p></div>
+  </div>
+</aside>
 
 <section class="idea section-pad" id="idea">
   <div class="section-heading"><span class="eyebrow">01 / THE CONCEPT</span></div>
   <div class="idea-grid">
-    <h2>CAP -<br>Catch a Pervert</h2>
+    <h2>Pushing back on Perverts</h2>
     <div class="body-copy">
       <p class="lead">Camera-equipped smart glasses make recording strangers effortless. I wanted to give the people around them a say.</p>
-      <p>There’s very little room to consent, or even notice a camera, when it looks like an ordinary pair of glasses. CAP is my response to that imbalance, built through Critical Making & Tactical Media.</p>
-      <p>I use Bluetooth Low Energy (BLE) advertisements to look for smart-glasses identifiers. Cappy turns a matching signal into an expressive face and a buzz you can feel, so you can decide how to respond.</p>
-      <p class="aside">I’m looking for the presence of camera wearables; a Bluetooth match doesn’t tell me whether their camera is recording.</p>
+      <p>There’s very little room to consent, or even notice a camera, when it looks like an ordinary pair of glasses. CAP is my response to that imbalance: a wearable device at the intersection of tech and fashion made to combat other wearables that don't respect your privacy.</p>
+      <p>CAP scans Bluetooth Low Energy (BLE) advertisements to look for smart-glasses identifiers. When CAP finds a matching signal, Cappy reacts on its screen and the wearable buzzes, giving you the freedom to decide how to respond to the situation.</p>
+      <p class="aside">Cappy is looking for the presence of camera wearables; a Bluetooth match doesn’t tell me whether their camera is recording or not.</p>
     </div>
   </div>
-  <div class="ways-to-wear">
-    <div><p class="eyebrow">WAYS TO WEAR</p><h3>Wear Cappy your way</h3><p>I designed around user freedom. How visible you want to be is up to you.</p></div>
-    <article class="wear-card"><span class="pixel-label">OUT IN THE OPEN</span><h4>On your shirt</h4><p>Let people meet Cappy. His reactions can start a conversation about recording, consent, and the person behind the lens.</p></article>
-    <article class="wear-card"><span class="pixel-label">JUST BETWEEN YOU TWO</span><h4>On your waistband</h4><p>Clip him discreetly to your pants and feel the vibration alerts privately. You choose whether to confront an onlooker.</p></article>
-  </div>
-  <div class="project-facts">
-    <div><span>STUDIO</span><p>By Any Media Necessary</p></div>
-    <div><span>HARDWARE</span><p>ESP32-S3-Zero<br>GC9A01 LCD · ADXL345</p></div>
-    <div><span>DESIGN</span><p>Figma & Fusion 360</p></div>
-    <div><span>CONTEXT</span><p>M.A. Experience Design<br>Srishti</p></div>
+
+</section>
+
+<section class="hardware" id="inside">
+  <div class="hardware-intro section-pad"><p class="eyebrow">02 / INSIDE CAP 2.0</p><h2>What’s inside CAP?</h2><p>The CAP wearable houses Cappy’s screen and the electronics behind his reactions. Scroll through my CAD model to open it up and explore each part.</p></div>
+  <div class="hardware-layout">
+    <div class="workbench">
+      <div class="bench-top"><span class="eyebrow">CAP 2.0 / CAD VIEW</span><span id="assembly-status">01 — ENCLOSURE</span></div>
+      <div class="viewer bench-viewer" id="bench-viewer" role="img" aria-label="Explorable CAP 2.0 hardware model. Drag or use arrow keys to rotate; plus and minus zoom." aria-busy="true" tabindex="0"><img class="model-fallback" src="assets/p17-1.webp" alt="My Fusion 360 model of CAP 2.0, with screen support and port access"><div class="model-loading" role="status"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><p>Loading CAD model…</p></div></div>
+      <div class="bench-footer">
+      <p class="bench-description" id="part-info" aria-live="polite">My snap-fit, two-piece printed shell supports the screen and leaves room for the on/off switch and USB-C port.</p>
+      <button id="explode" class="bench-view-toggle" aria-pressed="false" aria-controls="bench-viewer" aria-label="Switch to exploded view" title="Switch to exploded view" disabled><span aria-hidden="true">↗</span></button>
+      </div>
+    </div>
+    <div class="assembly-story">
+      <article class="assembly-step" data-part="shell" data-step="01 — ENCLOSURE"><span class="chapter-no">01</span><p class="eyebrow">THE ENCLOSURE</p><h3>A squircle around a circle</h3><p>I designed CAP’s orange shell in Fusion 360. The two 3D-printed halves snap together around internal screen supports, with a dedicated slot for the on/off switch and access to the USB-C port.</p><p class="technical">3D-PRINTED SHELL · SNAP-FIT · USB-C ACCESS</p></article>
+      <article class="assembly-step" data-part="display" data-step="02 — EXPRESSION"><span class="chapter-no">02</span><p class="eyebrow">THE DISPLAY</p><h3>Cappy’s expressive face</h3><p>Cappy lives on CAP’s 1.28-inch round TFT LCD, which gives him his eyes. LovyanGFX renders the blinks, glances, and state changes at around 30 frames per second, making the face feel alive between alerts.</p><p class="technical">GC9A01 · 240 × 240 PX · SPI · 30 FPS</p><a class="text-link" href="#play">Try his expressions ↓</a></article>
+      <article class="assembly-step" data-part="brain" data-step="03 — DETECTION"><span class="chapter-no">03</span><p class="eyebrow">THE BRAIN</p><h3>Listening for smart glasses</h3><p>The compact ESP32-S3-Zero runs continuous NimBLE advertisement scans and looks for manufacturer IDs and device names matching with popular smart glasses like the Meta Raybans, then smooth the RSSI readings to move Cappy through his proximity tiers and expressions without flickering between states.</p><p class="technical">ESP32-S3-ZERO · NimBLE · SMOOTHED RSSI</p><a class="text-link" href="journal.html#firmware">Inside CAP’s firmware ↗</a></article>
+      <article class="assembly-step" data-part="touch" data-step="04 — INTERACTION"><span class="chapter-no">04</span><p class="eyebrow">KNOCKS & BUZZES</p><h3>Alerts you can feel</h3><p>I configured an ADXL345 accelerometer as a physical knock detector: two knocks wake Cappy from a nap. A vibration motor gives single, double, or triple buzzes as the alert escalates, so you can respond without looking at his face when you are wearing the device.</p><p class="technical">ADXL345 · DOUBLE-KNOCK · MOSFET MOTOR DRIVER</p><div class="buzz-notation" aria-label="Single, double and triple buzz"><span>━</span><span>━ ━</span><span>━ ━ ━</span></div></article>
+      <article class="assembly-step" data-part="power" data-step="05 — POWER"><span class="chapter-no">05</span><p class="eyebrow">BATTERY & CHARGING</p><h3>Ready to come along</h3><p>A 3.7V LiPo battery and TP4056 USB-C charging circuit power the wearable. I soldered the connections into a self-contained unit, with a physical switch on the side to turn CAP on and off.</p><p class="technical">3.7V LiPo · TP4056 · USB-C · ON/OFF SWITCH</p></article>
+    </div>
   </div>
 </section>
 
 <section class="play section-pad" id="play">
-  <div class="section-heading"><span class="eyebrow">02 / MEET CAPPY</span></div>
-  <div class="play-heading"><h2>Try Cappy’s reactions</h2><p>I gave Cappy a face you can read and alerts you can feel. Drag the glasses closer to see how he responds, then let him doze off and knock twice to wake him.</p></div>
+  <div class="section-heading"><span class="eyebrow">03 / MEET CAPPY</span></div>
+  <div class="play-heading"><h2>Cappy's Emotions</h2><p>Cappy brings CAP’s alerts to life through his expressive eyes. Let's take a look at his range of emotions.</p></div>
+  <ol class="state-guide" aria-label="Cappy’s expressions and alerts">
+    <li><div class="state-heading"><span class="state-badge">HAPPY</span><span class="state-icon" aria-hidden="true"><canvas width="240" height="240" data-emotion="happy"></canvas></span></div><h3>The coast is clear</h3><p>His default state: white eyes looking around, with no alerts to worry about.</p><span class="state-cue">No vibration</span></li>
+    <li class="curious"><div class="state-heading"><span class="state-badge">CURIOUS</span><span class="state-icon" aria-hidden="true"><canvas width="240" height="240" data-emotion="curious"></canvas></span></div><h3>Something nearby</h3><p>A matching BLE signal catches his attention. His eyes turn yellow.</p><span class="state-cue">One short vibration</span></li>
+    <li class="angry"><div class="state-heading"><span class="state-badge">ANGRY</span><span class="state-icon" aria-hidden="true"><canvas width="240" height="240" data-emotion="angry"></canvas></span></div><h3>Getting too close</h3><p>Someone wearing smart glasses is getting closer. Red eyes make his objection clear.</p><span class="state-cue">Two vibrations</span></li>
+    <li class="rage"><div class="state-heading"><span class="state-badge">RAGE</span><span class="state-icon" aria-hidden="true"><canvas width="240" height="240" data-emotion="rage"></canvas></span></div><h3>Personal space, please</h3><p>They’ve ignored the warning and moved right in. His screen flashes red.</p><span class="state-cue">Three vibrations</span></li>
+    <li><div class="state-heading"><span class="state-badge">SLEEPY</span><span class="state-icon" aria-hidden="true"><canvas width="240" height="240" data-emotion="sleepy"></canvas></span></div><h3>Time for a nap</h3><p>After 30 seconds of quiet, his eyes droop and he gets sleepy.</p><span class="state-cue">Double-knock to wake</span></li>
+    <li><div class="state-heading"><span class="state-badge">SLEEPING</span><span class="state-icon" aria-hidden="true"><canvas width="240" height="240" data-emotion="sleeping"></canvas></span></div><h3>Sound asleep</h3><p>At 60 seconds of quiet, his eyes close and the Zs float up. Double-knock CAP to wake him, a little groggy.</p><span class="state-cue">Double-knock to wake</span></li>
+  </ol>
+  <p class="simulation-note">I’ve recreated Cappy’s reactions here so you can try them in your browser.  Drag the glasses closer to see how he responds, then let him doze off and knock twice to wake him.</p>
   <div class="play-grid">
     <div class="proximity-playground" id="proximity-playground">
       <span class="playground-title pixel-label">YOUR LITTLE PRIVACY COMPANION</span>
@@ -78,69 +105,58 @@
       <span class="glasses-home" aria-hidden="true"></span>
       <div class="approach-path" aria-hidden="true"></div>
       <button id="glasses" class="glasses" role="slider" aria-label="Drag the glasses closer to Cappy" aria-valuemin="0.25" aria-valuemax="5" aria-valuenow="5" aria-valuetext="5 metres away" aria-describedby="drag-help">
-        <svg viewBox="0 0 140 70" aria-hidden="true"><path d="M14 25 4 9M126 25l10-16" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><path d="M10 24c9-6 31-6 42-1 5 3 8 20 1 28-7 8-27 9-34 1-6-6-9-19-9-28Z M130 24c-9-6-31-6-42-1-5 3-8 20-1 28 7 8 27 9 34 1 6-6 9-19 9-28Z" fill="#292928" stroke="currentColor" stroke-width="7"/><path d="M55 27c9-6 21-6 30 0" fill="none" stroke="currentColor" stroke-width="7"/><path d="m22 29 18 3M100 32l18-3" stroke="#f2dcd4" stroke-width="3" stroke-linecap="round"/></svg>
+        <svg viewBox="0 0 140 70" aria-hidden="true">
+          <path d="M6 21c14-5 40-5 55 2 6 3 12 3 18 0 15-7 41-7 55-2l-1 10-3 1-5 21c-3 8-9 11-21 11-15 0-21-5-24-14l-4-15c-4-3-8-3-12 0l-4 15c-3 9-9 14-24 14-12 0-18-3-21-11l-5-21-3-1Z" fill="#151716"/>
+          <path d="M18 29c10-3 27-3 36 0l-4 20c-2 6-6 9-15 9-10 0-14-4-16-10l-4-15q0-3 3-4Z" fill="#304139"/>
+          <path d="M122 29c-10-3-27-3-36 0l4 20c2 6 6 9 15 9 10 0 14-4 16-10l4-15q0-3-3-4Z" fill="#304139"/>
+          <path d="m21 32 27-1-20 13Zm71-1 27 1-20 12Z" fill="#839c90" opacity=".22"/>
+          <path d="M21 22q17-3 32 1m34 0q15-4 32-1" fill="none" stroke="#555b57" stroke-width="1.5" stroke-linecap="round"/>
+          <circle cx="11.5" cy="24.5" r="3.5" fill="#69716c"/><circle cx="11.5" cy="24.5" r="2.3" fill="#050807"/><circle cx="11" cy="24" r=".8" fill="#94b6c7"/>
+          <circle cx="128.5" cy="24.5" r="3" fill="#b9c2bc"/><circle cx="128.5" cy="24.5" r="1.7" fill="#edf1ed"/>
+        </svg>
         <span>DRAG ME</span>
       </button>
-      <p class="drag-help" id="drag-help">Bring the glasses closer.<br>Let go and they’ll spring back.</p>
+      <p class="drag-help" id="drag-help">Bring the glasses closer.</p>
       <div class="sim-status" role="status"><strong id="emotion-label">Happy</strong><span id="emotion-detail">The coast is clear. Looking around.</span></div>
       <div class="distance-readout"><span class="micro">DISTANCE</span><output id="distance-value">Far</output></div>
     </div>
-    <div class="play-under"><p class="micro keyboard-hint">Drag with mouse or touch · Focus the glasses and hold an arrow key · Release to return</p></div>
     <div class="haptic-readout" hidden aria-hidden="true"><div id="haptic-bars"><i></i><i></i><i></i></div><span id="haptic-label">Quiet</span></div>
-    <div class="idle-controls"><p>When the coast is clear, Cappy gets some rest.</p><div><button id="sleepy" class="pill">30s · Get sleepy</button><button id="sleep" class="pill">60s · Fall asleep</button><button id="wake" class="pill">Double-knock to wake ↗</button></div><p id="wake-note" class="micro" aria-live="polite">Cappy is already awake.</p></div>
-    <p class="simulation-note">I’ve recreated Cappy’s reactions here so you can try them in your browser. Distance is simulated; his movement and the buzz text show the haptic patterns.</p>
-  </div>
-  <ol class="state-guide" aria-label="Cappy’s expressions and alerts">
-    <li><span class="state-badge">HAPPY</span><h3>The coast is clear</h3><p>His default state: white eyes looking around, with no alerts to worry about.</p><span class="state-cue">No buzz</span></li>
-    <li class="curious"><span class="state-badge">CURIOUS</span><h3>Something nearby</h3><p>A matching BLE signal catches his attention. His eyes turn yellow.</p><span class="state-cue">Single sharp bzz</span></li>
-    <li class="angry"><span class="state-badge">ANGRY</span><h3>Getting too close</h3><p>Someone wearing smart glasses is getting closer. Red eyes make his objection clear.</p><span class="state-cue">Double bzz-bzz</span></li>
-    <li class="rage"><span class="state-badge">RAGE</span><h3>Personal space, please</h3><p>They’ve ignored the warning and moved right in. His screen flashes red.</p><span class="state-cue">Triple buzz</span></li>
-    <li><span class="state-badge">SLEEPY</span><h3>Time for a nap</h3><p>After 30 seconds of quiet he gets sleepy; at 60 he’s asleep, zzZ. Double-knock his body to wake him, a little groggy.</p><span class="state-cue">Double-knock to wake</span></li>
-  </ol>
-  <a class="text-link" href="journal.html#firmware">How I coded Cappy’s behaviour ↗</a>
-</section>
+    <div class="idle-controls"><p>When the coast is clear, Cappy gets some rest.</p><div><button id="sleepy" class="pill">30s · Get sleepy</button><button id="sleep" class="pill">60s · Fall asleep</button><button id="wake" class="pill">wake Cappy up</button></div><p id="wake-note" class="micro" aria-live="polite">Cappy is already awake.</p></div>
 
-<section class="hardware" id="inside">
-  <div class="hardware-intro section-pad"><p class="eyebrow">03 / INSIDE CAPPY 2.0</p><h2>What’s inside Cappy?</h2><p>I built a self-contained wearable around five parts. Scroll through my CAD model to open it up, or pick a part to inspect.</p></div>
-  <div class="hardware-layout">
-    <div class="workbench">
-      <div class="bench-top"><span class="eyebrow">CAPPY 2.0 / MY CAD MODEL</span><span id="assembly-status">01 — ENCLOSURE</span></div>
-      <div class="viewer bench-viewer" id="bench-viewer" role="img" aria-label="Explorable Cappy 2.0 hardware model. Drag or use arrow keys to rotate; plus and minus zoom." aria-busy="true" tabindex="0"><img class="model-fallback" src="assets/p17-1.webp" alt="My Fusion 360 model of Cappy 2.0, with screen support and port access"><div class="model-loading" role="status"><span class="loading-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span><p>Loading my CAD model…</p></div></div>
-      <div class="bench-controls"><button id="explode" class="pill" aria-pressed="false">Explode the parts <span>↗</span></button><button id="reset-view" class="pill">Reset view <span>↺</span></button></div>
-      <div class="parts-control"><label for="part-select">Inspect a part</label><select id="part-select"><option value="all">Complete assembly</option><option value="shell">Printed enclosure</option><option value="display">Round display</option><option value="brain">ESP32-S3-Zero</option><option value="touch">Accelerometer & haptics</option><option value="power">Battery & charging</option></select><p id="part-info" aria-live="polite">Complete Cappy 2.0 assembly—3D-printed squircle shell, round TFT screen, ESP32-S3-Zero, sensors, and battery.</p></div>
-      <p class="micro bench-foot">Drag to rotate · + / − to zoom · Scroll the page to explore each part</p>
-    </div>
-    <div class="assembly-story">
-      <article class="assembly-step" data-part="shell" data-step="01 — ENCLOSURE"><span class="chapter-no">01</span><p class="eyebrow">THE ENCLOSURE</p><h3>A squircle around a circle</h3><p>I designed Cappy’s orange shell in Fusion 360. The two 3D-printed halves snap together around internal screen supports, with a dedicated slot for the on/off switch and access to the USB-C port.</p><p class="technical">3D-PRINTED SHELL · SNAP-FIT · USB-C ACCESS</p></article>
-      <article class="assembly-step" data-part="display" data-step="02 — EXPRESSION"><span class="chapter-no">02</span><p class="eyebrow">THE DISPLAY</p><h3>Cappy’s expressive face</h3><p>I use a 1.28-inch round TFT LCD to give Cappy his eyes. LovyanGFX renders the blinks, glances, and state changes at around 30 frames per second, making the face feel alive between alerts.</p><p class="technical">GC9A01 · 240 × 240 PX · SPI · 30 FPS</p><a class="text-link" href="#play">Try his expressions ↑</a></article>
-      <article class="assembly-step" data-part="brain" data-step="03 — DETECTION"><span class="chapter-no">03</span><p class="eyebrow">THE BRAIN</p><h3>Listening for smart glasses</h3><p>The compact ESP32-S3-Zero runs continuous NimBLE advertisement scans. I match manufacturer IDs and device names, then smooth the RSSI readings to move Cappy through his proximity tiers without flickering between states.</p><p class="technical">ESP32-S3-ZERO · NimBLE · SMOOTHED RSSI</p><a class="text-link" href="journal.html#firmware">Inside Cappy’s firmware ↗</a></article>
-      <article class="assembly-step" data-part="touch" data-step="04 — INTERACTION"><span class="chapter-no">04</span><p class="eyebrow">KNOCKS & BUZZES</p><h3>Alerts you can feel</h3><p>I configured the ADXL345 accelerometer as a physical knock detector: two knocks wake Cappy from a nap. A MOSFET-driven vibration motor gives single, double, or triple buzzes as the alert escalates, so you can respond without looking at his face.</p><p class="technical">ADXL345 · DOUBLE-KNOCK · MOSFET MOTOR DRIVER</p><div class="buzz-notation" aria-label="Single, double and triple buzz"><span>━</span><span>━ ━</span><span>━ ━ ━</span></div></article>
-      <article class="assembly-step" data-part="power" data-step="05 — POWER"><span class="chapter-no">05</span><p class="eyebrow">BATTERY & CHARGING</p><h3>Ready to come along</h3><p>A 3.7V LiPo battery and TP4056 USB-C charging circuit power the wearable. I soldered the connections into a self-contained unit, with a physical switch on the side to turn Cappy on and off.</p><p class="technical">3.7V LiPo · TP4056 · USB-C · ON/OFF SWITCH</p></article>
-    </div>
   </div>
+
+  <a class="text-link" href="journal.html#firmware">How I coded Cappy’s behaviour ↗</a>
 </section>
 
 <section class="field section-pad" id="field">
   <div class="section-heading"><span class="eyebrow">04 / IN THE WILD</span></div>
-  <div class="field-heading"><h2>Cappy, out in the world</h2><p>I gave the finished orange Cappy the photoshoot he deserved, then wore him into my final presentation.</p></div>
+  <div class="field-heading"><h2>CAPPY, out in the world</h2></div>
   <div class="photo-row">
-    <figure><img src="assets/p19-1.webp" alt="My finished Cappy 2.0 sitting on a shelf with bright white eyes" loading="lazy"><figcaption><span class="state-badge">HAPPY</span><span>Looking around when the coast is clear.</span></figcaption></figure>
-    <figure><img src="assets/p19-4.webp" alt="My orange Cappy 2.0 displaying his angry red eyes" loading="lazy"><figcaption><span class="state-badge">ANGRY</span><span>Making his objection visible.</span></figcaption></figure>
-    <figure><img src="assets/p22-1.webp" alt="Me wearing Cappy on my shirt before the class presentation" loading="lazy"><figcaption><span class="pixel-label">ON MY SHIRT</span><span>Letting everyone meet Cappy.</span></figcaption></figure>
+    <figure><img src="assets/p19-1.webp" alt="My finished CAP 2.0 sitting on a shelf, with Cappy’s bright white eyes on its screen" loading="lazy"><figcaption><span class="state-badge">HAPPY</span><span>Looking around when the coast is clear.</span></figcaption></figure>
+    <figure><img src="assets/p19-4.webp" alt="My orange CAP 2.0 displaying Cappy’s angry red eyes" loading="lazy"><figcaption><span class="state-badge">ANGRY</span><span>Making his objection visible.</span></figcaption></figure>
+    <figure><img src="assets/p19-2.webp" alt="CAP on a shelf, with Cappy’s sleepy half-closed eyes" loading="lazy"><figcaption><span class="state-badge">SLEEPY</span><span>Time for a nap.</span></figcaption></figure>
+    <figure><img src="assets/p19-3.webp" alt="CAP on a shelf, with Cappy’s sleeping eyes and floating Zs" loading="lazy"><figcaption><span class="state-badge">SLEEPING</span><span>Resting until the next double-knock.</span></figcaption></figure>
   </div>
   <div class="wear-showcase">
-    <figure><img src="assets/p24-2.webp" alt="My orange Cappy clipped to the waistband of my pants, under the edge of my shirt" loading="lazy"><figcaption>A quieter way to wear him.</figcaption></figure>
-    <div><p class="eyebrow">ON YOUR WAISTBAND</p><h3>A companion you can keep close</h3><p>I also tried Cappy on my waistband. With the screen tucked under a shirt, his vibration alerts can stay between us. The same object lets you choose how much attention you want to draw.</p><span class="pixel-label">YOUR PRIVACY. YOUR CALL.</span></div>
-    <figure><img src="assets/p24-3.webp" alt="A view from above of Cappy resting discreetly at my waistband outdoors" loading="lazy"><figcaption>Close enough to feel the buzz.</figcaption></figure>
+    <div class="ways-to-wear">
+      <div><p class="eyebrow">WAYS TO WEAR</p><h3>Wear Cappy your way</h3><p>Cappy is built around freedom and choice. Your shirt and waistband are just two possibilities that I tested. You’re free to wear it however you want, and choose how visible you want to be.</p></div>
+      <article class="wear-card"><span class="pixel-label">OUT IN THE OPEN</span><h4>On your shirt</h4><p>Let people meet Cappy. His reactions can start a conversation about recording, consent, and the person behind the lens.</p></article>
+      <article class="wear-card"><span class="pixel-label">JUST BETWEEN YOU TWO</span><h4>On your waistband</h4><p>Clip CAP discreetly to your pants and feel the vibration alerts privately. You choose whether to confront an onlooker.</p></article>
+    </div>
+    <div class="wear-photos">
+      <figure><img src="assets/p22-1.webp" alt="Me wearing CAP on my shirt before the class presentation" loading="lazy"><figcaption>On my shirt. Letting everyone meet Cappy.</figcaption></figure>
+      <figure><img src="assets/p24-2.webp" alt="My orange CAP wearable clipped to the waistband of my pants, under the edge of my shirt" loading="lazy"><figcaption>A quieter way to wear CAP.</figcaption></figure>
+      <figure><img src="assets/p24-3.webp" alt="A view from above of CAP resting discreetly at my waistband outdoors" loading="lazy"><figcaption>Close enough to feel the buzz.</figcaption></figure>
+    </div>
   </div>
-  <div class="poster-showcase">
-    <a class="poster-frame" href="assets/p21-2.webp" target="_blank" rel="noopener" aria-label="Open my Meet Cappy poster at full size"><img src="assets/p21-2.webp" alt="My final Meet Cappy poster: an orange wearable on graph paper, with happy, angry and sleeping faces" loading="lazy"></a>
-    <div class="field-copy"><p class="eyebrow">MY FINAL POSTER & CLASS DEMO</p><h2 class="pixel-lockup"><span>MEET</span><span class="pixel-word">CAPPY</span></h2><p>I kept the poster light on text and let Cappy’s personality take the lead: he looks around, gets angry for you, and rests when you’re safe.</p><p>For the live class demo, Sudarsini wore our improvised “unreleased” glasses while a test device triggered Cappy’s BLE detection. I showed his changing expressions, vibration alerts, and double-knock wake interaction on stage.</p><p class="poster-callout">RECLAIM YOUR PRIVACY TODAY</p><a class="button dark" href="https://www.youtube.com/shorts/wxFauw8hBdE" target="_blank" rel="noopener">Watch my class demo <span>↗</span></a><a class="text-link" href="journal.html#reflection">The story behind demo day ↗</a></div>
+  <div class="demo-showcase">
+    <figure class="demo-photo"><img src="assets/p22-2.webp" alt="Me demonstrating CAP in class, wearing the device while presenting Cappy’s reactions" loading="lazy"><figcaption>Letting Cappy speak for himself on demo day.</figcaption></figure>
+    <div class="field-copy"><p class="eyebrow">THE CLASS DEMO</p><h2>Cappy meets the class</h2><p>For the live class demo, My classmate wore our improvised “unreleased” glasses while carrying my bluetooth earphones (added to CAP’s target list to test Cappy without the glasses) to trigger real-time BLE detection. I showed Cappy’s changing expressions, CAP’s vibration alerts, and the double-knock interaction that wakes him on stage.</p><a class="button dark" href="https://www.youtube.com/shorts/wxFauw8hBdE" target="_blank" rel="noopener">Watch my class demo <span>↗</span></a><a class="text-link" href="journal.html#reflection">The story behind demo day ↗</a><a class="text-link" href="journal.html#poster">See the final poster in my journal ↗</a></div>
   </div>
 </section>
-<section class="build-banner section-pad"><div><p class="eyebrow">HOW IT WAS BUILT</p><h2>My semester with Cappy</h2><p>From a speculative newspaper article to a wearable companion: my sketches, experiments, iterations, and everything I learned along the way.</p></div><div class="ending-links"><a class="button dark" href="journal.html">Read my build journal <span>↗</span></a><a class="button outline" href="assets/process-documentation.pdf" target="_blank" rel="noopener">My A3 presentation <span>↗</span></a></div></section>
+<section class="build-banner section-pad"><div><p class="eyebrow">HOW IT WAS BUILT</p><h2>My semester building CAP</h2><p>From a speculative newspaper article to a wearable with a companion inside: my sketches, experiments, iterations, and everything I learned along the way.</p></div><div class="ending-links"><a class="button dark" href="journal.html">Read my build journal <span>↗</span></a><a class="button outline" href="assets/process-documentation.pdf" target="_blank" rel="noopener">Read Documentation <span>↗</span></a></div></section>
 </main>
-<footer><a class="wordmark" href="#top">CAP<span class="logo-eyes" aria-hidden="true"><i></i><i></i></span></a><p>Designed & made by Moulik Nanda<br><span>M.A. Experience Design · Srishti</span></p><a href="journal.html#credits">People & references ↗</a><a href="#top">Back to top ↑</a></footer>
+<footer><a class="wordmark" href="#top">CAP<span class="logo-eyes" aria-hidden="true"><i></i><i></i></span></a><p>Designed & made by Moulik Nanda<br><span>M.A. Experience Design · Srishti Manipal Institute</span></p><a href="journal.html#credits">People & references ↗</a><a href="#top">Back to top ↑</a></footer>
 <div id="reading-progress" aria-hidden="true"></div>
 </body>
 </html>

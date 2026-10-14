@@ -66,7 +66,7 @@ const state = {
   theme: 'sunset',
   cameraPreset: 'iso',
   plantHydration: 80,
-  pinsVisible: !compactLayoutMedia.matches,
+  pinsVisible: true,
   zenMode: false,
   hoveredInteractive: null
 };
@@ -325,6 +325,7 @@ function configureCameraControls() {
   orbitControls.enabled = true;
   orbitControls.enableRotate = true;
   orbitControls.enablePan = false;
+  orbitControls.touches[0] = THREE.TOUCH.ROTATE;
 
   // Preserve the starting framing and the closest preset view without letting
   // the orthographic camera zoom endlessly away from the house.
@@ -1067,7 +1068,7 @@ function renderContent() {
         <div>
           <h2 style="font-size: 1.4rem; font-weight: 700;">${dev.name}</h2>
           <div style="font-size: 0.9rem; color: var(--accent-amber); margin-top: 4px;">${dev.title}</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">📍 ${dev.location} &bull; 🟢 ${dev.status}</div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">📍 ${dev.location}</div>
         </div>
 
         <p class="profile-bio">${dev.bio}</p>

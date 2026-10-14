@@ -251,17 +251,29 @@ footer > a:not(.wordmark) { font-size: 12px; }
 .journal-section > header .eyebrow { max-width: 240px; }
 .journal-section h2 { font-size: clamp(36px, 4.1vw, 60px); }
 .journal-section .prose { max-width: 730px; margin-left: 36.3%; font-size: 17px; }
+.concept-intro { display: grid; grid-template-columns: 27.3% minmax(0, 1fr); gap: 9%; align-items: center; margin-bottom: 28px; }
+.journal-section .concept-intro .prose { grid-column: 2; grid-row: 1; margin-left: 0; }
+.concept-intro .journal-visual { grid-column: 1; grid-row: 1; margin: 0; }
 .prose > p + p { margin-top: 22px; }
 .prose p > a, .credit-list a { text-decoration: underline; text-underline-offset: 3px; }
 .prose .text-link { margin-top: 20px; }
 .journal-section .wide-images { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 45px; align-items: start; }
-.journal-section figure img { width: 100%; object-fit: cover; border: 2px solid var(--ink); border-radius: 12px; }
+.journal-section figure img { width: 100%; height: auto; object-fit: cover; border: 2px solid var(--ink); border-radius: 12px; }
 .journal-section figcaption { font-size: 13px; line-height: 1.6; color: var(--muted); margin-top: 12px; }
 .journal-section .tall-images img { height: 460px; object-fit: cover; }
 .journal-section .contain img { object-fit: contain; background: var(--paper); }
 #beginning .wide-images img { height: 430px; }
 .journal-section .three-images { grid-template-columns: repeat(3, 1fr); }
 .journal-section .three-images img { height: 340px; }
+.journal-section .wide-images.single-image { grid-template-columns: 1fr; max-width: 700px; margin-inline: auto; }
+.journal-visual { margin: 28px 0; }
+.prose > .wide-images { margin-block: 28px; }
+.journal-section .prose > .three-images img { height: auto; }
+#concept .three-images img { border: 0; }
+#concept .three-images figcaption { text-align: center; }
+.quarter-turn-photo { position: relative; aspect-ratio: 4 / 3; overflow: hidden; border: 2px solid var(--ink); border-radius: 12px; }
+/* Swap the 600 × 800 photo's dimensions before rotating, keeping its full frame. */
+.journal-section .wide-images .quarter-turn-photo img { position: absolute; width: 75%; height: 133.3333%; max-height: none; left: 12.5%; top: -16.6667%; transform: rotate(-90deg); border: 0; border-radius: 0; object-fit: contain; }
 .decision { padding: 25px 28px; background: var(--soft); border: 2px solid var(--ink); border-radius: 12px; margin: 28px 0; }
 .decision strong { display: block; font-family: var(--heading); font-weight: 800; font-size: 20px; line-height: 1.25; letter-spacing: -.025em; margin-bottom: 12px; }
 .decision p { font-size: 15px; }
@@ -269,6 +281,7 @@ footer > a:not(.wordmark) { font-size: 12px; }
 .orange-tint .decision { background: var(--paper); }
 .face-studies { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; max-width: 850px; margin: 45px auto 0; }
 .face-studies img { aspect-ratio: 1; object-fit: contain; background: var(--paper); }
+.face-studies figure { text-align: center; }
 .face-studies figcaption.state-badge { font-family: var(--pixel); color: var(--paper); font-size: 11px; }
 .wiring-table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.5; margin: 25px 0; }
 .wiring-table caption { text-align: left; font-size: 14px; font-weight: 600; margin-bottom: 12px; }
@@ -321,6 +334,7 @@ details p { font-size: 16px; line-height: 1.7; max-width: 700px; padding-top: 16
   .wear-card { padding: 20px; }
   .wear-photos { gap: 18px; }
   .journal-section .prose { margin-left: 30%; }
+  .concept-intro { grid-template-columns: 24% minmax(0, 1fr); gap: 6%; }
   .journal-section > header { grid-template-columns: 1fr 2.5fr; gap: 6%; }
   .journal-section .tall-images img { height: 390px; }
   .journal-summary { align-items: start; }
@@ -419,6 +433,7 @@ details p { font-size: 16px; line-height: 1.7; max-width: 700px; padding-top: 16
   .journal-section > header .eyebrow { max-width: none; }
   .journal-section h2 { font-size: 36px; }
   .journal-section .prose { margin-left: 0; font-size: 16px; }
+  .concept-intro { display: flex; flex-direction: column; gap: 28px; }
   .decision { padding: 22px; }
   .decision strong { font-size: 19px; }
   .journal-section .wide-images { gap: 25px; grid-template-columns: 1fr; margin-top: 32px; }

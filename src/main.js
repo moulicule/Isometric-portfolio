@@ -1012,7 +1012,7 @@ function renderContent() {
         <div class="project-card-header">
           <div>
             <div class="project-name">${p.title}</div>
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">${p.category}</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; white-space: pre-line;">${p.category}</div>
           </div>
           <span class="project-badge">${p.badge}</span>
         </div>

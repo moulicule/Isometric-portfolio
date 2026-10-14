@@ -1,6 +1,6 @@
 # 🏠 Interactive Isometric Atelier | 3D Project Webpage
 
-An interactive, real-time 3D isometric room portfolio webpage powered by **Spline 3D** (`@splinetool/runtime`), **Three.js**, and modern web standards. The served scene is `public/scene.splinecode`. The Projects dialog features CAP, with its interactive case study and build journal.
+An interactive, real-time 3D isometric room portfolio webpage powered by **Spline 3D** (`@splinetool/runtime`), **Three.js**, and modern web standards. The served scene is `public/scene.splinecode`. The Projects dialog features CAP, with its interactive case study and build journal, and Designing Dignity, a prosthetics and orthotics service and product design project.
 
 ---
 
@@ -70,6 +70,12 @@ Edit `public/projects/cap/`, then reopen or refresh the case study from the runn
 `npm run build` includes the latest CAP files in the generated `dist/projects/cap/`. `npm run preview` shows that build snapshot. Commit and push the portfolio source together, and configure your hosting service to run `npm run build` and publish `dist/`.
 
 Run `node --test tests/cap.test.mjs` for the case-study checks. See [CAP documentation](docs/cap.md) for source notes and editing details. Do not hand-edit the portfolio’s generated `dist/`.
+
+### Designing Dignity project
+
+The project card in `src/data.js` credits Moulik Nanda and Ishita Sarin’s semester work at BMVSS (Jaipur Foot) and SMS Hospital. It links to the original A3 project overview (18 pages) and A2 design process (62 pages), copied into `public/projects/designing-dignity/`. The thumbnail is a crop of the physical Chappal Lock proof of concept from page 15 of the A3 overview. The supplied research presentation informed the summary; it is not served separately. The service model is proposed and the footwear lock is a prototype.
+
+Keep the PDF files in this repository so the links work in both development and the production build. They load only when opened from the project card. Run `npm run build` and deploy the complete `dist/` directory to publish updates.
 
 ### Readiness Regression Checks
 ```bash

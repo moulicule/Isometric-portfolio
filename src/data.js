@@ -16,7 +16,7 @@ export const PORTFOLIO_DATA = {
       id: "cap",
       title: "CAP (Catch a Pervert)",
       badge: "Master’s Project",
-      category: "Experience Design & Physical Computing",
+      category: "End-to-end product development",
       description: "CAP is my wearable privacy project; Cappy is the expressive companion who lives on its screen. Together, they explore recording and consent through animated eyes and haptic alerts. Follow my design process, explore the hardware in 3D, and try Cappy’s reactions in an interactive browser simulation.",
       image: "/projects/cap/assets/p19-1.webp",
       imageAlt: "My orange CAP 2.0 prototype on a shelf, with Cappy’s bright white eyes on its screen",
@@ -24,6 +24,20 @@ export const PORTFOLIO_DATA = {
       links: [
         { label: "Explore case study", url: "/projects/cap/index.html" },
         { label: "Build journal", url: "/projects/cap/journal.html" }
+      ]
+    },
+    {
+      id: "designing-dignity",
+      title: "Designing Dignity",
+      badge: "Master’s Project",
+      category: "Prosthetics & Orthotics\nService + Product Design",
+      description: "A semester project with Ishita Sarin, grounded in field research at BMVSS (Jaipur Foot) and SMS Hospital in Jaipur. We explored women’s access to prosthetic care through a community-based service model and prototyped a removable Chappal & Jutti Lock to expand everyday footwear choice. The work brings together care access, cultural expression, and dignity.",
+      image: "/projects/designing-dignity/chappal-lock.webp",
+      imageAlt: "Purple sandal fitted with the 3D-printed Chappal Lock prototype and an adjustable black heel strap",
+      tags: ["Inclusive Design", "Service Design", "User Research", "CAD", "3D Printing"],
+      links: [
+        { label: "Project overview (PDF)", url: "/projects/designing-dignity/project-overview.pdf" },
+        { label: "Design process (PDF)", url: "/projects/designing-dignity/design-process.pdf" }
       ]
     }
   ],

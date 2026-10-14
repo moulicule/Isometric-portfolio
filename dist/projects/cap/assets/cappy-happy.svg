@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+  <title>Cappy: happy</title>
+  <circle cx="120" cy="120" r="104" fill="#090c0b"/>
+  <rect x="68" y="74" width="32" height="64" rx="16" fill="#f9faf4" transform="rotate(5 84 106)"/>
+  <rect x="140" y="74" width="32" height="64" rx="16" fill="#f9faf4" transform="rotate(5 156 106)"/>
+</svg>

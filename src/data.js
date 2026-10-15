@@ -62,8 +62,12 @@ export const PORTFOLIO_DATA = {
       category: "UI/UX & Interaction Design",
       items: [
         { name: "UI/UX & User-Centred Design" },
-        { name: "Figma, Wireframing & Prototyping" },
-        { name: "User Flows & Design Systems" },
+        { name: "Figma & FigJam" },
+        { name: "Wireframing & Interactive Prototyping" },
+        { name: "User Flows & Information Architecture" },
+        { name: "Design Systems & Component Libraries" },
+        { name: "Accessibility & Mobile-First Design" },
+        { name: "Microinteractions & UI Animation" },
         { name: "Spline & 3D Interaction Design" }
       ]
     },
@@ -71,6 +75,8 @@ export const PORTFOLIO_DATA = {
       category: "Research & Service Design",
       items: [
         { name: "User Research, Interviews & Surveys" },
+        { name: "Usability Testing & Think-Aloud Studies" },
+        { name: "Competitive Analysis" },
         { name: "Personas & Journey Mapping" },
         { name: "Stakeholder Mapping & Systems Thinking" },
         { name: "Service Blueprints & Inclusive Design" }
@@ -100,6 +106,7 @@ export const PORTFOLIO_DATA = {
         { name: "Motion Graphics & After Effects" },
         { name: "Video Production, Editing & Premiere Pro" },
         { name: "Photoshop, Illustrator & InDesign" },
+        { name: "Visual Identity, Logos & Typography" },
         { name: "Storyboarding & Creative Direction" }
       ]
     },

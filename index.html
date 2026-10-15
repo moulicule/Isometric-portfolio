@@ -147,6 +147,11 @@
     <!-- 1. Projects Modal -->
     <div class="modal-backdrop" id="projectsModal" inert>
       <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="projectsTitle" aria-describedby="projectsSubtitle" tabindex="-1">
+        <nav class="modal-nav" aria-label="Portfolio sections">
+          <button class="modal-nav-btn" data-modal="about">About Me</button>
+          <button class="modal-nav-btn" data-modal="skills">Skills</button>
+          <button class="modal-nav-btn" data-modal="projects" aria-current="page">Projects</button>
+        </nav>
         <div class="modal-header">
           <div class="modal-title-group">
             <div class="modal-icon-badge" aria-hidden="true">💻</div>
@@ -166,6 +171,11 @@
     <!-- 2. Skills Modal -->
     <div class="modal-backdrop" id="skillsModal" inert>
       <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="skillsTitle" aria-describedby="skillsSubtitle" tabindex="-1">
+        <nav class="modal-nav" aria-label="Portfolio sections">
+          <button class="modal-nav-btn" data-modal="about">About Me</button>
+          <button class="modal-nav-btn" data-modal="skills" aria-current="page">Skills</button>
+          <button class="modal-nav-btn" data-modal="projects">Projects</button>
+        </nav>
         <div class="modal-header">
           <div class="modal-title-group">
             <div class="modal-icon-badge" aria-hidden="true">📚</div>
@@ -184,7 +194,12 @@
 
     <!-- 3. About Me Modal -->
     <div class="modal-backdrop" id="aboutModal" inert>
-      <div class="modal-window" style="max-width: 680px;" role="dialog" aria-modal="true" aria-labelledby="aboutTitle" tabindex="-1">
+      <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="aboutTitle" tabindex="-1">
+        <nav class="modal-nav" aria-label="Portfolio sections">
+          <button class="modal-nav-btn" data-modal="about" aria-current="page">About Me</button>
+          <button class="modal-nav-btn" data-modal="skills">Skills</button>
+          <button class="modal-nav-btn" data-modal="projects">Projects</button>
+        </nav>
         <div class="modal-header">
           <div class="modal-title-group">
             <div class="modal-icon-badge" aria-hidden="true">👤</div>

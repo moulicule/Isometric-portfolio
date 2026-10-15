@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <title>Urban Death Care concept overview</title>
+  <desc>Planning, crisis support, transition and remembrance form a circle of support around room to grieve.</desc>
+  <rect width="1440" height="900" fill="#ede9e2"/>
+  <g fill="none" stroke="#d7d0df">
+    <circle cx="720" cy="450" r="330"/>
+    <circle cx="720" cy="450" r="255"/>
+    <path d="M0 450H1440M720 0V900" stroke-dasharray="3 12"/>
+  </g>
+  <path d="M400 240H1040Q1130 240 1130 330V570Q1130 660 1040 660H400Q310 660 310 570V330Q310 240 400 240Z" fill="none" stroke="#867495" stroke-width="2" stroke-dasharray="7 9"/>
+  <circle cx="720" cy="450" r="167" fill="#d8cde5"/>
+  <circle cx="720" cy="450" r="153" fill="none" stroke="#a08db2"/>
+  <g fill="#342e3d" text-anchor="middle" font-family="Georgia,serif" font-size="51">
+    <text x="720" y="435">Room</text>
+    <text x="720" y="495" font-style="italic">to grieve.</text>
+  </g>
+  <g font-family="Arial,sans-serif">
+    <g transform="translate(224 180)">
+      <rect width="280" height="120" rx="4" fill="#f9f7f2" stroke="#c6bdce"/>
+      <text x="25" y="36" font-size="15" fill="#75667f" letter-spacing="2">01 / BEFORE</text>
+      <text x="25" y="83" font-size="30" fill="#342e3d">Planning</text>
+    </g>
+    <g transform="translate(936 180)">
+      <rect width="280" height="120" rx="4" fill="#342e3d"/>
+      <text x="25" y="36" font-size="15" fill="#c7b8d5" letter-spacing="2">02 / AT THE CRISIS</text>
+      <text x="25" y="83" font-size="30" fill="#f9f7f2">Immediate support</text>
+    </g>
+    <g transform="translate(936 600)">
+      <rect width="280" height="120" rx="4" fill="#f9f7f2" stroke="#c6bdce"/>
+      <text x="25" y="36" font-size="15" fill="#75667f" letter-spacing="2">03 / IN THE DAYS AFTER</text>
+      <text x="25" y="83" font-size="30" fill="#342e3d">Transition</text>
+    </g>
+    <g transform="translate(224 600)">
+      <rect width="280" height="120" rx="4" fill="#f9f7f2" stroke="#c6bdce"/>
+      <text x="25" y="36" font-size="15" fill="#75667f" letter-spacing="2">04 / OVER TIME</text>
+      <text x="25" y="83" font-size="30" fill="#342e3d">Remembrance</text>
+    </g>
+  </g>
+  <g fill="#867495"><circle cx="720" cy="240" r="6"/><circle cx="1130" cy="450" r="6"/><circle cx="720" cy="660" r="6"/><circle cx="310" cy="450" r="6"/></g>
+</svg>

@@ -28,6 +28,8 @@ const aboutModal = document.getElementById('aboutModal');
 let activeModal = null;
 let modalReturnFocus = null;
 let modalReturnFallback = null;
+let modalSectionTimeline = null;
+let reduceModalMotion = false;
 const modalBackgroundState = new Map();
 let zenReturnFocus = null;
 
@@ -931,14 +933,31 @@ function showToast(message, icon = '✨') {
 }
 
 // Modal Handlers
+function setupModalSectionMotion() {
+  document.querySelectorAll('.modal-nav').forEach(nav => {
+    const buttons = [...nav.querySelectorAll('button')];
+    nav.style.setProperty('--active-section', buttons.indexOf(nav.querySelector('[aria-current]')));
+    nav.classList.add('is-animated');
+  });
+  gsap.matchMedia().add({ reduced: '(prefers-reduced-motion: reduce)', motion: '(prefers-reduced-motion: no-preference)' }, context => {
+    reduceModalMotion = context.conditions.reduced;
+    if (reduceModalMotion) modalSectionTimeline?.progress(1);
+  });
+}
+
 function openModal(modalName, trigger = null) {
   const targetModal = { projects: projectsModal, skills: skillsModal, about: aboutModal }[modalName];
-  if (!targetModal) return;
+  if (!targetModal || targetModal === activeModal) return;
+  const switchingSections = Boolean(activeModal && trigger?.closest('.modal-nav'));
+  const previousNav = activeModal?.querySelector('.modal-nav');
+  // Read the visible highlight before cancelling an interrupted switch.
+  const previousSection = previousNav ? Number(gsap.getProperty(previousNav, '--active-section')) : 0;
+  const previousIndex = previousNav ? [...previousNav.querySelectorAll('button')].indexOf(previousNav.querySelector('[aria-current]')) : 0;
   const focused = trigger || document.activeElement;
   const returnTarget = focused instanceof HTMLElement && focused !== document.body && !activeModal?.contains(focused)
     ? focused
     : modalReturnFocus || document.querySelector(`[data-modal="${modalName}"]`);
-  closeAllModals({ restoreFocus: false });
+  closeAllModals({ restoreFocus: false, immediate: switchingSections });
   dockDropdowns.forEach(dropdown => setDockDropdownOpen(dropdown, false));
   sound.playPop(1.2);
   activeModal = targetModal;
@@ -951,17 +970,44 @@ function openModal(modalName, trigger = null) {
     child.inert = true;
   }
   targetModal.inert = false;
+  targetModal.classList.toggle('section-switch', switchingSections);
   targetModal.classList.add('open');
   targetModal.querySelector('.modal-body').scrollTop = 0;
+  if (switchingSections) {
+    const nav = targetModal.querySelector('.modal-nav');
+    const index = [...nav.querySelectorAll('button')].indexOf(nav.querySelector('[aria-current]'));
+    const content = targetModal.querySelectorAll('.modal-title-group, .modal-body');
+    const direction = Math.sign(index - previousIndex);
+    const finish = () => {
+      gsap.set(content, { clearProps: 'transform,opacity' });
+      targetModal.classList.remove('section-switch');
+      modalSectionTimeline = null;
+    };
+    gsap.set(nav, { '--active-section': previousSection });
+    modalSectionTimeline = gsap.timeline({ onComplete: finish })
+      .to(nav, { '--active-section': index, duration: 0.42, ease: 'power3.inOut' }, 0)
+      .fromTo(content, { x: direction * 22, opacity: 0 }, {
+        x: 0, opacity: 1, duration: 0.34, stagger: 0.045, ease: 'power3.out'
+      }, 0.04);
+    if (reduceModalMotion) modalSectionTimeline.progress(1);
+  }
   // Wait for the visibility change before focusing the previously hidden dialog.
   requestAnimationFrame(() => {
-    if (activeModal === targetModal) targetModal.querySelector('[role="dialog"]').focus({ preventScroll: true });
+    if (activeModal !== targetModal) return;
+    const focusTarget = targetModal.querySelector(switchingSections ? '.modal-nav [aria-current]' : '[role="dialog"]');
+    focusTarget.focus({ preventScroll: true });
   });
   hoverTooltip.classList.remove('visible');
 }
 
-function closeAllModals({ restoreFocus = true } = {}) {
+function closeAllModals({ restoreFocus = true, immediate = false } = {}) {
   if (!activeModal) return;
+  modalSectionTimeline?.kill();
+  modalSectionTimeline = null;
+  gsap.set(activeModal.querySelectorAll('.modal-title-group, .modal-body'), { clearProps: 'transform,opacity' });
+  const nav = activeModal.querySelector('.modal-nav');
+  nav.style.setProperty('--active-section', [...nav.querySelectorAll('button')].indexOf(nav.querySelector('[aria-current]')));
+  activeModal.classList.toggle('section-switch', immediate);
   activeModal.classList.remove('open');
   activeModal.inert = true;
   activeModal = null;
@@ -1071,23 +1117,29 @@ function renderContent() {
           <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">📍 ${dev.location}</div>
         </div>
 
-        <p class="profile-bio">${dev.bio}</p>
-
-        <div class="profile-socials">
-          ${dev.socials.map(s => `
-            <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="social-pill">
-              <span>${s.label}</span>
-              <span aria-hidden="true">&nearr;</span>
-            </a>
-          `).join('')}
+        <div class="profile-photo-frame">
+          <img class="profile-photo" src="${dev.photo}" alt="${dev.photoAlt}" width="1600" height="1200" decoding="async">
         </div>
+
+        <p class="profile-bio">${dev.bio}</p>
 
         <section class="contact-section" aria-labelledby="contactHeading">
           <h3 class="skill-category-title" id="contactHeading">Let's connect</h3>
           <p class="contact-description">For projects, collaborations, or a hello.</p>
-          <a href="mailto:${dev.email}" class="btn-primary contact-email-link">
-            Email me <span aria-hidden="true">&nearr;</span>
-          </a>
+          <div class="profile-socials">
+            <a href="mailto:${dev.email}" class="social-pill contact-email-link">
+              <svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+              <span>Email</span>
+              <span aria-hidden="true">&nearr;</span>
+            </a>
+            ${dev.socials.map(s => `
+              <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="social-pill">
+                ${s.icon === 'linkedin' ? `<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2ZM7.93 18.75H4.98V9.2h2.95v9.55ZM6.45 7.89a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42Zm12.3 10.86H15.8v-4.64c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.72H9.51V9.2h2.83v1.31h.04c.39-.74 1.35-1.52 2.79-1.52 2.98 0 3.58 1.96 3.58 4.51v5.25Z"/></svg>` : ''}
+                <span>${s.label}</span>
+                <span aria-hidden="true">&nearr;</span>
+              </a>
+            `).join('')}
+          </div>
           <p class="contact-address">${dev.email}</p>
         </section>
       </div>
@@ -1157,6 +1209,7 @@ function setupNavigationReveals() {
 // DOM controls are available independently of the renderer.
 function setupEventListeners() {
   setupNavigationReveals();
+  setupModalSectionMotion();
   // Top Nav Modal Buttons
   document.querySelectorAll('[data-modal]').forEach(btn => {
     btn.addEventListener('click', () => {

@@ -69,6 +69,20 @@ export const PORTFOLIO_DATA = {
         { label: "Explore case study", url: "/projects/urban-death-care/index.html" },
         { label: "Project documentation", url: "/projects/urban-death-care/index.html#documentation" }
       ]
+    },
+    {
+      id: "film-motion",
+      title: "Film, Motion & Video Editing",
+      badge: "Selected Work",
+      category: "Video editing · Motion graphics · Film",
+      description: "A collection of my video editing, motion graphics, and film work, from short films and animation to marketing videos, reels, and event recaps. My latest addition is Sunbird in the Garden, an animated short made for the Moving Image Art seminar, where I contributed motion graphics and special effects. The film combines rotoscoping and hand-drawn animation with experimental storytelling.",
+      image: "/projects/film-motion/cover.svg",
+      imageAlt: "Moving images: a filmstrip graphic for my film, motion graphics, and video editing portfolio",
+      tags: ["Video Editing", "Motion Graphics", "Special Effects", "Experimental Film", "Animation"],
+      links: [
+        { label: "Video portfolio", url: "https://drive.google.com/drive/folders/1qoEE_AjW4LM1DI3Lty8lldMrqGmoOaJA" },
+        { label: "Watch Sunbird", url: "https://drive.google.com/file/d/1iDBPJtSaNEq1VJtFWDFnEhzARwvIaR8o/view" }
+      ]
     }
   ],
   skills: [

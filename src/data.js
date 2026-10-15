@@ -29,6 +29,20 @@ export const PORTFOLIO_DATA = {
       ]
     },
     {
+      id: "airlearn",
+      title: "Airlearn · Unacademy",
+      badge: "UI Design Internship",
+      category: "Language learning · Lesson UI design",
+      description: "During a two-month summer internship at Unacademy, I turned educator-written scripts into lesson screens for Airlearn. I adapted company Figma templates across five languages, mainly Finnish and Korean, and worked on phone-call lessons in Russian, Mandarin, and Korean. My daily workflow covered 7–10 lessons, Midjourney visuals, and review by senior designers and educators.",
+      image: "/projects/airlearn/assets/cover.svg",
+      imageAlt: "Airlearn internship: Finnish and Korean lesson screens with Midjourney visual aids",
+      tags: ["UI Design", "Figma", "Language Learning", "Midjourney", "Template Adaptation"],
+      links: [
+        { label: "Explore case study", url: "/projects/airlearn/index.html" },
+        { label: "View Figma work", url: "https://www.figma.com/design/dRf6MEUD0QRJimYOsy5YI3/airlearn?node-id=0-1" }
+      ]
+    },
+    {
       id: "designing-dignity",
       title: "Designing Dignity",
       badge: "Master’s Project",

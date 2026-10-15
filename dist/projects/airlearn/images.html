@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f8f4">
+  <meta name="description" content="Browse all 1,111 images Moulik Nanda generated in Midjourney during a two-month UI design internship on Unacademy’s Airlearn language-learning app.">
+  <title>Airlearn · Midjourney Image Archive — Moulik Nanda</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header wrap"><a class="wordmark" href="/" aria-label="Moulik Nanda, back to portfolio">MN<span>Selected work</span></a><a class="back-link" href="index.html">Back to Airlearn <span aria-hidden="true">↗</span></a></header>
+  <main class="wrap" id="main" tabindex="-1">
+    <section class="archive-intro" aria-labelledby="archive-title">
+      <p class="eyebrow">Airlearn / The complete image archive</p>
+      <h1 id="archive-title">A visual vocabulary<br>for everyday life.</h1>
+      <p class="lead">All 1,111 images from the collection I generated in Midjourney during my two-month internship. People, places, objects, and situations for language-learning lessons, preserved with their original filenames.</p>
+    </section>
+    <form id="archiveFilters" class="archive-controls" role="search" aria-label="Search the image archive">
+      <label class="search-field" for="imageSearch">Search original filenames<input id="imageSearch" type="search" placeholder="Try Finnish, Korean, or image 0868" autocomplete="off" aria-controls="imageGrid"></label>
+      <label for="imageCategory">Prompt family<select id="imageCategory" aria-controls="imageGrid"><option value="all">All prompts</option><option>Vector prompts</option><option>Realism prompts</option><option>Other prompts</option></select></label>
+      <button class="reset-button" type="reset">Reset</button>
+    </form>
+    <p id="archiveStatus" class="archive-status" role="status" aria-live="polite">Loading the image index…</p>
+    <p class="archive-note">Prompt families come from the original filenames; the images are raster generations. Some filenames preserve only the beginning of a prompt. Search also accepts the numbered image labels below.</p>
+    <noscript><p class="archive-empty">Enable JavaScript to browse the full archive, or <a href="index.html#imagery">see the selected images in the case study</a>.</p></noscript>
+    <div id="imageGrid" class="archive-grid"></div>
+    <p id="archiveEmpty" class="archive-empty" hidden>No images match those filters. Try another word or reset the search.</p>
+    <div class="archive-more"><button id="loadMore" class="button button-dark" type="button" hidden>Show 24 more images <span aria-hidden="true">↓</span></button></div>
+  </main>
+  <dialog id="imageDialog" class="image-dialog" aria-labelledby="imageTitle">
+    <header><h2 id="imageTitle">Image preview</h2><button id="closeImage" class="close-image" type="button" aria-label="Close image preview" autofocus>×</button></header>
+    <img id="dialogImage" class="dialog-image" alt="">
+    <div class="image-controls"><button id="previousImage" type="button">← Previous</button><span id="imageCounter" aria-live="polite"></span><button id="nextImage" type="button">Next →</button></div>
+    <p id="imageSource" class="source-name"></p>
+    <footer><p class="eyebrow">Generated in Midjourney for Airlearn</p><a id="fullImageLink" class="text-link" target="_blank" rel="noopener">Open larger image ↗<span class="sr-only"> (opens in a new tab)</span></a></footer>
+  </dialog>
+  <footer class="site-footer wrap"><div><p class="eyebrow">Airlearn / Unacademy</p><p>Image generation was one part of my lesson-design workflow.</p></div><a class="button button-dark" href="index.html#imagery">Back to the case study <span aria-hidden="true">↗</span></a></footer>
+  <script type="module" src="gallery.js"></script>
+</body>
+</html>

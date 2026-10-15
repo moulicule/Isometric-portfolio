@@ -1083,17 +1083,11 @@ function renderContent() {
     skillsContainer.innerHTML = `
       ${PORTFOLIO_DATA.skills.map(cat => `
         <div>
-          <div class="skill-category-title">${cat.category}</div>
+          <h3 class="skill-category-title">${cat.category}</h3>
           <div class="skills-row">
             ${cat.items.map(s => `
               <div class="skill-card">
-                <div class="skill-header">
-                  <span>${s.name}</span>
-                  <span style="color: var(--accent-amber);">${s.level}%</span>
-                </div>
-                <div class="skill-bar-bg">
-                  <div class="skill-bar-fill" style="width: ${s.level}%;"></div>
-                </div>
+                ${s.name}
               </div>
             `).join('')}
           </div>

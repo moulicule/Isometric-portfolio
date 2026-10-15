@@ -32,8 +32,8 @@ export const PORTFOLIO_DATA = {
       id: "designing-dignity",
       title: "Designing Dignity",
       badge: "Master’s Project",
-      category: "Prosthetics & Orthotics\nService + Product Design",
-      description: "A semester project with Ishita Sarin, grounded in field research at BMVSS (Jaipur Foot) and SMS Hospital in Jaipur. We explored women’s access to prosthetic care through a community-based service model and prototyped a removable Chappal & Jutti Lock to expand everyday footwear choice. The work brings together care access, cultural expression, and dignity.",
+      category: "User research, product & service design",
+      description: "A  prosthetics and orthotics design project, grounded in actual on-field research. I explored women’s access to prosthetic care through a community-based service model and prototyped a detachable footwear lock system to expand everyday footwear choice. The work brings together care access, cultural expression, and dignity.",
       image: "/projects/designing-dignity/chappal-lock.webp",
       imageAlt: "Purple sandal fitted with the 3D-printed Chappal Lock prototype and an adjustable black heel strap",
       tags: ["Inclusive Design", "Service Design", "User Research", "CAD", "3D Printing"],
@@ -59,42 +59,57 @@ export const PORTFOLIO_DATA = {
   ],
   skills: [
     {
-      category: "3D & Creative Development",
+      category: "UI/UX & Interaction Design",
       items: [
-        { name: "Spline 3D & Spline Runtime", level: 95 },
-        { name: "Three.js & WebGL", level: 92 },
-        { name: "WebGPU & TSL Shaders", level: 85 },
-        { name: "Blender & 3D Modeling", level: 88 },
-        { name: "GLSL / Material Nodes", level: 82 }
+        { name: "UI/UX & User-Centred Design" },
+        { name: "Figma, Wireframing & Prototyping" },
+        { name: "User Flows & Design Systems" },
+        { name: "Spline & 3D Interaction Design" }
       ]
     },
     {
-      category: "Modern Frontend",
+      category: "Research & Service Design",
       items: [
-        { name: "JavaScript (ESNext) / TypeScript", level: 96 },
-        { name: "React 19 / Next.js / Vue", level: 94 },
-        { name: "Vite / Modern Bundlers", level: 95 },
-        { name: "Modern CSS / Glassmorphism / Animation", level: 96 },
-        { name: "Web Audio API & Canvas", level: 90 }
+        { name: "User Research, Interviews & Surveys" },
+        { name: "Personas & Journey Mapping" },
+        { name: "Stakeholder Mapping & Systems Thinking" },
+        { name: "Service Blueprints & Inclusive Design" }
       ]
     },
     {
-      category: "Backend & Systems",
+      category: "Product Design & Making",
       items: [
-        { name: "Node.js / Express / Bun", level: 90 },
-        { name: "Python / FastApi", level: 86 },
-        { name: "WebSockets & Event-Driven Architecture", level: 92 },
-        { name: "PostgreSQL & Redis", level: 84 },
-        { name: "REST & GraphQL APIs", level: 89 }
+        { name: "CAD: Fusion 360 & Tinkercad" },
+        { name: "Physical Prototyping & 3D Printing" },
+        { name: "Wearable & Enclosure Design" },
+        { name: "Design Thinking & Critical Making" }
       ]
     },
     {
-      category: "Workflow & Tools",
+      category: "Physical Computing",
       items: [
-        { name: "Git & GitHub CI/CD", level: 92 },
-        { name: "Figma & UI Prototyping", level: 90 },
-        { name: "Docker & Containerization", level: 84 },
-        { name: "Performance Profiling (CWV, FPS)", level: 94 }
+        { name: "ESP32 & Arduino Prototyping" },
+        { name: "C++ Firmware & PlatformIO" },
+        { name: "Bluetooth Low Energy (BLE) Prototyping" },
+        { name: "Sensors, Displays & Haptic Feedback" }
+      ]
+    },
+    {
+      category: "Motion, Visual Design & Film",
+      items: [
+        { name: "Motion Graphics & After Effects" },
+        { name: "Video Production, Editing & Premiere Pro" },
+        { name: "Photoshop, Illustrator & InDesign" },
+        { name: "Storyboarding & Creative Direction" }
+      ]
+    },
+    {
+      category: "Web & Creative Development",
+      items: [
+        { name: "HTML, CSS & JavaScript" },
+        { name: "Three.js & Interactive 3D" },
+        { name: "GSAP & Web Animation" },
+        { name: "Responsive Web Design & Vite" }
       ]
     }
   ]

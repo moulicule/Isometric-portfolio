@@ -98,3 +98,161 @@ export function createWallClock(clock, hourHand, minuteHand) {
     }
   };
 }
+
+const INTERACTION_MS = 1200;
+const HYDRATION_TICK_MS = 6000; // Ten percentage points per visible minute.
+const clampProgress = (now, start, duration) => Math.min(1, Math.max(0, (now - start) / duration));
+
+function snapshot(part) {
+  return {
+    part,
+    position: new Vector3(part.position.x, part.position.y, part.position.z),
+    rotation: new Euler(part.rotation.x, part.rotation.y, part.rotation.z)
+  };
+}
+
+function setTransform(part, position, rotation) {
+  for (const axis of ['x', 'y', 'z']) {
+    part.position[axis] = position[axis];
+    part.rotation[axis] = rotation[axis];
+  }
+}
+
+export function createPlantInteraction(parts, pivot) {
+  const foliage = parts.filter(Boolean).map(part => {
+    const initial = snapshot(part);
+    const offset = initial.position.clone().sub(pivot);
+    const axis = new Vector3(offset.z, 0, -offset.x).normalize();
+    if (!axis.lengthSq()) axis.set(0, 0, 1);
+    return { ...initial, offset, axis, quaternion: new Quaternion().setFromEuler(initial.rotation) };
+  });
+  const turn = new Quaternion(), quaternion = new Quaternion(), rotation = new Euler(), position = new Vector3();
+  let hydration = 50, elapsedVisible = 0, lastUpdate = null, wasVisible = false;
+  let startedAt = null, progress = 1, watering = false, reducedMotion = false;
+  let startHydration = hydration, posedHydration = null;
+
+  function pose() {
+    const eased = 1 - (1 - progress) ** 3;
+    const visibleHydration = startedAt === null ? hydration : startHydration + (hydration - startHydration) * eased;
+    const sway = startedAt === null || reducedMotion ? 0 : Math.sin(progress * Math.PI * 4) * (1 - progress) * (watering ? 0.05 : 0.025);
+    for (const initial of foliage) {
+      // Lean each blade outward around the pot rim; the ceramic never moves.
+      const angle = (1 - visibleHydration / 100) * 0.07 + sway;
+      if (angle === 0) {
+        setTransform(initial.part, initial.position, initial.rotation);
+        continue;
+      }
+      turn.setFromAxisAngle(initial.axis, angle);
+      position.copy(initial.offset).applyQuaternion(turn).add(pivot);
+      rotation.setFromQuaternion(quaternion.copy(turn).multiply(initial.quaternion));
+      setTransform(initial.part, position, rotation);
+    }
+    posedHydration = hydration;
+  }
+
+  function settle() {
+    startedAt = null;
+    progress = 1;
+    pose();
+  }
+
+  function update(now, { visible = true, reduced = false } = {}) {
+    if (lastUpdate !== null && wasVisible) elapsedVisible += Math.max(0, now - lastUpdate);
+    lastUpdate = now;
+    wasVisible = visible;
+    const loss = Math.floor(elapsedVisible / HYDRATION_TICK_MS);
+    elapsedVisible %= HYDRATION_TICK_MS;
+    hydration = Math.max(0, hydration - loss);
+    reducedMotion = reduced;
+    if (!visible || reduced) {
+      if (startedAt !== null || posedHydration !== hydration) settle();
+      return;
+    }
+    if (startedAt !== null) {
+      progress = clampProgress(now, startedAt, INTERACTION_MS);
+      if (progress === 1) startedAt = null;
+      pose();
+    } else if (posedHydration !== hydration) pose();
+  }
+
+  return {
+    get hydration() { return hydration; },
+    get busy() { return startedAt !== null; },
+    get progress() { return progress; },
+    get watering() { return watering; },
+    water(now, { reduced = false } = {}) {
+      update(now, { reduced });
+      if (startedAt !== null) return null;
+      watering = hydration < 100;
+      startHydration = hydration;
+      hydration = Math.min(100, hydration + 25);
+      if (watering) elapsedVisible = 0;
+      progress = 0;
+      startedAt = now;
+      if (reduced) settle();
+      return watering ? 'water' : 'full';
+    },
+    update
+  };
+}
+
+export function createCoffeeInteraction(mug, liquid, { top = 1, bottom = 0, lift = 15, tiltDirection = new Vector3(0, 0, 1) } = {}) {
+  const initial = mug && snapshot(mug);
+  const position = new Vector3(), rotation = new Euler();
+  const initialQuaternion = initial && new Quaternion().setFromEuler(initial.rotation);
+  const tilt = new Quaternion();
+  // Direction is in the mug parent's coordinates, so orbiting the camera cannot change the sip.
+  const tiltAxis = new Vector3(tiltDirection.z, 0, -tiltDirection.x).normalize();
+  if (!tiltAxis.lengthSq()) tiltAxis.set(1, 0, 0);
+  let sips = 4, startedAt = null, progress = 1, action = null, startLevel = 1;
+  const level = () => sips / 4;
+
+  function setLiquid(fill) {
+    if (!liquid) return;
+    liquid.position.y = bottom + (top - bottom) * fill;
+    liquid.visible = fill > 0;
+  }
+
+  function settle() {
+    startedAt = null;
+    progress = 1;
+    if (initial) setTransform(mug, initial.position, initial.rotation);
+    setLiquid(level());
+  }
+
+  function update(now, { visible = true, reduced = false } = {}) {
+    if (startedAt === null) return;
+    if (!visible || reduced) return settle();
+    progress = clampProgress(now, startedAt, action === 'refill' ? 1000 : INTERACTION_MS);
+    if (progress === 1) return settle();
+    if (initial && action === 'sip') {
+      const raised = Math.sin(Math.PI * progress) ** 2;
+      position.copy(initial.position);
+      position.y += lift * raised;
+      rotation.setFromQuaternion(tilt.setFromAxisAngle(tiltAxis, Math.PI / 12 * raised).multiply(initialQuaternion));
+      setTransform(mug, position, rotation);
+    }
+    const poured = action === 'refill' ? 1 - (1 - progress) ** 3 : Math.min(1, Math.max(0, (progress - 0.3) / 0.4));
+    setLiquid(startLevel + (level() - startLevel) * poured);
+  }
+
+  setLiquid(1);
+  return {
+    get sips() { return sips; },
+    get busy() { return startedAt !== null; },
+    get progress() { return progress; },
+    get action() { return action; },
+    drink(now, { reduced = false } = {}) {
+      update(now, { reduced });
+      if (startedAt !== null) return null;
+      startLevel = level();
+      action = sips === 0 ? 'refill' : 'sip';
+      sips = action === 'refill' ? 4 : sips - 1;
+      startedAt = now;
+      progress = 0;
+      if (reduced) settle();
+      return action;
+    },
+    update
+  };
+}

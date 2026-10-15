@@ -21,14 +21,6 @@ class SoundEngine {
 
   toggleMute() {
     this.isMuted = !this.isMuted;
-    this.ambientGain?.gain.cancelScheduledValues(this.ctx.currentTime);
-    if (this.isMuted) {
-      if (this.ambientGain) this.ambientGain.gain.setValueAtTime(0, this.ctx.currentTime);
-    } else {
-      if (this.ambientGain && this.ambientPlaying) {
-        this.ambientGain.gain.setTargetAtTime(0.12, this.ctx.currentTime, 0.5);
-      }
-    }
     return this.isMuted;
   }
 
@@ -120,28 +112,104 @@ class SoundEngine {
     osc.stop(t + 0.52);
   }
 
-  // Plant water sprinkle shimmer
-  playWaterChime() {
+  // A quiet watering trickle with soft droplets and rounded, warm edges.
+  playWaterPour() {
     if (this.isMuted) return;
     this.init();
     const t = this.ctx.currentTime;
-    const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51]; // C E G C E pentatonic shimmer
-    notes.forEach((freq, idx) => {
+    const duration = 0.5;
+    const rate = this.ctx.sampleRate;
+    const buffer = this.ctx.createBuffer(1, Math.ceil(rate * duration), rate);
+    const data = buffer.getChannelData(0);
+    let smoothNoise = 0;
+    for (let i = 0; i < data.length; i++) {
+      const seconds = i / rate;
+      const noise = Math.random() * 2 - 1;
+      smoothNoise = smoothNoise * 0.88 + noise * 0.12;
+      const flow = Math.min(1, seconds / 0.06) * Math.max(0, Math.min(1, (0.44 - seconds) / 0.14));
+      data[i] = smoothNoise * 0.18 * flow;
+    }
+    for (let drop = 0; drop < 8; drop++) {
+      const start = Math.floor((0.03 + drop * 0.05 + Math.random() * 0.01) * rate);
+      let splash = 0;
+      for (let i = start; i < Math.min(data.length, start + rate * 0.045); i++) {
+        const progress = (i - start) / (rate * 0.045);
+        splash = splash * 0.8 + (Math.random() * 2 - 1) * 0.2;
+        data[i] += splash * Math.sin(Math.PI * progress) ** 2 * 0.22;
+      }
+    }
+    const source = this.ctx.createBufferSource();
+    const highpass = this.ctx.createBiquadFilter();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+    source.buffer = buffer;
+    highpass.type = 'highpass';
+    highpass.Q.setValueAtTime(0.5, t);
+    highpass.frequency.setValueAtTime(180, t);
+    filter.type = 'lowpass';
+    filter.Q.setValueAtTime(0.5, t);
+    filter.frequency.setValueAtTime(1800, t);
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(0.28, t + 0.065);
+    gain.gain.setValueAtTime(0.28, t + 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    source.connect(highpass);
+    highpass.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    source.start(t);
+    source.stop(t + duration);
+  }
+
+  playCoffeeSip() {
+    this.playCoffeeSound(false);
+  }
+
+  playCoffeePour() {
+    this.playCoffeeSound(true);
+  }
+
+  playCoffeeSound(pouring) {
+    if (this.isMuted) return;
+    this.init();
+    const t = this.ctx.currentTime;
+    const duration = pouring ? 0.85 : 0.4;
+    const buffer = this.ctx.createBuffer(1, Math.ceil(this.ctx.sampleRate * duration), this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      const ripple = Math.sin(i / this.ctx.sampleRate * (pouring ? 85 : 45));
+      data[i] = (Math.random() * 2 - 1) * (0.3 + 0.7 * ripple * ripple);
+    }
+    const noise = this.ctx.createBufferSource();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+    filter.type = 'bandpass';
+    filter.Q.setValueAtTime(1.5, t);
+    filter.frequency.setValueAtTime(pouring ? 1100 : 1700, t);
+    filter.frequency.exponentialRampToValueAtTime(pouring ? 650 : 800, t + duration);
+    gain.gain.setValueAtTime(0.001, t);
+    gain.gain.linearRampToValueAtTime(pouring ? 0.11 : 0.07, t + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+    noise.buffer = buffer;
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    noise.start(t);
+    noise.stop(t + duration);
+
+    // A quiet ceramic clink as the mug comes back to rest.
+    [2400, 3900].forEach(frequency => {
       const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      const noteTime = t + idx * 0.06;
-      
+      const clink = this.ctx.createGain();
+      const at = t + (pouring ? 0.88 : 1.05);
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, noteTime);
-      
-      gain.gain.setValueAtTime(0.001, noteTime);
-      gain.gain.linearRampToValueAtTime(0.1, noteTime + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.4);
-      
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(noteTime);
-      osc.stop(noteTime + 0.45);
+      osc.frequency.setValueAtTime(frequency, at);
+      clink.gain.setValueAtTime(0.025, at);
+      clink.gain.exponentialRampToValueAtTime(0.001, at + 0.12);
+      osc.connect(clink);
+      clink.connect(this.ctx.destination);
+      osc.start(at);
+      osc.stop(at + 0.14);
     });
   }
 
@@ -159,12 +227,12 @@ class SoundEngine {
 
     this.ambientGain.gain.cancelScheduledValues(this.ctx.currentTime);
     if (this.ambientPlaying) {
-      this.ambientGain.gain.setValueAtTime(this.isMuted ? 0 : 0.001, this.ctx.currentTime);
-      if (!this.isMuted) this.ambientGain.gain.linearRampToValueAtTime(0.12, this.ctx.currentTime + 1);
+      this.ambientGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+      this.ambientGain.gain.linearRampToValueAtTime(0.12, this.ctx.currentTime + 1);
       this.startLofiLoop();
     } else {
       if (this.ambientGain) {
-        this.ambientGain.gain.linearRampToValueAtTime(this.isMuted ? 0 : 0.001, this.ctx.currentTime + 0.5);
+        this.ambientGain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
       }
       clearInterval(this.ambientInterval);
       this.ambientInterval = null;

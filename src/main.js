@@ -4,7 +4,7 @@ import { sound } from './audio.js';
 import { PORTFOLIO_DATA } from './data.js';
 import { waitForSceneReady } from './scene-ready.js';
 import { DAY_NIGHT_CYCLE_MS, DAY_NIGHT_PHASES, getDayNightPhase } from './day-night-cycle.js';
-import { createChairSwivel, createWallClock } from './scene-motion.js';
+import { createChairSwivel, createWallClock, createPlantInteraction, createCoffeeInteraction } from './scene-motion.js';
 
 // DOM References
 const appEl = document.getElementById('app');
@@ -44,6 +44,7 @@ const fullscreenBtn = document.getElementById('fullscreenBtn');
 const exitZenBtn = document.getElementById('exitZenBtn');
 const dockDropdowns = [...document.querySelectorAll('.bottom-dock .dropdown')];
 const compactLayoutMedia = window.matchMedia('(max-width: 840px), (max-height: 500px)');
+const interactionMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 // Spline & Three.js State
 let splineApp = null;
@@ -62,7 +63,6 @@ const state = {
   lampOn: true,
   theme: 'sunset',
   cameraPreset: 'iso',
-  plantHydration: 80,
   pinsVisible: true,
   zenMode: false,
   hoveredInteractive: null
@@ -71,6 +71,9 @@ let dayNightCycleStart = null;
 let chairSwivel = null;
 let wallClock = null;
 let lastClockSecond = null;
+let plantInteraction = null;
+let coffeeInteraction = null;
+let roomEffects = null;
 
 // Base Camera Settings
 const DEFAULT_CAM_ZOOM = 2.1096;
@@ -186,6 +189,13 @@ const HOTSPOTS = [
 ];
 
 function activateHotspot(spot, trigger = null) {
+  if (spot.id === 'plant' || spot.id === 'coffee') {
+    const accepted = spot.action(trigger);
+    if (accepted && spot.cameraPreset && state.cameraPreset !== spot.cameraPreset) {
+      setCameraPreset(spot.cameraPreset, { notify: false, audible: false });
+    }
+    return accepted;
+  }
   sound.playPop();
   if (spot.cameraPreset) setCameraPreset(spot.cameraPreset, { notify: false });
   spot.action(trigger);
@@ -227,8 +237,10 @@ async function init() {
     syncResponsiveCameraZoom();
     configureCameraControls();
     setupSceneReferences();
+    await setupObjectInteractions();
     updateClockHands();
     setupHotspots();
+    updateInteractionLabels();
     setupLightingAndTheme();
     setupSceneInput();
     new ResizeObserver(syncResponsiveCameraZoom).observe(canvas);
@@ -251,6 +263,7 @@ async function init() {
     // Start render/update loop
     dayNightCycleStart = performance.now();
     lastTime = dayNightCycleStart;
+    updateObjectInteractions(lastTime);
     requestAnimationFrame(animateLoop);
   } catch (err) {
     console.error('Failed to initialize Spline scene:', err);
@@ -379,6 +392,138 @@ function setupSceneReferences() {
   }
 }
 
+async function setupObjectInteractions() {
+  const foliage = ['Cylinder 5', 'Cylinder 6', 'Cylinder 7', 'Cylinder 8', 'Cylinder 9']
+    .map(name => objects.plant?.getObjectByName(name)).filter(Boolean);
+  const rim = objects.plant?.getObjectByName('Cylinder 2');
+  const pivot = rim?.position.clone() || new THREE.Vector3();
+  if (rim) pivot.y += (rim.data?.geometry?.height ?? 23) * rim.scale.y / 2;
+  plantInteraction = createPlantInteraction(foliage.map(part => splineApp.findObjectById(part.uuid)), pivot);
+
+  const body = objects.coffee?.getObjectByName('Cylinder 11');
+  let liquid = null, top = 1, bottom = 0;
+  if (body?.geometry) {
+    try {
+      body.geometry.computeBoundingBox();
+      const bounds = body.geometry.boundingBox;
+      const size = bounds.getSize(new THREE.Vector3());
+      const center = bounds.getCenter(new THREE.Vector3());
+      top = bounds.max.y - size.y * 0.16;
+      bottom = bounds.min.y + size.y * 0.15;
+      liquid = await splineApp.createObject('Cylinder', {
+        name: 'Portfolio Coffee Liquid', parent: body.uuid,
+        position: [center.x, top, center.z],
+        width: size.x * 0.75, depth: size.z * 0.75, height: size.y * 0.018,
+        radialSegments: 32, cornerRadius: 0, hollow: 0,
+        material: { color: '#482719', roughness: 0.3 }, castShadow: false
+      });
+    } catch (error) {
+      console.warn('Coffee liquid unavailable; mug interaction remains usable.', error);
+    }
+  }
+  const tiltDirection = new THREE.Vector3(0, 0, 1);
+  const seat = objects.chair?.getObjectByName('Cube 50') || objects.chair;
+  if (seat && objects.coffee?.parent) {
+    const target = seat.getWorldPosition(new THREE.Vector3());
+    const origin = (body || objects.coffee).getWorldPosition(new THREE.Vector3());
+    const parent = objects.coffee.parent;
+    tiltDirection.copy(parent.worldToLocal(target)).sub(parent.worldToLocal(origin));
+    tiltDirection.y = 0;
+  }
+  coffeeInteraction = createCoffeeInteraction(
+    objects.coffee && splineApp.findObjectById(objects.coffee.uuid), liquid, { top, bottom, tiltDirection }
+  );
+
+  const element = document.createElement('div');
+  element.className = 'room-effects';
+  element.setAttribute('aria-hidden', 'true');
+  element.hidden = true;
+  element.innerHTML = `${'<span class="water-droplet"></span>'.repeat(8)}${'<svg class="coffee-steam" viewBox="0 0 16 36"><path d="M8 34C-3 24 19 21 8 11C2 5 9 2 10 1"/></svg>'.repeat(3)}`;
+  appEl.appendChild(element);
+  roomEffects = { element, rim, body, point: new THREE.Vector3(),
+    drops: [...element.querySelectorAll('.water-droplet')],
+    steam: [...element.querySelectorAll('.coffee-steam')] };
+
+  document.addEventListener('visibilitychange', () => updateObjectInteractions(performance.now()));
+  interactionMotionMedia.addEventListener('change', () => updateObjectInteractions(performance.now()));
+}
+
+function updateObjectInteractions(now) {
+  const options = { visible: !document.hidden, reduced: interactionMotionMedia.matches };
+  plantInteraction?.update(now, options);
+  coffeeInteraction?.update(now, options);
+  updateInteractionLabels();
+  if (document.hidden || interactionMotionMedia.matches) {
+    if (roomEffects) roomEffects.element.hidden = true;
+  }
+}
+
+function updateInteractionLabels() {
+  if (!plantInteraction || !coffeeInteraction) return;
+  for (const id of ['plant', 'coffee']) {
+    const spot = HOTSPOTS.find(item => item.id === id);
+    const interaction = id === 'plant' ? plantInteraction : coffeeInteraction;
+    const status = id === 'plant'
+      ? `${interaction.hydration}% hydrated · ${interaction.hydration === 100 ? 'All watered' : 'Water plant'}`
+      : interaction.sips === 0 ? 'Empty · Refill coffee' : `${interaction.sips} of 4 sips left · Take a sip`;
+    const busy = String(interaction.busy);
+    if (spot.statusText !== status) {
+      spot.statusText = status;
+      if (spot.domElement) {
+        spot.domElement.querySelector('.hotspot-progress').textContent = status;
+        spot.domElement.setAttribute('aria-label', `${spot.label}: ${status}`);
+      }
+      if (id === 'plant' && waterPlantBtn) waterPlantBtn.setAttribute('aria-label', `Water Plant: ${status}`);
+      if (state.hoveredInteractive === spot) hoverTooltip.textContent = `${spot.icon} ${spot.label} — ${status}`;
+    }
+    if (spot.interactionBusy !== busy) {
+      spot.interactionBusy = busy;
+      spot.domElement?.setAttribute('aria-disabled', busy);
+      if (id === 'plant' && waterPlantBtn) waterPlantBtn.setAttribute('aria-disabled', busy);
+    }
+  }
+}
+
+function updateRoomEffects() {
+  if (!roomEffects || !threeCamera) return;
+  const { element, rim, body, point, drops, steam } = roomEffects;
+  element.hidden = !!activeModal || state.zenMode || document.hidden || interactionMotionMedia.matches
+    || (!plantInteraction.busy && !coffeeInteraction.busy);
+  if (element.hidden) return;
+  const rect = canvas.getBoundingClientRect();
+  const scale = threeCamera.zoom / DEFAULT_CAM_ZOOM;
+  function place(node, opacity) {
+    point.project(threeCamera);
+    node.style.opacity = point.z < -1 || point.z > 1 ? '0' : String(opacity);
+    node.style.transform = `translate(${(point.x * 0.5 + 0.5) * rect.width}px, ${(-point.y * 0.5 + 0.5) * rect.height}px) translate(-50%, -100%) scale(${scale})`;
+  }
+  drops.forEach((drop, i) => {
+    const p = (plantInteraction.progress - i * 0.045) / 0.55;
+    if (!rim || !plantInteraction.busy || !plantInteraction.watering || p <= 0 || p >= 1) {
+      drop.style.opacity = '0';
+      return;
+    }
+    point.set(0, rim.geometry?.boundingBox?.max.y ?? 11.5, 0);
+    rim.localToWorld(point);
+    point.x += Math.sin(i * 2.4) * 10;
+    point.z += Math.cos(i * 2.4) * 7;
+    point.y += 42 * (1 - p * p);
+    place(drop, Math.sin(Math.PI * p) * 0.95);
+  });
+  steam.forEach((wisp, i) => {
+    const p = (coffeeInteraction.progress - i * 0.12) / 0.7;
+    if (!body || !coffeeInteraction.busy || p <= 0 || p >= 1) {
+      wisp.style.opacity = '0';
+      return;
+    }
+    point.set(0, body.geometry?.boundingBox?.max.y ?? 11.5, 0);
+    body.localToWorld(point);
+    point.y += p * 20;
+    point.x += (i - 1) * 3 + Math.sin(p * Math.PI * 2) * 2;
+    place(wisp, Math.sin(Math.PI * p) * 0.65);
+  });
+}
+
 // Setup 3D Hotspot DOM Elements
 function setupHotspots() {
   hotspotContainer.innerHTML = '';
@@ -393,7 +538,7 @@ function setupHotspots() {
     el.hidden = true;
     const content = `
       <div class="hotspot-icon" aria-hidden="true">${spot.icon}</div>
-      <div class="hotspot-label">${spot.label}</div>
+      <div class="hotspot-label">${spot.label}${['plant', 'coffee'].includes(spot.id) ? '<span class="hotspot-progress"></span>' : ''}</div>
     `;
     el.innerHTML = spot.secondary
       ? `<span class="hotspot-ring" aria-hidden="true"></span><span class="hotspot-bubble">${content}</span>`
@@ -553,6 +698,7 @@ function animateLoop(now) {
 
   // 2. Chair spinning animation
   chairSwivel?.update(now);
+  updateObjectInteractions(now);
 
   // 3. Camera transition animation
   if (currentCamAnim && threeCamera) {
@@ -590,15 +736,16 @@ function animateLoop(now) {
 
   // 4. Update 3D Hotspot Screen Coordinates
   updateHotspots();
+  updateRoomEffects();
 }
 
 // Camera Preset Transition
-function setCameraPreset(presetName, { notify = true } = {}) {
+function setCameraPreset(presetName, { notify = true, audible = true } = {}) {
   const preset = CAMERA_PRESETS[presetName];
   if (!preset || !threeCamera) return;
 
   state.cameraPreset = presetName;
-  sound.playPop(1.1);
+  if (audible) sound.playPop(1.1);
 
   // Update the selected menu option and its trigger.
   document.querySelectorAll('#cameraGroup [data-cam]').forEach(btn => {
@@ -745,16 +892,28 @@ function spinChair() {
 
 // House Plant Interaction
 function waterPlant() {
-  state.plantHydration = Math.min(100, state.plantHydration + 15);
-  sound.playWaterChime();
-
-  showToast(`🌱 Plant watered! Hydration: ${state.plantHydration}%`, '💧');
+  if (!plantInteraction || document.hidden) return;
+  const action = plantInteraction.water(performance.now(), { reduced: interactionMotionMedia.matches });
+  if (!action) return;
+  if (action === 'water') sound.playWaterPour();
+  else sound.playPop(0.8);
+  updateInteractionLabels();
+  showToast(action === 'water' ? `Plant watered · ${plantInteraction.hydration}% hydrated` : 'Already watered · Happy as can be', action === 'water' ? '💧' : '🌱');
+  return action;
 }
 
 // Coffee Interaction
 function drinkCoffee() {
-  sound.playPop(1.4);
-  showToast('☕ Fresh hot coffee sipped! Focus level 100%', '⚡');
+  if (!coffeeInteraction || document.hidden) return;
+  const action = coffeeInteraction.drink(performance.now(), { reduced: interactionMotionMedia.matches });
+  if (!action) return;
+  if (action === 'refill') sound.playCoffeePour();
+  else sound.playCoffeeSip();
+  updateInteractionLabels();
+  showToast(action === 'refill' ? 'Freshly refilled · Four sips to enjoy'
+    : coffeeInteraction.sips ? `A little coffee break · ${coffeeInteraction.sips} ${coffeeInteraction.sips === 1 ? 'sip' : 'sips'} left`
+      : 'Last sip · Tap the mug to refill', '☕');
+  return action;
 }
 
 // Zen / Relax Mode Toggle
@@ -828,7 +987,7 @@ function handlePointerMove(e) {
   if (targetSpot) {
     state.hoveredInteractive = targetSpot;
     canvas.classList.add('pointer-cursor');
-    hoverTooltip.textContent = `${targetSpot.icon} ${targetSpot.label} — Click to interact`;
+    hoverTooltip.textContent = `${targetSpot.icon} ${targetSpot.label} — ${targetSpot.statusText || 'Click to interact'}`;
     hoverTooltip.style.left = `${e.clientX}px`;
     hoverTooltip.style.top = `${e.clientY}px`;
     const revealedPin = targetSpot.secondary && state.pinsVisible && targetSpot.domElement && !targetSpot.domElement.hidden;

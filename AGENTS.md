@@ -9,7 +9,7 @@ The architecture is intentionally small:
 ```text
 index.html + src/style.css       DOM shell and visual UI
 src/main.js                      application controller and scene integration
-src/scene-motion.js              chair swivel and wall-clock transforms
+src/scene-motion.js              chair, clock, plant, and coffee motion/progress
 src/day-night-cycle.js           ten-minute lighting phase calculation
 src/scene-ready.js               asset/render readiness gate for the loading card
 public/scene.splinecode          3D room loaded at runtime
@@ -47,7 +47,7 @@ The project does not use any external backend. The social/project URLs in `src/d
 
 - `index.html` — fixed DOM shell and all button/modal IDs.
 - `src/main.js` — lifecycle, camera behavior, scene object lookups, interactions, rendering loop, modals, and event listeners.
-- `src/scene-motion.js` — chair swivel and local-time wall clock. Checks: `node --test tests/scene-motion.test.mjs`.
+- `src/scene-motion.js` — chair swivel, local-time wall clock, visible-time plant hydration, and coffee sip/refill controllers. Checks: `node --test tests/scene-motion.test.mjs`.
 - `src/day-night-cycle.js` — ten-minute sunset → night → day → sunset timing and smooth blend calculation. Checks: `node --test tests/day-night-cycle.test.mjs`.
 - `src/scene-ready.js` — awaits scene media/fonts, material resources, completed renderer frames, GPU submission, and browser presentation before dismissing the card.
 - `src/style.css` — all responsive and visual styling.
@@ -84,6 +84,8 @@ Canvas, hotspots, utility controls, and the dock start inert and the scene contr
 | `Directional Light`, `Directional Light 2` | Theme sun/sky lighting |
 | `Computer`, `Bed`, `Plant`, `Books`, `Window`, `Sticky Notes` | Hotspot targets |
 | ` Coffee Cup` (leading space) or `Coffee Cup` | Coffee hotspot |
+| `Cylinder 5` through `Cylinder 9` inside `Plant`; `Cylinder 2` | Foliage motion; fixed upper-pot watering pivot |
+| `Cylinder 11` inside `Coffee Cup` | Hollow mug body; parent of the runtime-created coffee surface |
 | `Clock`, `Cylinder 19`, `Cylinder 18` | Live clock and its hour/minute hands |
 
 Chair and clock transforms use handles from `Application.findObjectById()`. The underlying Spline objects have `matrixAutoUpdate=false`; writing directly to their rotations does not commit a rendered transform. Keep the raw cached objects for raycasting and hotspot geometry. Clock hands are scoped to `Clock` and orbit its center while preserving the face tilt and each hand's depth. The clock updates once per second from the visitor's local time, including minute/second contributions to the hour hand. Chair animation turns only the seat and back around the fixed center post; legs and wheels remain stationary. Every tap adds a full turn and retargets from the current pose over 1.2 seconds, with no cooldown. After completing the turns, each part returns to its authored transform.
@@ -133,12 +135,14 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 | Lighting/theme | `setTheme`, `cycleTheme`, `setupLightingAndTheme`, `updateDayNightCycle` | Boots at Sunset; after readiness, blends Sunset → Night → Day → Sunset over ten minutes. Manual theme selection fades the current background and lighting into the selected phase over 1 second, then resumes the cycle; repeated clicks retarget from the visible colours. Zen fades to Night, holds it, and resumes from Night on exit. |
 | Lamp | `toggleLamp`, `updateLampLighting` | Sets the two named Spline point-light intensities. |
 | Chair | `spinChair` + `animateLoop` | Swivels the seat and back over one full revolution, leaving the base fixed. |
-| Plant | `waterPlant` | Increases local hydration state and plays a local watering chime and toast. |
-| Coffee | `drinkCoffee` | Local sound/toast only. |
+| Plant | `waterPlant` | Starts at 50% hydration; watering adds 25 points with droplets and foliage sway. Loses one point per six visible seconds, pauses while hidden, and gives a contented reaction at 100%. |
+| Coffee | `drinkCoffee` | Four animated sips tilt toward the chair seat and lower the runtime-created liquid surface; the next activation refills it. The tilt direction is calculated in the mug parent's coordinates and stays independent of the camera. Steam and local sip/pour sounds accompany each action. |
 | Zen mode | `toggleZenMode` | Activates DOM overlay, ambient audio, and night theme; focuses Wake Up and restores focus on exit. Repeated exit requests do nothing. |
 | Modals | `openModal`, `closeAllModals`, `trapModalFocus`, `renderContent` | Renders trusted static data, opens named dialogs, makes background content inert, contains keyboard focus, and restores the opener on close. |
 | Notifications | `showToast` | Keeps the newest four in a polite live region; a GSAP timeline fades/scales them in place with a small vertical lift, starts the exit after 3.5 seconds, then removes them. Honors reduced motion and cancels tweens when replacing the oldest notification. |
 | Contact | `renderContent` | Renders a direct email link from `PORTFOLIO_DATA.developer.email`; no form or simulated submission. |
+
+Plant/coffee progress lives only in memory. Their controllers reject extra activations during an animation; accepted coffee hotspot actions use the configured Desk preset without a generic pop. `setupObjectInteractions()` creates the liquid before the readiness gate and tolerates a liquid-creation failure. A fixed DOM/SVG effect pool projects droplets and steam independently of Pins visibility. Reduced motion applies progress immediately, and visibility changes settle accepted actions back into resting poses. Hotspot labels and accessible names show progress; only explicit actions announce toasts.
 
 ## Input and UI behavior
 
@@ -158,10 +162,10 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 
 `sound` is an exported singleton of `SoundEngine`. Its first user gesture initializes/resumes `AudioContext`, keeping it compatible with browser autoplay restrictions.
 
-- `playSwitch`, `playPop`, `playWhoosh`, `playWaterChime` synthesize short effects.
+- `playSwitch`, `playPop`, `playWhoosh`, `playWaterPour` synthesize short effects; watering is a quiet half-second trickle with sparse, soft droplets, a warm low-pass filter, and rounded fades. Keep it gentle rather than a bright, pressurized spray.
 - `toggleAmbient` creates a recurring lofi chord loop using oscillators.
-- `toggleMute` changes gain levels; it does not destroy or recreate active sources.
-- Ambient chords keep scheduling while muted, behind zero gain. Gain changes cancel pending fades so they cannot override mute. Checks: `node --test tests/audio.test.mjs`.
+- `toggleMute` mutes sound effects only; lofi playback and its gain are independent.
+- Lofi starts, keeps playing, and fades out through its own control even while effects are muted. Gain changes cancel pending fades when toggling lofi. Checks: `node --test tests/audio.test.mjs`.
 
 Keep all audio local unless the task explicitly asks for externally hosted media.
 

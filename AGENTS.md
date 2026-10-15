@@ -90,7 +90,7 @@ Chair and clock transforms use handles from `Application.findObjectById()`. The 
 
 `HOTSPOTS` is the one source of truth for custom DOM pins. All visible hotspots, including About Me, Projects, and Skills, use concentric-circle markers that reveal labels above their objects on object/marker hover or keyboard focus. GSAP animates ring/label transforms and opacity on reversible timelines; projected geometry bounds set the default label clearance while the circle anchor stays fixed. Projects, Skills, Chair, Plant, Bed, and Lamp use calibrated `revealOffsetY` heights so labels stay close to the interaction area; the lamp clears its shade above the bedside-table pivot. Coffee uses `offsetX` to center both its circle and label over the cup body rather than its handle, scaled with camera zoom. Reduced-motion users get the same raised labels immediately. `secondary` selects this presentation; `pin: false` keeps the Window interaction without a DOM marker. Each entry maps a scene name/object cache key to an action. Pins use projected 3D positions in `updateHotspots()`. Scene clicking is not handled by Spline events here: the app raycasts the Spline scene with Three's `Raycaster` and walks parents in `findInteractiveParent()`.
 
-`activateHotspot()` handles both scene clicks and DOM pin activation. A hotspot's optional `cameraPreset` starts the existing smooth camera transition before its action: Computer, Chair, Books, Coffee Cup, and Sticky Notes focus Desk; Bed focuses Bed before entering Zen mode. The Camera View menu selection stays synchronized with these transitions.
+`activateHotspot()` handles both scene clicks and DOM pin activation. A hotspot's optional `cameraPreset` starts the existing smooth camera transition before its action: Computer, Chair, Books, Coffee Cup, and Sticky Notes focus Desk; Bed focuses Bed before entering Zen mode. These automatic camera transitions suppress perspective notifications; choosing a preset from Camera View still shows one. The Camera View menu selection stays synchronized with these transitions.
 
 ## Camera behavior: preserve this carefully
 
@@ -124,7 +124,7 @@ The properties `minTheta`, `maxTheta`, `minPhi`, and `maxPhi` are Spline runtime
 
 Spline's elastic rotation mode temporarily clears its internal `isPointerDown` flag once an edge is reached. `keepOrbitDragActive()` restores that flag while the user is still holding a pointer button, so a user can immediately drag back in the opposite direction without releasing and clicking again. Keep this listener paired with the elastic rotation configuration.
 
-When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is derived from the largest preset and the current responsive scale. If changing the default view or scene asset, update `DEFAULT_CAM_*`, recalibrate `OVERVIEW_FRAME_SIZE`, and re-evaluate the 70% minimum.
+When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is derived from the largest preset and the current responsive scale. If changing the default view or scene asset, update `CAMERA_PRESETS.iso` and `DEFAULT_CAM_ZOOM`, recalibrate `OVERVIEW_FRAME_SIZE`, and re-evaluate the 70% minimum.
 
 ## Application features (`src/main.js`)
 
@@ -137,13 +137,14 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 | Coffee | `drinkCoffee` | Local sound/toast only. |
 | Zen mode | `toggleZenMode` | Activates DOM overlay, ambient audio, and night theme; focuses Wake Up and restores focus on exit. Repeated exit requests do nothing. |
 | Modals | `openModal`, `closeAllModals`, `trapModalFocus`, `renderContent` | Renders trusted static data, opens named dialogs, makes background content inert, contains keyboard focus, and restores the opener on close. |
-| Notifications | `showToast` | Creates DOM toast in a polite live region and removes it after its exit animation. |
+| Notifications | `showToast` | Keeps the newest four in a polite live region; a GSAP timeline fades/scales them in place with a small vertical lift, starts the exit after 3.5 seconds, then removes them. Honors reduced motion and cancels tweens when replacing the oldest notification. |
 | Contact | `renderContent` | Renders a direct email link from `PORTFOLIO_DATA.developer.email`; no form or simulated submission. |
 
 ## Input and UI behavior
 
 - `pointermove` raycasts only when not dragging.
 - A movement distance over 6 pixels sets `isDragging`, preventing a drag from firing the click action on release.
+- Active pointer IDs keep multi-touch gestures from activating hotspots until every pointer lifts. `pointercancel` and `lostpointercapture` clear tracking without activating a hotspot; the next primary tap works normally. Checks: `node --test tests/main.test.mjs`.
 - Only primary-button `pointerup` activates a hotspot; right click does not activate scene interactions, and the browser context menu is suppressed on the canvas.
 - Activation raycasts at the release position, so touch taps work without a preceding hover.
 - The canvas uses `touch-action: none` so browser gestures do not cancel room rotation, and a grab cursor.
@@ -160,14 +161,15 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 - `playSwitch`, `playPop`, `playWhoosh`, `playWaterChime` synthesize short effects.
 - `toggleAmbient` creates a recurring lofi chord loop using oscillators.
 - `toggleMute` changes gain levels; it does not destroy or recreate active sources.
+- Ambient chords keep scheduling while muted, behind zero gain. Gain changes cancel pending fades so they cannot override mute. Checks: `node --test tests/audio.test.mjs`.
 
 Keep all audio local unless the task explicitly asks for externally hosted media.
 
 ## Styling and layout (`src/style.css`)
 
-The CSS owns the full-screen canvas layering, glass panels, dock, hotspots, tooltip, loader, modals, Zen overlay, and responsive breakpoints. UI elements sit above the canvas and selectively use `pointer-events` so canvas interaction remains reachable. Before changing z-index or pointer-event rules, verify hotspot clicks and dock buttons still work.
+The CSS owns the full-screen canvas layering, glass panels, dock, hotspots, tooltip, loader, modals, Zen overlay, and responsive breakpoints. About Me, Skills, and Projects navigation buttons always show their labels on desktop and mobile. UI elements sit above the canvas and selectively use `pointer-events` so canvas interaction remains reachable. Before changing z-index or pointer-event rules, verify hotspot clicks and dock buttons still work.
 
-Compact layouts (width up to 840px or height up to 500px) use 44px utility controls and 44px-high dock buttons with visible `.dock-label` spans. Markers start visible on both desktop and mobile. The three dock menus fit on one row on phones; dropdown menus stay within the viewport. At widths up to 400px, dock text and spacing shrink and chevrons hide. The Pins button sits in the top-right controls between Fullscreen and Lofi and toggles keyboard-accessible circle markers. Toasts sit below the four utility controls. Circles stay anchored to their objects, with expanded labels kept inside the viewport. The app uses dynamic viewport height and safe-area spacing.
+Compact layouts (width up to 840px or height up to 500px) use 44px utility controls and 44px-high dock buttons with visible `.dock-label` spans. Markers start visible on both desktop and mobile. The three dock menus fit on one row on phones; dropdown menus stay within the viewport. At widths up to 400px, dock text and spacing shrink and chevrons hide. The Pins button sits in the top-right controls between Fullscreen and Lofi and toggles keyboard-accessible circle markers. Toasts sit to the left of the utility controls, with at most four visible; new notifications replace the oldest. Circles stay anchored to their objects, with expanded labels kept inside the viewport. The app uses dynamic viewport height and safe-area spacing.
 
 Dialog close targets are 44px, content is selectable, and scroll regions are focusable. Small phones use tighter dialog padding; skill grids shrink to available width. Dialog/menu visibility becomes immediate on opening; descendant hover transitions exclude inherited visibility so focus is available immediately.
 

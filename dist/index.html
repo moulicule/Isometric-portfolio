@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Interactive Isometric Atelier | Moulik Nanda</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
-  <script type="module" crossorigin src="/assets/index-VUP14WSS.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-CkX7TWBx.css">
+  <script type="module" crossorigin src="/assets/index-wPyrAQoc.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-D_FRe_bW.css">
 </head>
 <body>
   <div id="app" data-theme="sunset" data-scene-state="loading">
@@ -22,15 +22,15 @@
     <!-- Top Left Navigation Controls -->
     <nav class="side-nav" id="sideNav" aria-label="Main Navigation">
       <button class="nav-btn hud-btn" data-modal="about" aria-label="About Me">
-        <span class="nav-icon" aria-hidden="true">👤</span>
+        <span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#user-round"/></svg></span>
         <span class="nav-label" aria-hidden="true">About Me</span>
       </button>
       <button class="nav-btn hud-btn" data-modal="skills" aria-label="Skills & Tools">
-        <span class="nav-icon" aria-hidden="true">📚</span>
+        <span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#book-open"/></svg></span>
         <span class="nav-label" aria-hidden="true">Skills</span>
       </button>
       <button class="nav-btn hud-btn" data-modal="projects" aria-label="Projects & Work">
-        <span class="nav-icon" aria-hidden="true">💻</span>
+        <span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#laptop"/></svg></span>
         <span class="nav-label" aria-hidden="true">Projects</span>
       </button>
     </nav>
@@ -39,19 +39,19 @@
     <div class="top-nav-right" inert>
       <!-- Fullscreen Toggle -->
       <button class="hud-btn" id="fullscreenBtn" aria-pressed="false" title="Toggle Fullscreen" aria-label="Toggle Fullscreen">
-        ⛶
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#maximize"/></svg>
       </button>
       <!-- Hotspot Markers Toggle -->
       <button class="hud-btn active" id="togglePinsBtn" title="Toggle Hotspot Markers" aria-label="Toggle hotspot markers" aria-pressed="true">
-        <span aria-hidden="true">📍</span>
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use class="toggle-icon-on" href="/ui-icons.svg#pin"/><use class="toggle-icon-off" href="/ui-icons.svg#pin-off"/></svg>
       </button>
       <!-- Lofi Ambient Chords Toggle -->
       <button class="hud-btn" id="lofiBtn" aria-pressed="false" title="Toggle Cozy Lofi Beats" aria-label="Toggle Lofi Ambient">
-        🎵
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use class="toggle-icon-on" href="/ui-icons.svg#music"/><use class="toggle-icon-off" href="/ui-icons.svg#music-off"/></svg>
       </button>
       <!-- Master Sound Mute Toggle -->
       <button class="hud-btn" id="muteBtn" aria-pressed="false" title="Toggle Sound Effects" aria-label="Toggle Mute">
-        🔊
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#volume-2"/></svg>
       </button>
     </div>
 
@@ -61,19 +61,19 @@
       <div class="dock-group" id="themeGroup">
         <div class="dropdown" id="themeDropdown">
           <button class="dock-btn dropdown-toggle" id="themeToggleBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="themeMenu" title="Lighting" aria-label="Lighting: Sunset">
-            <span aria-hidden="true">💡</span>
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#lightbulb"/></svg>
             <span class="dock-label">Lighting</span>
-            <span class="dropdown-chevron" aria-hidden="true">▾</span>
+            <svg class="ui-icon dropdown-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#chevron-down"/></svg>
           </button>
           <div class="dropdown-menu" id="themeMenu" role="menu" aria-labelledby="themeToggleBtn" inert>
             <button class="dropdown-item" data-theme="day" role="menuitemradio" aria-checked="false" tabindex="-1">
-              <span aria-hidden="true">☀️</span><span>Day</span>
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#sun"/></svg><span>Day</span>
             </button>
             <button class="dropdown-item active" data-theme="sunset" role="menuitemradio" aria-checked="true" tabindex="-1">
-              <span aria-hidden="true">🌅</span><span>Sunset</span>
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#sunset"/></svg><span>Sunset</span>
             </button>
             <button class="dropdown-item" data-theme="night" role="menuitemradio" aria-checked="false" tabindex="-1">
-              <span aria-hidden="true">🌙</span><span>Night</span>
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#moon"/></svg><span>Night</span>
             </button>
           </div>
         </div>
@@ -85,19 +85,19 @@
       <div class="dock-group" id="cameraGroup">
         <div class="dropdown" id="cameraDropdown">
           <button class="dock-btn dropdown-toggle" id="cameraToggleBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="cameraMenu" title="Camera View" aria-label="Camera view: Isometric">
-            <span aria-hidden="true">📷</span>
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#camera"/></svg>
             <span class="dock-label">Camera View</span>
-            <span class="dropdown-chevron" aria-hidden="true">▾</span>
+            <svg class="ui-icon dropdown-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#chevron-down"/></svg>
           </button>
           <div class="dropdown-menu" id="cameraMenu" role="menu" aria-labelledby="cameraToggleBtn" inert>
             <button class="dropdown-item active" data-cam="iso" role="menuitemradio" aria-checked="true" tabindex="-1">
-              <span aria-hidden="true">📐</span><span>Isometric</span>
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#box"/></svg><span>Isometric</span>
             </button>
             <button class="dropdown-item" data-cam="desk" role="menuitemradio" aria-checked="false" tabindex="-1">
-              <span aria-hidden="true">💻</span><span>Desk</span>
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#laptop"/></svg><span>Desk</span>
             </button>
             <button class="dropdown-item" data-cam="bed" role="menuitemradio" aria-checked="false" tabindex="-1">
-              <span aria-hidden="true">🛏️</span><span>Bed</span>
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#bed-double"/></svg><span>Bed</span>
             </button>
           </div>
         </div>
@@ -109,21 +109,21 @@
       <div class="dock-group" id="actionsGroup">
         <div class="dropdown" id="interactionsDropdown">
           <button class="dock-btn dropdown-toggle" id="interactionsToggleBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="interactionsMenu" title="Interactive Actions" aria-label="Interactive actions">
-            <span aria-hidden="true">⚡</span>
+            <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#zap"/></svg>
             <span class="dock-label">Interactions</span>
-            <span class="dropdown-chevron" aria-hidden="true">▾</span>
+            <svg class="ui-icon dropdown-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#chevron-down"/></svg>
           </button>
           <div class="dropdown-menu" id="interactionsMenu" role="menu" aria-labelledby="interactionsToggleBtn" inert>
             <button class="dropdown-item" id="toggleLampBtn" role="menuitemcheckbox" aria-checked="true" tabindex="-1">
-              <span aria-hidden="true">💡</span>
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#lightbulb"/></svg>
               <span>Bedside Lamp</span>
             </button>
             <button class="dropdown-item" id="spinChairBtn" role="menuitem" tabindex="-1">
-              <span aria-hidden="true">🪑</span>
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#armchair"/></svg>
               <span>Spin Chair</span>
             </button>
             <button class="dropdown-item" id="waterPlantBtn" role="menuitem" tabindex="-1">
-              <span aria-hidden="true">🌱</span>
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#sprout"/></svg>
               <span>Water Plant</span>
             </button>
           </div>
@@ -155,13 +155,13 @@
         </nav>
         <div class="modal-header">
           <div class="modal-title-group">
-            <div class="modal-icon-badge" aria-hidden="true">💻</div>
+            <div class="modal-icon-badge" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#laptop"/></svg></div>
             <div>
               <h2 class="modal-title" id="projectsTitle">Featured Projects & Work</h2>
               <div class="modal-subtitle" id="projectsSubtitle">Selected design projects, prototypes & interactive case studies</div>
             </div>
           </div>
-          <button class="modal-close-btn" data-close aria-label="Close projects dialog">&times;</button>
+          <button class="modal-close-btn" data-close aria-label="Close projects dialog"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#x"/></svg></button>
         </div>
         <div class="modal-body" tabindex="0" role="region" aria-labelledby="projectsTitle">
           <div class="projects-grid" id="projectsGrid"></div>
@@ -179,13 +179,13 @@
         </nav>
         <div class="modal-header">
           <div class="modal-title-group">
-            <div class="modal-icon-badge" aria-hidden="true">📚</div>
+            <div class="modal-icon-badge" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#book-open"/></svg></div>
             <div>
               <h2 class="modal-title" id="skillsTitle">Skills & Tools</h2>
               <div class="modal-subtitle" id="skillsSubtitle">Research, design, making & creative technology</div>
             </div>
           </div>
-          <button class="modal-close-btn" data-close aria-label="Close skills dialog">&times;</button>
+          <button class="modal-close-btn" data-close aria-label="Close skills dialog"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#x"/></svg></button>
         </div>
         <div class="modal-body" tabindex="0" role="region" aria-labelledby="skillsTitle">
           <div class="skills-container" id="skillsContainer"></div>
@@ -203,12 +203,12 @@
         </nav>
         <div class="modal-header">
           <div class="modal-title-group">
-            <div class="modal-icon-badge" aria-hidden="true">👤</div>
+            <div class="modal-icon-badge" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#user-round"/></svg></div>
             <div>
               <h2 class="modal-title" id="aboutTitle">About Me</h2>
             </div>
           </div>
-          <button class="modal-close-btn" data-close aria-label="Close about dialog">&times;</button>
+          <button class="modal-close-btn" data-close aria-label="Close about dialog"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#x"/></svg></button>
         </div>
         <div class="modal-body" id="aboutContainer" tabindex="0" role="region" aria-labelledby="aboutTitle"></div>
       </div>

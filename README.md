@@ -43,7 +43,7 @@ An interactive, real-time 3D isometric room portfolio webpage powered by **Splin
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v18+) and npm
+- Node.js 20.19+ (20.x), or 22.12+ and npm (`^20.19.0 || >=22.12.0`).
 
 ### Development
 ```bash

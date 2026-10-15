@@ -87,7 +87,6 @@ export const PORTFOLIO_DATA = {
       items: [
         { name: "CAD: Fusion 360 & Tinkercad" },
         { name: "Physical Prototyping & 3D Printing" },
-        { name: "Wearable & Enclosure Design" },
         { name: "Design Thinking & Critical Making" }
       ]
     },
@@ -96,7 +95,6 @@ export const PORTFOLIO_DATA = {
       items: [
         { name: "ESP32 & Arduino Prototyping" },
         { name: "C++ Firmware & PlatformIO" },
-        { name: "Bluetooth Low Energy (BLE) Prototyping" },
         { name: "Sensors, Displays & Haptic Feedback" }
       ]
     },

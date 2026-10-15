@@ -229,10 +229,9 @@ body, html {
   box-shadow: var(--glow-amber);
 }
 .side-nav .nav-btn {
-  --nav-expansion: 0px;
-  position: relative;
-  width: calc(var(--nav-size) + var(--nav-expansion));
+  width: max-content;
   height: var(--nav-size);
+  padding-right: 16px;
   flex-shrink: 0;
   justify-content: flex-start;
   border-radius: 999px;
@@ -242,6 +241,22 @@ body, html {
 .side-nav .nav-btn:hover {
   transform: none;
 }
+.ui-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+.hud-btn[aria-pressed="false"] .toggle-icon-on,
+.hud-btn[aria-pressed="true"] .toggle-icon-off {
+  display: none;
+}
 .nav-icon {
   width: calc(var(--nav-size) - 2px);
   flex-shrink: 0;
@@ -250,14 +265,10 @@ body, html {
   justify-content: center;
 }
 .nav-label {
-  position: absolute;
-  left: calc(var(--nav-size) - 2px);
   font-family: var(--font-sans);
   font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
 }
 
 /* Floating 3D Hotspot Markers */
@@ -500,7 +511,7 @@ body, html {
   gap: 6px;
   background: transparent;
   border: 1px solid transparent;
-  color: var(--text-muted);
+  color: var(--text-main);
   font-size: 0.82rem;
   font-weight: 500;
   padding: 7px 12px;
@@ -579,7 +590,8 @@ body, html {
   border-color: rgba(245, 158, 11, 0.35);
 }
 .dropdown-chevron {
-  font-size: 0.7rem;
+  width: 12px;
+  height: 12px;
   transition: transform 0.2s ease;
   margin-left: 2px;
 }
@@ -590,8 +602,10 @@ body, html {
 /* Toast Notifications */
 .toast-container {
   position: absolute;
-  top: calc(226px + env(safe-area-inset-top, 0px));
-  right: 24px;
+  top: 20px;
+  right: calc(76px + env(safe-area-inset-right, 0px));
+  width: max-content;
+  max-width: min(320px, calc(100vw - 152px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -600,6 +614,7 @@ body, html {
 }
 .toast {
   pointer-events: auto;
+  overflow-wrap: anywhere;
   background: rgba(24, 20, 28, 0.92);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -613,12 +628,7 @@ body, html {
   display: flex;
   align-items: center;
   gap: 10px;
-  transform: translateX(100%);
-  opacity: 0;
-  animation: toastIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-@keyframes toastIn {
-  to { transform: translateX(0); opacity: 1; }
+  transform-origin: top right;
 }
 
 /* Modals & Drawers */
@@ -754,6 +764,10 @@ body, html {
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+.modal-icon-badge .ui-icon {
+  width: 22px;
+  height: 22px;
 }
 .modal-subtitle {
   font-size: 0.82rem;
@@ -945,6 +959,18 @@ body, html {
   flex-direction: column;
   gap: 20px;
 }
+.profile-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+.profile-location .ui-icon {
+  width: 14px;
+  height: 14px;
+}
 .profile-photo-frame {
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -1099,6 +1125,9 @@ body, html {
   #app:not([data-scene-state="ready"]) .side-nav {
     flex-direction: row;
   }
+  #app:not([data-scene-state="ready"]) .side-nav .nav-icon {
+    width: 24px;
+  }
   .loading-screen {
     inset: 68px 0 12px;
     max-height: calc(100dvh - 80px);
@@ -1134,9 +1163,18 @@ body, html {
     width: auto;
     height: 44px;
     padding: 0 6px;
+    gap: 4px;
     justify-content: center;
     flex-shrink: 0;
     font-size: 0.82rem;
+  }
+  .dock-btn .ui-icon {
+    width: 16px;
+    height: 16px;
+  }
+  .dock-btn .dropdown-chevron {
+    width: 10px;
+    height: 10px;
   }
   .dock-label {
     white-space: nowrap;
@@ -1177,9 +1215,9 @@ body, html {
     display: none;
   }
   .toast-container {
-    top: calc(222px + env(safe-area-inset-top, 0px));
-    right: 12px;
-    max-width: calc(100vw - 24px);
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    right: calc(66px + env(safe-area-inset-right, 0px));
+    max-width: min(320px, calc(100vw - 208px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
   }
   .toast {
     font-size: 0.8rem;

@@ -21,6 +21,7 @@ class SoundEngine {
 
   toggleMute() {
     this.isMuted = !this.isMuted;
+    this.ambientGain?.gain.cancelScheduledValues(this.ctx.currentTime);
     if (this.isMuted) {
       if (this.ambientGain) this.ambientGain.gain.setValueAtTime(0, this.ctx.currentTime);
     } else {
@@ -156,13 +157,14 @@ class SoundEngine {
       this.ambientGain.connect(this.ctx.destination);
     }
 
-    if (this.ambientPlaying && !this.isMuted) {
-      this.ambientGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
-      this.ambientGain.gain.linearRampToValueAtTime(0.12, this.ctx.currentTime + 1);
+    this.ambientGain.gain.cancelScheduledValues(this.ctx.currentTime);
+    if (this.ambientPlaying) {
+      this.ambientGain.gain.setValueAtTime(this.isMuted ? 0 : 0.001, this.ctx.currentTime);
+      if (!this.isMuted) this.ambientGain.gain.linearRampToValueAtTime(0.12, this.ctx.currentTime + 1);
       this.startLofiLoop();
     } else {
       if (this.ambientGain) {
-        this.ambientGain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
+        this.ambientGain.gain.linearRampToValueAtTime(this.isMuted ? 0 : 0.001, this.ctx.currentTime + 0.5);
       }
       clearInterval(this.ambientInterval);
       this.ambientInterval = null;
@@ -182,7 +184,7 @@ class SoundEngine {
     let chordIdx = 0;
 
     const playChord = () => {
-      if (!this.ambientPlaying || this.isMuted) return;
+      if (!this.ambientPlaying) return;
       const t = this.ctx.currentTime;
       const notes = chords[chordIdx % chords.length];
       chordIdx++;

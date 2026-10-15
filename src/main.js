@@ -45,11 +45,6 @@ const exitZenBtn = document.getElementById('exitZenBtn');
 const dockDropdowns = [...document.querySelectorAll('.bottom-dock .dropdown')];
 const compactLayoutMedia = window.matchMedia('(max-width: 840px), (max-height: 500px)');
 
-// Nearby alternatives keep compact 44px markers from covering one another.
-const COMPACT_PIN_OFFSETS = [-2, -1, 0, 1, 2]
-  .flatMap(x => [-2, -1, 0, 1, 2].map(y => ({ x: x * 52, y: y * 52 })))
-  .sort((a, b) => a.x * a.x + a.y * a.y - b.x * b.x - b.y * b.y);
-
 // Spline & Three.js State
 let splineApp = null;
 let threeScene = null;
@@ -58,7 +53,7 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
 // Drag tracking is retained only to avoid treating a drag as an object click.
-let isPointerDown = false;
+const activePointers = new Set();
 let isDragging = false;
 const pointerStart = { x: 0, y: 0 };
 
@@ -78,12 +73,6 @@ let wallClock = null;
 let lastClockSecond = null;
 
 // Base Camera Settings
-const DEFAULT_CAM_POS = new THREE.Vector3(585.13, 336.63, 729.21);
-const DEFAULT_CAM_ROT = new THREE.Euler(
-  THREE.MathUtils.degToRad(-29.57),
-  THREE.MathUtils.degToRad(34.53),
-  THREE.MathUtils.degToRad(17.83)
-);
 const DEFAULT_CAM_ZOOM = 2.1096;
 // The served room occupies an approximately 800px square at the base zoom.
 // Leave a little extra space for its constrained orbit when fitting small screens.
@@ -198,7 +187,7 @@ const HOTSPOTS = [
 
 function activateHotspot(spot, trigger = null) {
   sound.playPop();
-  if (spot.cameraPreset) setCameraPreset(spot.cameraPreset);
+  if (spot.cameraPreset) setCameraPreset(spot.cameraPreset, { notify: false });
   spot.action(trigger);
 }
 
@@ -481,13 +470,8 @@ function updateHotspots() {
 
   const rect = canvas.getBoundingClientRect();
   const v = new THREE.Vector3();
-  const compactPins = compactLayoutMedia.matches;
-  const placedPins = [];
   // Read sizes together before updating positions or starting any tweens.
   const bubbleSizes = new Map(HOTSPOTS.filter(spot => spot.secondary).map(spot => [spot, { width: spot.bubble.offsetWidth, height: spot.bubble.offsetHeight }]));
-  const obstacles = compactPins
-    ? [...document.querySelectorAll('.side-nav, .top-nav-right, .bottom-dock')].map(el => el.getBoundingClientRect())
-    : [];
 
   HOTSPOTS.forEach(spot => {
     const obj = objects[spot.objKey];
@@ -509,29 +493,8 @@ function updateHotspots() {
       return;
     }
 
-    let x = (v.x * 0.5 + 0.5) * rect.width + (spot.offsetX ?? 0) * threeCamera.zoom / DEFAULT_CAM_ZOOM;
-    let y = (-v.y * 0.5 + 0.5) * rect.height;
-
-    if (compactPins && !spot.secondary) {
-      const position = COMPACT_PIN_OFFSETS
-        .map(offset => ({
-          x: THREE.MathUtils.clamp(x + offset.x, 28, rect.width - 28),
-          y: THREE.MathUtils.clamp(y + offset.y, 28, rect.height - 28)
-        }))
-        .find(point => (
-          placedPins.every(other => Math.abs(point.x - other.x) >= 52 || Math.abs(point.y - other.y) >= 52)
-          && obstacles.every(obstacle => (
-            point.x + 26 < obstacle.left - rect.left || point.x - 26 > obstacle.right - rect.left
-            || point.y + 26 < obstacle.top - rect.top || point.y - 26 > obstacle.bottom - rect.top
-          ))
-        ));
-      if (!position) {
-        spot.domElement.hidden = true;
-        return;
-      }
-      ({ x, y } = position);
-      placedPins.push(position);
-    }
+    const x = (v.x * 0.5 + 0.5) * rect.width + (spot.offsetX ?? 0) * threeCamera.zoom / DEFAULT_CAM_ZOOM;
+    const y = (-v.y * 0.5 + 0.5) * rect.height;
     if (spot.secondary) {
       const { width, height } = bubbleSizes.get(spot);
       let objectTop = y;
@@ -630,7 +593,7 @@ function animateLoop(now) {
 }
 
 // Camera Preset Transition
-function setCameraPreset(presetName) {
+function setCameraPreset(presetName, { notify = true } = {}) {
   const preset = CAMERA_PRESETS[presetName];
   if (!preset || !threeCamera) return;
 
@@ -660,13 +623,13 @@ function setCameraPreset(presetName) {
     elapsed: 0
   };
 
-  showToast(`Perspective switched to ${presetName.toUpperCase()}`, '📐');
+  if (notify) showToast(`Perspective switched to ${presetName.toUpperCase()}`, '📐');
 }
 
 // Lighting & Atmosphere Transition
 function setTheme(themeName, { notify = true, restartCycle = true } = {}) {
   const theme = THEMES[themeName];
-  if (!theme) return;
+  if (!theme || (state.zenMode && themeName !== 'night')) return;
 
   const now = performance.now();
   if (restartCycle && dayNightCycleStart !== null) {
@@ -851,7 +814,7 @@ function getInteractiveAtPointer(e) {
 }
 
 function handlePointerMove(e) {
-  if (isPointerDown) {
+  if (activePointers.size) {
     const distance = Math.hypot(e.clientX - pointerStart.x, e.clientY - pointerStart.y);
     if (distance > 6) {
       isDragging = true;
@@ -878,22 +841,33 @@ function handlePointerMove(e) {
 }
 
 function handlePointerDown(e) {
-  isPointerDown = true;
+  activePointers.add(e.pointerId);
+  // A pinch stays a gesture until every participating pointer has lifted.
+  if (activePointers.size > 1 || !e.isPrimary) {
+    isDragging = true;
+    hoverTooltip.classList.remove('visible');
+    return;
+  }
   isDragging = false;
   pointerStart.x = e.clientX;
   pointerStart.y = e.clientY;
 }
 
 function handlePointerUp(e) {
-  isPointerDown = false;
-  if (e.button === 0 && !isDragging) {
+  const wasDown = activePointers.delete(e.pointerId);
+  if (wasDown && e.isPrimary && e.button === 0 && !isDragging && !activePointers.size) {
     // Touch taps have no preceding hover, so pick at the release position.
     const targetSpot = getInteractiveAtPointer(e);
     if (targetSpot) {
       activateHotspot(targetSpot);
     }
   }
-  isDragging = false;
+  if (!activePointers.size) isDragging = false;
+}
+
+function handlePointerCancel(e) {
+  if (!activePointers.delete(e.pointerId)) return;
+  isDragging = activePointers.size > 0;
 }
 
 // Spline's elastic rotation limit clears this internal flag at the outer edge,
@@ -919,17 +893,23 @@ function startZoomLimitBounce() {
 
 // Toast System
 function showToast(message, icon = '✨') {
+  if (toastContainer.childElementCount >= 4) {
+    gsap.killTweensOf(toastContainer.firstElementChild);
+    toastContainer.firstElementChild.remove();
+  }
   const toast = document.createElement('div');
   toast.className = 'toast';
   toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
   toastContainer.appendChild(toast);
 
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateX(100%)';
-    toast.style.transition = 'all 0.3s ease';
-    setTimeout(() => toast.remove(), 300);
-  }, 3500);
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  gsap.timeline({ onComplete: () => toast.remove() })
+    .fromTo(toast,
+      { autoAlpha: 0, y: reducedMotion ? 0 : 8, scale: reducedMotion ? 1 : 0.96 },
+      { autoAlpha: 1, y: 0, scale: 1, duration: reducedMotion ? 0 : 0.4, ease: 'back.out(1.2)' })
+    .to(toast,
+      { autoAlpha: 0, y: reducedMotion ? 0 : -6, scale: reducedMotion ? 1 : 0.97, duration: reducedMotion ? 0 : 0.22, ease: 'power2.in' },
+      3.5);
 }
 
 // Modal Handlers
@@ -1069,7 +1049,8 @@ function renderContent() {
         <div class="project-links">
           ${p.links.map((link, index) => `
             <a href="${link.url}" target="_blank" rel="noopener" class="${index === 0 ? 'btn-primary' : 'btn-secondary'}" aria-label="${link.label} (opens in a new tab)">
-              <span>${link.label} &nearr;</span>
+              <span>${link.label}</span>
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#arrow-up-right"/></svg>
             </a>
           `).join('')}
         </div>
@@ -1108,7 +1089,7 @@ function renderContent() {
         <div>
           <h2 style="font-size: 1.4rem; font-weight: 700;">${dev.name}</h2>
           <div style="font-size: 0.9rem; color: var(--accent-amber); margin-top: 4px;">${dev.title}</div>
-          <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">📍 ${dev.location}</div>
+          <div class="profile-location"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#map-pin"/></svg><span>${dev.location}</span></div>
         </div>
 
         <div class="profile-photo-frame">
@@ -1124,13 +1105,13 @@ function renderContent() {
             <a href="mailto:${dev.email}" class="social-pill contact-email-link">
               <svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
               <span>Email</span>
-              <span aria-hidden="true">&nearr;</span>
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#arrow-up-right"/></svg>
             </a>
             ${dev.socials.map(s => `
               <a href="${s.url}" target="_blank" rel="noopener noreferrer" class="social-pill">
                 ${s.icon === 'linkedin' ? `<svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor"><path d="M20.45 2H3.55C2.69 2 2 2.68 2 3.52v16.96C2 21.32 2.69 22 3.55 22h16.9c.86 0 1.55-.68 1.55-1.52V3.52C22 2.68 21.31 2 20.45 2ZM7.93 18.75H4.98V9.2h2.95v9.55ZM6.45 7.89a1.71 1.71 0 1 1 0-3.42 1.71 1.71 0 0 1 0 3.42Zm12.3 10.86H15.8v-4.64c0-1.11-.02-2.54-1.55-2.54-1.55 0-1.79 1.21-1.79 2.46v4.72H9.51V9.2h2.83v1.31h.04c.39-.74 1.35-1.52 2.79-1.52 2.98 0 3.58 1.96 3.58 4.51v5.25Z"/></svg>` : ''}
                 <span>${s.label}</span>
-                <span aria-hidden="true">&nearr;</span>
+                <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#arrow-up-right"/></svg>
               </a>
             `).join('')}
           </div>
@@ -1153,6 +1134,8 @@ function setupSceneInput() {
   canvas.addEventListener('pointermove', keepOrbitDragActive);
   canvas.addEventListener('pointerdown', handlePointerDown);
   canvas.addEventListener('pointerup', handlePointerUp);
+  canvas.addEventListener('pointercancel', handlePointerCancel);
+  canvas.addEventListener('lostpointercapture', handlePointerCancel);
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
   // Capture the zoom before Spline handles the wheel event, then trigger the
@@ -1167,42 +1150,8 @@ function setupSceneInput() {
   }, { passive: true });
 }
 
-function setupNavigationReveals() {
-  gsap.matchMedia().add({ motion: '(prefers-reduced-motion: no-preference)', reduced: '(prefers-reduced-motion: reduce)' }, context => {
-    const cleanups = Array.from(document.querySelectorAll('#sideNav .nav-btn'), btn => {
-      const label = btn.querySelector('.nav-label');
-      let hovered = btn.matches(':hover') && window.matchMedia('(any-hover: hover)').matches;
-      gsap.set(label, { x: -6, autoAlpha: 0 });
-      const timeline = gsap.timeline({ paused: true, defaults: { ease: 'power3.out' } })
-        .to(btn, { '--nav-expansion': `${label.offsetWidth + 16}px`, duration: 0.3 }, 0)
-        .to(label, { x: 0, autoAlpha: 1, duration: 0.2 }, 0.06);
-      const update = () => {
-        const expanded = hovered || document.activeElement === btn;
-        if (context.conditions.reduced) timeline.progress(expanded ? 1 : 0).pause();
-        else if (expanded) timeline.play();
-        else timeline.reverse();
-      };
-      const enter = event => { hovered = event.pointerType !== 'touch'; update(); };
-      const leave = () => { hovered = false; update(); };
-      btn.addEventListener('pointerenter', enter);
-      btn.addEventListener('pointerleave', leave);
-      btn.addEventListener('focus', update);
-      btn.addEventListener('blur', update);
-      update();
-      return () => {
-        btn.removeEventListener('pointerenter', enter);
-        btn.removeEventListener('pointerleave', leave);
-        btn.removeEventListener('focus', update);
-        btn.removeEventListener('blur', update);
-      };
-    });
-    return () => cleanups.forEach(cleanup => cleanup());
-  });
-}
-
 // DOM controls are available independently of the renderer.
 function setupEventListeners() {
-  setupNavigationReveals();
   setupModalSectionMotion();
   // Top Nav Modal Buttons
   document.querySelectorAll('[data-modal]').forEach(btn => {
@@ -1231,7 +1180,7 @@ function setupEventListeners() {
 
   muteBtn.addEventListener('click', () => {
     const isMuted = sound.toggleMute();
-    muteBtn.textContent = isMuted ? '🔇' : '🔊';
+    muteBtn.querySelector('use').setAttribute('href', `/ui-icons.svg#${isMuted ? 'volume-x' : 'volume-2'}`);
     muteBtn.classList.toggle('active', isMuted);
     muteBtn.setAttribute('aria-pressed', String(isMuted));
     showToast(`Sound Effects: ${isMuted ? 'MUTED' : 'ENABLED'}`, isMuted ? '🔇' : '🔊');
@@ -1316,6 +1265,7 @@ function setupEventListeners() {
   });
 
   document.addEventListener('fullscreenchange', () => {
+    fullscreenBtn.querySelector('use').setAttribute('href', `/ui-icons.svg#${document.fullscreenElement ? 'minimize' : 'maximize'}`);
     fullscreenBtn.classList.toggle('active', !!document.fullscreenElement);
     fullscreenBtn.setAttribute('aria-pressed', String(!!document.fullscreenElement));
   });

@@ -146,20 +146,13 @@
     <!-- Modals -->
     <!-- 1. Projects Modal -->
     <div class="modal-backdrop" id="projectsModal" inert>
-      <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="projectsTitle" aria-describedby="projectsSubtitle" tabindex="-1">
-        <nav class="modal-nav" aria-label="Portfolio sections">
-          <button class="modal-nav-btn" data-modal="about">About Me</button>
-          <button class="modal-nav-btn" data-modal="skills">Skills</button>
-          <button class="modal-nav-btn" data-modal="projects" aria-current="page">Projects</button>
-        </nav>
+      <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="projectsTitle" tabindex="-1">
         <div class="modal-header">
-          <div class="modal-title-group">
-            <div class="modal-icon-badge" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#laptop"/></svg></div>
-            <div>
-              <h2 class="modal-title" id="projectsTitle">Featured Projects & Work</h2>
-              <div class="modal-subtitle" id="projectsSubtitle">Selected design projects, prototypes & interactive case studies</div>
-            </div>
-          </div>
+          <nav class="modal-nav" aria-label="Portfolio sections">
+            <button class="modal-nav-btn" data-modal="about"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#user-round"/></svg><span>About Me</span></button>
+            <button class="modal-nav-btn" data-modal="skills"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#book-open"/></svg><span>Skills</span></button>
+            <button class="modal-nav-btn" data-modal="projects" aria-current="page"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#laptop"/></svg><span id="projectsTitle">Projects</span></button>
+          </nav>
           <button class="modal-close-btn" data-close aria-label="Close projects dialog"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#x"/></svg></button>
         </div>
         <div class="modal-body" tabindex="0" role="region" aria-labelledby="projectsTitle">
@@ -170,20 +163,13 @@
 
     <!-- 2. Skills Modal -->
     <div class="modal-backdrop" id="skillsModal" inert>
-      <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="skillsTitle" aria-describedby="skillsSubtitle" tabindex="-1">
-        <nav class="modal-nav" aria-label="Portfolio sections">
-          <button class="modal-nav-btn" data-modal="about">About Me</button>
-          <button class="modal-nav-btn" data-modal="skills" aria-current="page">Skills</button>
-          <button class="modal-nav-btn" data-modal="projects">Projects</button>
-        </nav>
+      <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="skillsTitle" tabindex="-1">
         <div class="modal-header">
-          <div class="modal-title-group">
-            <div class="modal-icon-badge" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#book-open"/></svg></div>
-            <div>
-              <h2 class="modal-title" id="skillsTitle">Skills & Tools</h2>
-              <div class="modal-subtitle" id="skillsSubtitle">Research, design, making & creative technology</div>
-            </div>
-          </div>
+          <nav class="modal-nav" aria-label="Portfolio sections">
+            <button class="modal-nav-btn" data-modal="about"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#user-round"/></svg><span>About Me</span></button>
+            <button class="modal-nav-btn" data-modal="skills" aria-current="page"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#book-open"/></svg><span id="skillsTitle">Skills</span></button>
+            <button class="modal-nav-btn" data-modal="projects"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#laptop"/></svg><span>Projects</span></button>
+          </nav>
           <button class="modal-close-btn" data-close aria-label="Close skills dialog"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#x"/></svg></button>
         </div>
         <div class="modal-body" tabindex="0" role="region" aria-labelledby="skillsTitle">
@@ -195,18 +181,12 @@
     <!-- 3. About Me Modal -->
     <div class="modal-backdrop" id="aboutModal" inert>
       <div class="modal-window" role="dialog" aria-modal="true" aria-labelledby="aboutTitle" tabindex="-1">
-        <nav class="modal-nav" aria-label="Portfolio sections">
-          <button class="modal-nav-btn" data-modal="about" aria-current="page">About Me</button>
-          <button class="modal-nav-btn" data-modal="skills">Skills</button>
-          <button class="modal-nav-btn" data-modal="projects">Projects</button>
-        </nav>
         <div class="modal-header">
-          <div class="modal-title-group">
-            <div class="modal-icon-badge" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#user-round"/></svg></div>
-            <div>
-              <h2 class="modal-title" id="aboutTitle">About Me</h2>
-            </div>
-          </div>
+          <nav class="modal-nav" aria-label="Portfolio sections">
+            <button class="modal-nav-btn" data-modal="about" aria-current="page"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#user-round"/></svg><span id="aboutTitle">About Me</span></button>
+            <button class="modal-nav-btn" data-modal="skills"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#book-open"/></svg><span>Skills</span></button>
+            <button class="modal-nav-btn" data-modal="projects"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#laptop"/></svg><span>Projects</span></button>
+          </nav>
           <button class="modal-close-btn" data-close aria-label="Close about dialog"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#x"/></svg></button>
         </div>
         <div class="modal-body" id="aboutContainer" tabindex="0" role="region" aria-labelledby="aboutTitle"></div>

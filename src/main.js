@@ -956,7 +956,7 @@ function openModal(modalName, trigger = null) {
   if (switchingSections) {
     const nav = targetModal.querySelector('.modal-nav');
     const index = [...nav.querySelectorAll('button')].indexOf(nav.querySelector('[aria-current]'));
-    const content = targetModal.querySelectorAll('.modal-title-group, .modal-body');
+    const content = targetModal.querySelectorAll('.modal-body');
     const direction = Math.sign(index - previousIndex);
     const finish = () => {
       gsap.set(content, { clearProps: 'transform,opacity' });
@@ -984,7 +984,7 @@ function closeAllModals({ restoreFocus = true, immediate = false } = {}) {
   if (!activeModal) return;
   modalSectionTimeline?.kill();
   modalSectionTimeline = null;
-  gsap.set(activeModal.querySelectorAll('.modal-title-group, .modal-body'), { clearProps: 'transform,opacity' });
+  gsap.set(activeModal.querySelectorAll('.modal-body'), { clearProps: 'transform,opacity' });
   const nav = activeModal.querySelector('.modal-nav');
   nav.style.setProperty('--active-section', [...nav.querySelectorAll('button')].indexOf(nav.querySelector('[aria-current]')));
   activeModal.classList.toggle('section-switch', immediate);

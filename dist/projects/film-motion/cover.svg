@@ -7,7 +7,7 @@
     </pattern>
   </defs>
   <rect width="1440" height="810" fill="#eee5d5"/>
-  <g transform="translate(710 115) rotate(12 360 260)">
+  <g transform="translate(310 125) rotate(12 410 280)">
     <rect width="820" height="560" rx="12" fill="#262c35"/>
     <path d="M0 25H820V61H0ZM0 499H820V535H0Z" fill="url(#perforations)"/>
     <rect x="32" y="87" width="350" height="386" rx="5" fill="#be5944"/>
@@ -19,14 +19,5 @@
       <circle cx="585" cy="280" r="75"/>
       <circle cx="585" cy="280" r="42"/>
     </g>
-  </g>
-  <g font-family="Arial,sans-serif" fill="#262c35">
-    <text x="80" y="135" font-size="21" letter-spacing="5">FILM / MOTION / EDITING</text>
-    <text x="74" y="330" font-size="112" font-weight="700" letter-spacing="-5">Moving</text>
-    <text x="74" y="450" font-size="112" font-weight="700" letter-spacing="-5">images.</text>
-    <path d="M80 518H620" stroke="#262c35" stroke-width="2"/>
-    <text x="80" y="578" font-size="21" letter-spacing="3">LATEST FILM</text>
-    <text x="80" y="635" font-size="39" font-family="Georgia,serif" font-style="italic">Sunbird in the Garden</text>
-    <text x="80" y="702" font-size="23">Motion graphics &amp; special effects</text>
   </g>
 </svg>

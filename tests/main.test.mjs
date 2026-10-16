@@ -458,6 +458,22 @@ test('chair camera transitions keep pins on the rendered room until Spline final
   assert.equal(pins[0].style.transform, 'translate(250px, 200px) translate(-50%, -50%)');
 });
 
+test('repeated chair activations spin without restarting the active Desk camera', () => {
+  const { run, picks } = controller();
+  run(`let spins = 0;
+    chairSwivel = { start() { spins++; return true; } };
+    sound.playWhoosh = () => {};
+    setCameraPreset = preset => { picks.push(preset); state.cameraPreset = preset; };
+    const chair = HOTSPOTS.find(spot => spot.id === 'chair');
+    originalActivateHotspot(chair);
+    originalActivateHotspot(chair);
+    originalActivateHotspot(chair);`);
+  assert.equal(run('spins'), 3, 'every activation still spins the chair');
+  assert.deepEqual(picks, ['desk'], 'only the first activation should move the camera');
+  run(`state.cameraPreset = 'bed'; originalActivateHotspot(chair);`);
+  assert.deepEqual(picks, ['desk', 'desk'], 'returning from another view still focuses the desk');
+});
+
 test('overlapping touch targets choose the nearest circle but preserve revealed-label activation', () => {
   const { context: c, run, element } = controller();
   c.firstPin = element('first-pin');

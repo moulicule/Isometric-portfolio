@@ -203,7 +203,9 @@ function activateHotspot(spot, trigger = null) {
     return accepted;
   }
   sound.playPop();
-  if (spot.cameraPreset) setCameraPreset(spot.cameraPreset, { notify: false });
+  if (spot.cameraPreset && state.cameraPreset !== spot.cameraPreset) {
+    setCameraPreset(spot.cameraPreset, { notify: false });
+  }
   spot.action(trigger);
 }
 

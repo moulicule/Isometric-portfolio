@@ -283,6 +283,8 @@ body, html {
   color: var(--text-main);
   font: inherit;
   position: absolute;
+  left: 0;
+  top: 0;
   pointer-events: auto;
   transform: translate(-50%, -50%);
   display: flex;
@@ -739,6 +741,7 @@ body, html {
 }
 .modal-nav.is-animated::before {
   content: '';
+  box-sizing: border-box;
   position: absolute;
   z-index: -1;
   pointer-events: none;
@@ -1180,6 +1183,9 @@ body, html {
   .dock-group {
     gap: 4px;
   }
+  .dock-divider {
+    display: none;
+  }
   .dock-btn {
     width: auto;
     height: 44px;
@@ -1187,7 +1193,7 @@ body, html {
     gap: 4px;
     justify-content: center;
     flex-shrink: 0;
-    font-size: 0.82rem;
+    font-size: clamp(0.68rem, 3vw, 0.82rem);
   }
   .dock-btn .ui-icon {
     width: 16px;
@@ -1234,6 +1240,11 @@ body, html {
   }
   .hotspot-label {
     display: none;
+  }
+  .hotspot-ring {
+    inset: 16px;
+    background: radial-gradient(circle, white 0 0.75px, transparent 1.25px 1.5px, rgba(255, 255, 255, 0.85) 2px 2.75px, transparent 3.25px) rgba(24, 20, 28, 0.4);
+    box-shadow: 0 0 0 1px rgba(24, 20, 28, 0.5), 0 1px 4px rgba(0, 0, 0, 0.45);
   }
   .toast-container {
     top: calc(12px + env(safe-area-inset-top, 0px));

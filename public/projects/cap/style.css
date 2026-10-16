@@ -187,7 +187,7 @@ p { line-height: 1.6; }
 .hardware-intro .eyebrow { grid-column: 1 / -1; }
 .hardware-intro > p:last-child { align-self: start; font-size: 17px; max-width: 470px; }
 .hardware-layout { display: grid; grid-template-columns: 57% 43%; position: relative; padding: 0 4.2%; }
-.workbench { position: sticky; top: 16px; height: calc(100svh - 32px); max-height: 850px; min-height: 600px; align-self: start; background: var(--soft); border: 2px solid var(--ink); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+.workbench { position: sticky; top: 16px; height: calc(100svh - 32px); max-height: 850px; min-height: min(600px, calc(100svh - 32px)); align-self: start; background: var(--soft); border: 2px solid var(--ink); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
 .workbench:before { content: ''; position: absolute; inset: 0; background-image: var(--grid); background-size: 36px 36px; pointer-events: none; }
 .bench-top { position: relative; padding: 20px; display: flex; justify-content: space-between; border-bottom: 2px solid var(--ink); font-size: 11px; gap: 15px; }
 .bench-top .eyebrow { font-size: 11px; }
@@ -325,7 +325,7 @@ details p { font-size: 16px; line-height: 1.7; max-width: 700px; padding-top: 16
   .assembly-step h3 { font-size: clamp(28px, 3.3vw, 36px); }
   .bench-top { flex-wrap: wrap; gap: 6px; padding: 16px; }
   .bench-description { font-size: 12px; }
-  .workbench { min-height: 650px; }
+  .workbench { min-height: min(650px, calc(100svh - 32px)); }
   .proximity-playground { height: 420px; }
   .sim-anchor { width: 215px; }
   .proximity-playground .sim-device { padding: 23px; border-radius: 26px; }
@@ -398,7 +398,7 @@ details p { font-size: 16px; line-height: 1.7; max-width: 700px; padding-top: 16
   .hardware { padding-bottom: 25px; }
   .hardware-intro { padding-bottom: 32px; }
   .hardware-layout { display: block; padding: 0 6%; }
-  .workbench { top: 10px; height: 58svh; min-height: 390px; max-height: 530px; z-index: 3; }
+  .workbench { top: 10px; height: 58svh; min-height: min(390px, calc(100svh - 20px)); max-height: 530px; z-index: 3; }
   .bench-top { padding: 12px 14px; flex-wrap: nowrap; }
   .bench-top, .bench-top .eyebrow { font-size: 9px; }
   .bench-viewer { min-height: 130px; }
@@ -464,6 +464,11 @@ details p { font-size: 16px; line-height: 1.7; max-width: 700px; padding-top: 16
   .nav nav { gap: 10px; font-size: 11px; }
   .journal-section .three-images { grid-template-columns: 1fr; }
   .journal-section .three-images img { height: auto; max-height: 350px; }
+}
+@media (max-height: 500px) {
+  .workbench { position: relative; top: auto; height: calc(100svh - 32px); min-height: 0; }
+  .bench-viewer { min-height: 0; }
+  .bench-footer { min-height: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

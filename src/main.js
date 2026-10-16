@@ -43,7 +43,6 @@ const togglePinsBtn = document.getElementById('togglePinsBtn');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
 const exitZenBtn = document.getElementById('exitZenBtn');
 const dockDropdowns = [...document.querySelectorAll('.bottom-dock .dropdown')];
-const compactLayoutMedia = window.matchMedia('(max-width: 840px), (max-height: 500px)');
 const interactionMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 // Spline & Three.js State
@@ -52,6 +51,12 @@ let threeScene = null;
 let threeCamera = null;
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+let sceneViewport = null;
+let pendingHover = null;
+let hotspotsDirty = true;
+const hotspotPoint = new THREE.Vector3();
+const hotspotCameraWorld = new THREE.Matrix4();
+const hotspotCameraProjection = new THREE.Matrix4();
 
 // Drag tracking is retained only to avoid treating a drag as an object click.
 const activePointers = new Set();
@@ -68,6 +73,7 @@ const state = {
   hoveredInteractive: null
 };
 let dayNightCycleStart = null;
+let lastCycleUpdate = -Infinity;
 let chairSwivel = null;
 let wallClock = null;
 let lastClockSecond = null;
@@ -280,20 +286,23 @@ async function init() {
   }
 }
 
-// Fit the room's measured base footprint to compact layouts, leaving space
-// for the top controls and dock.
+// Fit around the canvas center at every size; utility columns occupy side space.
 function syncResponsiveCameraZoom() {
   if (!threeCamera) return;
 
   const rect = canvas.getBoundingClientRect();
-  let nextScale = 1;
-  if (compactLayoutMedia.matches && rect.height > 0) {
-    const dockRect = document.querySelector('.bottom-dock').getBoundingClientRect();
-    const topRect = document.querySelector('.top-nav-right').getBoundingClientRect();
-    const availableWidth = Math.max(1, rect.width - 32);
-    const availableHeight = Math.max(1, dockRect.top - topRect.bottom - 32);
-    nextScale = Math.min(1, availableWidth / OVERVIEW_FRAME_SIZE, availableHeight / OVERVIEW_FRAME_SIZE);
-  }
+  if (rect.width <= 0 || rect.height <= 0) return;
+  sceneViewport = rect;
+  hotspotsDirty = true;
+  const dockRect = document.querySelector('.bottom-dock').getBoundingClientRect();
+  const topRect = document.querySelector('.top-nav-right').getBoundingClientRect();
+  const navRect = document.getElementById('sideNav').getBoundingClientRect();
+  const sideInset = Math.max(16, navRect.left - rect.left, rect.right - topRect.right);
+  const topInset = Math.max(16, topRect.top - rect.top);
+  const availableWidth = Math.max(1, rect.width - sideInset * 2);
+  const availableHeight = Math.max(1, 2 * Math.min(rect.height / 2 - topInset,
+    dockRect.top - rect.top - 16 - rect.height / 2));
+  const nextScale = Math.min(1, availableWidth / OVERVIEW_FRAME_SIZE, availableHeight / OVERVIEW_FRAME_SIZE);
 
   const ratio = nextScale / cameraZoomScale;
   cameraZoomScale = nextScale;
@@ -490,7 +499,8 @@ function updateRoomEffects() {
   element.hidden = !!activeModal || state.zenMode || document.hidden || interactionMotionMedia.matches
     || (!plantInteraction.busy && !coffeeInteraction.busy);
   if (element.hidden) return;
-  const rect = canvas.getBoundingClientRect();
+  const rect = sceneViewport;
+  if (!rect) return;
   const scale = threeCamera.zoom / DEFAULT_CAM_ZOOM;
   function place(node, opacity) {
     point.project(threeCamera);
@@ -527,6 +537,20 @@ function updateRoomEffects() {
 // Setup 3D Hotspot DOM Elements
 function setupHotspots() {
   hotspotContainer.innerHTML = '';
+  const bubbleSpots = new Map();
+  const bubbleObserver = new ResizeObserver(entries => {
+    for (const entry of entries) {
+      const spot = bubbleSpots.get(entry.target);
+      const box = entry.borderBoxSize?.[0];
+      const width = box?.inlineSize ?? entry.target.offsetWidth;
+      const height = box?.blockSize ?? entry.target.offsetHeight;
+      // Keep the last useful measurement while an off-screen pin is hidden.
+      if (width > 0 && height > 0) {
+        spot.bubbleSize = { width, height };
+        spot.layoutDirty = true;
+      }
+    }
+  });
   HOTSPOTS.forEach(spot => {
     if (spot.pin === false) return;
     const el = document.createElement('button');
@@ -559,20 +583,37 @@ function setupHotspots() {
           }
         }
       }
-      el.addEventListener('pointerenter', () => { spot.pinHovered = true; });
-      el.addEventListener('pointerleave', () => { spot.pinHovered = false; });
+      const hoverPin = event => {
+        const target = getPinHotspot(event, spot);
+        for (const pin of HOTSPOTS) pin.pinHovered = pin === target;
+      };
+      el.addEventListener('pointerenter', hoverPin);
+      el.addEventListener('pointermove', hoverPin);
+      el.addEventListener('pointerleave', () => {
+        for (const pin of HOTSPOTS) pin.pinHovered = false;
+      });
     }
     el.addEventListener('click', (e) => {
       e.stopPropagation();
-      activateHotspot(spot, el);
+      const target = e.detail === 0 ? spot : getPinHotspot(e, spot);
+      activateHotspot(target, target.domElement);
     });
     hotspotContainer.appendChild(el);
     spot.domElement = el;
+    spot.worldMatrix = new THREE.Matrix4();
+    spot.layoutDirty = true;
+    if (spot.secondary) {
+      spot.bubbleSize = { width: 0, height: 0 };
+      bubbleSpots.set(spot.bubble, spot);
+      bubbleObserver.observe(spot.bubble);
+    }
   });
   gsap.matchMedia().add({ motion: '(prefers-reduced-motion: no-preference)', reduced: '(prefers-reduced-motion: reduce)' }, context => {
     HOTSPOTS.filter(spot => spot.secondary).forEach(spot => {
       spot.reducedMotion = context.conditions.reduced;
       spot.revealed = null;
+      spot.layoutDirty = true;
+      spot.bubbleRise = null;
       spot.domElement.classList.remove('is-revealed');
       spot.motion = { rise: 0 };
       gsap.set(spot.ring, { scale: 0.8, y: 0, autoAlpha: 1 });
@@ -601,22 +642,42 @@ function setHotspotRevealed(spot, revealed) {
   }
 }
 
+// Small layouts can overlap 44px targets; honor the circle closest to the tap.
+function getPinHotspot(event, fallback) {
+  if (event.target?.closest('.hotspot-bubble')) return fallback;
+  if (!sceneViewport) return fallback;
+  const x = event.clientX - sceneViewport.left;
+  const y = event.clientY - sceneViewport.top;
+  let nearest = fallback, distance = Infinity;
+  for (const spot of HOTSPOTS) {
+    if (!spot.domElement || spot.domElement.hidden) continue;
+    const dx = x - spot.screenX, dy = y - spot.screenY;
+    if (Math.abs(dx) > 22 || Math.abs(dy) > 22) continue;
+    const squared = dx * dx + dy * dy;
+    if (squared < distance) { nearest = spot; distance = squared; }
+  }
+  return nearest;
+}
+
 // Update Hotspot Screen Positions
 function updateHotspots() {
-  if (!state.pinsVisible || !threeCamera) {
-    hotspotContainer.style.display = 'none';
-    HOTSPOTS.filter(spot => spot.secondary).forEach(spot => {
+  if (!threeCamera || !sceneViewport) return;
+  if (!state.pinsVisible || activeModal) {
+    hotspotsDirty = true;
+    for (const spot of HOTSPOTS) {
+      if (!spot.secondary || !spot.domElement) continue;
       spot.pinHovered = false;
       setHotspotRevealed(spot, false);
-    });
+    }
     return;
   }
-  hotspotContainer.style.display = 'block';
-
-  const rect = canvas.getBoundingClientRect();
-  const v = new THREE.Vector3();
-  // Read sizes together before updating positions or starting any tweens.
-  const bubbleSizes = new Map(HOTSPOTS.filter(spot => spot.secondary).map(spot => [spot, { width: spot.bubble.offsetWidth, height: spot.bubble.offsetHeight }]));
+  const rect = sceneViewport;
+  const v = hotspotPoint;
+  threeCamera.updateWorldMatrix(true, false);
+  const cameraChanged = !hotspotCameraWorld.equals(threeCamera.matrixWorld)
+    || !hotspotCameraProjection.equals(threeCamera.projectionMatrix);
+  hotspotCameraWorld.copy(threeCamera.matrixWorld);
+  hotspotCameraProjection.copy(threeCamera.projectionMatrix);
 
   HOTSPOTS.forEach(spot => {
     const obj = objects[spot.objKey];
@@ -626,22 +687,29 @@ function updateHotspots() {
       return;
     }
 
+    obj.updateWorldMatrix(true, false);
+    const project = hotspotsDirty || cameraChanged || spot.layoutDirty || !spot.worldMatrix.equals(obj.matrixWorld);
+    if (!project) {
+      updateHotspotBubble(spot);
+      return;
+    }
+    spot.worldMatrix.copy(obj.matrixWorld);
+    spot.layoutDirty = false;
     obj.getWorldPosition(v);
     v.y += spot.offsetY ?? 40;
     v.project(threeCamera);
 
     // Check if within frustum bounds
-    const isVisible = v.z < 1 && v.x >= -1.2 && v.x <= 1.2 && v.y >= -1.2 && v.y <= 1.2;
+    const isVisible = v.z >= -1 && v.z < 1 && v.x >= -1.2 && v.x <= 1.2 && v.y >= -1.2 && v.y <= 1.2;
     spot.domElement.hidden = !isVisible;
-    if (!isVisible) {
-      spot.domElement.style.opacity = '0';
-      return;
-    }
+    if (!isVisible) return;
 
     const x = (v.x * 0.5 + 0.5) * rect.width + (spot.offsetX ?? 0) * threeCamera.zoom / DEFAULT_CAM_ZOOM;
     const y = (-v.y * 0.5 + 0.5) * rect.height;
+    spot.screenX = x;
+    spot.screenY = y;
     if (spot.secondary) {
-      const { width, height } = bubbleSizes.get(spot);
+      const { width, height } = spot.bubbleSize;
       let objectTop = y;
       // Use tuned reveal heights for large objects instead of their full bounds.
       if (spot.revealOffsetY !== undefined) {
@@ -659,15 +727,26 @@ function updateHotspots() {
       const lift = Math.max(44, y - objectTop + height / 2 + 14);
       const bubbleY = Math.max(8 + height / 2, y - lift);
       spot.domElement.style.setProperty('--pin-lift', `${y - bubbleY}px`);
-      setHotspotRevealed(spot, isVisible && !activeModal && !isDragging && (state.hoveredInteractive === spot || spot.pinHovered || spot.domElement.matches(':focus-visible')));
-      spot.setBubbleX((THREE.MathUtils.clamp(x, width / 2 + 8, rect.width - width / 2 - 8) - x) * spot.motion.rise);
-      spot.setBubbleY((bubbleY - y) * spot.motion.rise);
+      spot.bubbleX = THREE.MathUtils.clamp(x, width / 2 + 8, rect.width - width / 2 - 8) - x;
+      spot.bubbleY = bubbleY - y;
+      spot.bubbleRise = null;
     }
 
-    spot.domElement.style.opacity = '1';
-    spot.domElement.style.left = `${x}px`;
-    spot.domElement.style.top = `${y}px`;
+    spot.domElement.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+    updateHotspotBubble(spot);
   });
+  hotspotsDirty = false;
+}
+
+function updateHotspotBubble(spot) {
+  if (!spot.secondary) return;
+  setHotspotRevealed(spot, !spot.domElement.hidden && !isDragging
+    && (state.hoveredInteractive === spot || spot.pinHovered || spot.domElement.matches(':focus-visible')));
+  if (spot.domElement.hidden) return;
+  if (spot.bubbleRise === spot.motion.rise) return;
+  spot.setBubbleX(spot.bubbleX * spot.motion.rise);
+  spot.setBubbleY(spot.bubbleY * spot.motion.rise);
+  spot.bubbleRise = spot.motion.rise;
 }
 
 // Real-Time Clock Hands Sync
@@ -701,6 +780,7 @@ function animateLoop(now) {
   updateObjectInteractions(now);
 
   // 3. Camera transition animation
+  const cameraAnimating = currentCamAnim || zoomBounce;
   if (currentCamAnim && threeCamera) {
     currentCamAnim.elapsed += delta;
     const progress = Math.min(1, currentCamAnim.elapsed / currentCamAnim.duration);
@@ -734,6 +814,9 @@ function animateLoop(now) {
     if (progress >= 1) zoomBounce = null;
   }
 
+  // Raw camera edits must still render between the slower atmosphere updates.
+  if (cameraAnimating) splineApp?.requestRender();
+  flushPointerHover();
   // 4. Update 3D Hotspot Screen Coordinates
   updateHotspots();
   updateRoomEffects();
@@ -845,10 +928,15 @@ function updateDayNightCycle(now) {
   if (themeTransition) {
     const progress = Math.min(1, Math.max(0, (now - themeTransition.start) / THEME_FADE_MS));
     applyThemeLighting(themeTransition.from, themeTransition.to, progress * progress * (3 - 2 * progress));
-    if (progress === 1) themeTransition = null;
+    if (progress === 1) {
+      themeTransition = null;
+      lastCycleUpdate = now;
+    }
     return;
   }
   if (dayNightCycleStart === null || state.zenMode) return;
+  if (now - lastCycleUpdate < 100) return;
+  lastCycleUpdate = now;
   const { from, to, blend } = getDayNightPhase(now - dayNightCycleStart);
   if (state.theme !== from) setTheme(from, { notify: false, restartCycle: false });
   applyThemeLighting(THEMES[from], THEMES[to], blend);
@@ -878,6 +966,7 @@ function updateLampLighting({ applyIntensity = true } = {}) {
   if (applyIntensity) {
     if (objects.lampLight1) objects.lampLight1.intensity = intensity;
     if (objects.lampLight2) objects.lampLight2.intensity = intensity;
+    splineApp?.requestRender();
   }
   toggleLampBtn.classList.toggle('active', state.lampOn);
   toggleLampBtn.setAttribute('aria-checked', String(state.lampOn));
@@ -982,6 +1071,13 @@ function handlePointerMove(e) {
     return;
   }
 
+  pendingHover = e;
+}
+
+function flushPointerHover() {
+  const e = pendingHover;
+  pendingHover = null;
+  if (!e || activePointers.size || activeModal || document.hidden) return;
   const targetSpot = getInteractiveAtPointer(e);
 
   if (targetSpot) {
@@ -1000,6 +1096,7 @@ function handlePointerMove(e) {
 }
 
 function handlePointerDown(e) {
+  pendingHover = null;
   activePointers.add(e.pointerId);
   // A pinch stays a gesture until every participating pointer has lifted.
   if (activePointers.size > 1 || !e.isPrimary) {
@@ -1286,6 +1383,7 @@ function setupSceneInput() {
   // Canvas pointer raycasting and click handling. Orbit is constrained; panning is disabled.
   canvas.addEventListener('pointermove', handlePointerMove);
   canvas.addEventListener('pointerleave', () => {
+    pendingHover = null;
     state.hoveredInteractive = null;
     canvas.classList.remove('pointer-cursor');
     hoverTooltip.classList.remove('visible');
@@ -1363,7 +1461,7 @@ function setupEventListeners() {
       e.stopPropagation();
       const isOpen = !dropdown.classList.contains('open');
       setDockDropdownOpen(dropdown, isOpen);
-      if (isOpen) (dropdown.querySelector('[aria-checked="true"]') || items[0]).focus();
+      if (isOpen && e.detail === 0) (dropdown.querySelector('[aria-checked="true"]') || items[0]).focus();
       sound.playPop();
     });
 
@@ -1381,7 +1479,8 @@ function setupEventListeners() {
       }
     });
     dropdown.addEventListener('focusout', (e) => {
-      if (!dropdown.contains(e.relatedTarget)) setDockDropdownOpen(dropdown, false);
+      // Safari taps can blur to no target before click; outside clicks handle that case.
+      if (e.relatedTarget && !dropdown.contains(e.relatedTarget)) setDockDropdownOpen(dropdown, false);
     });
     dropdown.addEventListener('keydown', (e) => {
       const index = items.indexOf(document.activeElement);

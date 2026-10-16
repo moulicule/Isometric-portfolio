@@ -129,12 +129,26 @@ function syncChapter(){
  const step=assemblySteps.filter(step=>step.getBoundingClientRect().top<=marker).at(-1)||assemblySteps[0];
  if(step.dataset.part!==activePart)chapter(step);
 }
-const sceneModule=import('./scene.js?v=3');
+let sceneModule;
 function fail(host,error){console.error('CAP model unavailable:',error);host.classList.add('failed');host.setAttribute('aria-busy','false');host.querySelector('.model-loading p').textContent='3D view unavailable. Here’s my project photo instead.';}
-sceneModule.then(async({makeScene})=>{
- makeScene($('#hero-viewer'),{hero:true}).then(scene=>{hero=scene;$('#hero-zoom-out').disabled=false;$('#hero-zoom-in').disabled=false;}).catch(e=>fail($('#hero-viewer'),e));
- try{bench=await makeScene($('#bench-viewer'));$('#explode').disabled=false;setBench();}catch(e){fail($('#bench-viewer'),e);$('#explode').disabled=true;}
-}).catch(e=>{fail($('#hero-viewer'),e);fail($('#bench-viewer'),e);});
+async function loadViewer(host){
+ try{
+  const {makeScene}=await(sceneModule??=import('./scene.js?v=4'));
+  const isHero=host.id==='hero-viewer';
+  const scene=await makeScene(host,{hero:isHero});
+  if(isHero){hero=scene;$('#hero-zoom-out').disabled=false;$('#hero-zoom-in').disabled=false;}
+  else{bench=scene;$('#explode').disabled=false;setBench();}
+ }catch(error){fail(host,error);}
+}
+const pendingViewers=new Set([$('#hero-viewer'),$('#bench-viewer')]);
+const viewerObserver=new IntersectionObserver(entries=>{
+ for(const entry of entries){
+  if(!entry.isIntersecting||!pendingViewers.delete(entry.target))continue;
+  viewerObserver.unobserve(entry.target);
+  loadViewer(entry.target);
+ }
+},{rootMargin:'200px'});
+for(const host of pendingViewers)viewerObserver.observe(host);
 if(window.gsap&&window.ScrollTrigger){gsap.registerPlugin(ScrollTrigger);
  assemblySteps.forEach(step=>ScrollTrigger.create({trigger:step,start:()=>innerWidth<701?'top 82%':'top 65%',end:'bottom 30%',onEnter:syncChapter,onLeaveBack:syncChapter,onUpdate:syncChapter,onRefresh:syncChapter}));
  gsap.matchMedia().add('(prefers-reduced-motion: no-preference)',()=>{document.querySelectorAll('.idea-grid h2,.play-heading h2,.field-heading h2,.field-copy h2,.build-banner h2').forEach(el=>gsap.from(el,{y:25,opacity:.45,duration:.8,ease:'power2.out',scrollTrigger:{trigger:el,start:'top 90%',once:true}}));});

@@ -1,5 +1,13 @@
 # Project Handoff Guide
 
+## Git lock hygiene
+
+- For read-only inspection, use `git --no-optional-locks status` (or `GIT_OPTIONAL_LOCKS=0`) to avoid optional index writes.
+- Run Git operations that write the index or repository one at a time. Await completion; do not background them or overlap them with another agent or Git UI operation.
+- Never create `.git/*.lock` files manually. Git creates temporary locks during normal writes; do not disable its locking or delete an active lock.
+- If an operation is interrupted or reports a lock error, inspect the exact lock and check for an active Git operation/open file owner before removing it. Remove only a confirmed stale lock; if ownership is uncertain, leave it and report the blocker.
+- Before handing off after Git writes, confirm the command has exited and no stale lock from that operation remains. Do not delete `package-lock.json` to resolve a Git lock error.
+
 ## What this project is
 
 This is a static Vite site: an interactive isometric-room portfolio. It has **no backend, database, authentication, API routes, server functions, or environment variables**. Everything runs in the browser.
@@ -96,7 +104,7 @@ Chair and clock transforms use handles from `Application.findObjectById()`. The 
 
 ## Camera behavior: preserve this carefully
 
-The camera is an orthographic Spline camera. Its preset transforms are in `CAMERA_PRESETS`; `setCameraPreset()` interpolates position, quaternion, and zoom itself rather than invoking a Spline preset. Compact layouts apply `cameraZoomScale` to each preset zoom. `syncResponsiveCameraZoom()` fits the served room's base footprint (`OVERVIEW_FRAME_SIZE`, currently 840px including orbit margin) to the available space above the dock. A canvas `ResizeObserver` rescales current zoom and active animations without resetting the original rotation limits.
+The camera is an orthographic Spline camera. Its preset transforms are in `CAMERA_PRESETS`; `setCameraPreset()` interpolates position, quaternion, and zoom itself rather than invoking a Spline preset. All layouts apply `cameraZoomScale` to each preset zoom. `syncResponsiveCameraZoom()` fits the served room's base footprint (`OVERVIEW_FRAME_SIZE`, currently 840px including orbit margin) around the canvas center and above the dock, retaining safe-area edge spacing without reserving the full height of the side utility column. A canvas `ResizeObserver` rescales current zoom and active animations without resetting the original rotation limits.
 
 The current requested interaction rules are:
 
@@ -130,6 +138,8 @@ When changing preset zoom values, update `CAMERA_PRESETS`; `ZOOM_BOUNDS.max` is 
 
 ## Application features (`src/main.js`)
 
+Automatic day/night lighting updates at most once per 100ms. Manual fades and camera/object animations keep their full frame cadence; raw camera transitions explicitly request rendering independently of lighting. Hotspot label sizes are cached by `ResizeObserver`, and positions use transforms that refresh only when the camera, object, viewport, or label size changes. Open dialogs suspend marker projection; closing refreshes it.
+
 | Area | Functions | Behavior |
 | --- | --- | --- |
 | Lighting/theme | `setTheme`, `cycleTheme`, `setupLightingAndTheme`, `updateDayNightCycle` | Boots at Sunset; after readiness, blends Sunset → Night → Day → Sunset over ten minutes. Manual theme selection fades the current background and lighting into the selected phase over 1 second, then resumes the cycle; repeated clicks retarget from the visible colours. Zen fades to Night, holds it, and resumes from Night on exit. |
@@ -146,7 +156,7 @@ Plant/coffee progress lives only in memory. Their controllers reject extra activ
 
 ## Input and UI behavior
 
-- `pointermove` raycasts only when not dragging.
+- Hover raycasts use only the latest `pointermove` once per animation frame and never run while dragging. Release-position picking stays immediate. Overlapping DOM marker targets choose the nearest visible circle for pointer activation; keyboard activation and revealed labels retain their own targets.
 - A movement distance over 6 pixels sets `isDragging`, preventing a drag from firing the click action on release.
 - Active pointer IDs keep multi-touch gestures from activating hotspots until every pointer lifts. `pointercancel` and `lostpointercapture` clear tracking without activating a hotspot; the next primary tap works normally. Checks: `node --test tests/main.test.mjs`.
 - Only primary-button `pointerup` activates a hotspot; right click does not activate scene interactions, and the browser context menu is suppressed on the canvas.

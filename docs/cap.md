@@ -24,6 +24,10 @@ The workbench follows the scroll chapters: its title, description, and camera fo
 
 ## Verification
 
+Each 3D viewer initializes only when it comes within 200px of the viewport; both share one lazy model download. Visible viewers redraw for the existing face cadence, orbit controls, and GSAP transitions, while unchanged frames and off-screen viewers skip rendering. At viewport heights up to 500px the workbench scrolls normally instead of covering the chapter text; its height remains within the viewport and the view toggle stays 44px.
+
+`node --test tests/cap-performance.test.mjs` checks deferred initialization, the shared download, failure fallbacks, and redraw scheduling. The portfolio's main-controller tests also check responsive framing, resize during transitions, hover coalescing, and idle marker work.
+
 - Unit checks for threshold boundaries, hysteresis, debounce, signal timeout, sleep/wake timing, emulated distance endpoints, spring speed/bounce, immediate drag response, circular screen alignment, and upright normal/resting eye poses with unchanged alert expressions, and the firmware’s three staggered vector Zs with rise/fade timing and a reduced-motion freeze.
 - Local-file and page-anchor checks; JavaScript syntax checks.
 - Real GLB geometry projected through every inspection camera at mobile and desktop aspect ratios: no overlapping part bounds; the overview fits all parts and closeups fit every active component.

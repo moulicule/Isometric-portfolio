@@ -384,7 +384,7 @@ test('stationary hotspots do no layout reads or position writes, but follow came
   for (let frame = 0; frame < 60; frame++) c.updateHotspots();
   assert.equal(writes, 0);
   assert.equal(projections, 0);
-  run('HOTSPOTS[0].motion.rise = 0.5;'); c.updateHotspots();
+  run('HOTSPOTS[0].motion.rise = 0.5;'); c.updateHotspots(false);
   assert.equal(writes, 2, 'label reveal still updates between projections');
   run('threeCamera.position.x = 1;'); c.updateHotspots();
   assert.notEqual(pin.style.transform, initialPosition);
@@ -415,6 +415,47 @@ test('camera animations request every frame, including their final frame, indepe
   assert.equal(run('renders'), 2);
   assert.equal(run('threeCamera.zoom'), 2);
   assert.equal(run('currentCamAnim'), null);
+});
+
+test('chair camera transitions keep pins on the rendered room until Spline finalizes the next frame', () => {
+  const { context: c, run, element } = controller();
+  c.ResizeObserver = class { observe() {} };
+  c.gsap = { matchMedia: () => ({ add() {} }) };
+  run(`HOTSPOTS.length = 0; setupHotspots();
+    threeCamera = new THREE.OrthographicCamera(-5,5,5,-5,0.1,100); threeCamera.position.z = 10;
+    sceneViewport = { width: 500, height: 500 };
+    splineApp = { requestRender() {} };
+    lastTime = 0; updateDayNightCycle = updateClockHands = updateObjectInteractions = () => {};
+    objects.chair = new THREE.Object3D(); objects.computer = new THREE.Object3D();
+    objects.computer.position.set(1, 1, 0);
+    HOTSPOTS.push(...['chair', 'computer'].map(objKey => ({ objKey, offsetY: 0,
+      domElement: document.getElementById(objKey + '-pin'), worldMatrix: new THREE.Matrix4() })));
+    chairSwivel = { start() { return true; }, update() {} };
+    sound.playWhoosh = () => {};
+    originalActivateHotspot({ id: 'chair', cameraPreset: 'desk', action: spinChair });
+    currentCamAnim.targetPos.set(0, -2, 10); currentCamAnim.targetQuat.identity(); currentCamAnim.targetZoom = 1;
+    updateHotspots();`);
+  const pins = [element('chair-pin'), element('computer-pin')];
+  const initial = pins.map(pin => pin.style.transform);
+
+  c.animateLoop(300);
+  assert.deepEqual(pins.map(pin => pin.style.transform), initial,
+    'an unrendered camera pose must not move any pin');
+
+  // Spline applies its orbit controls before rendering, replacing the pending pose.
+  run('threeCamera.position.y = -0.5; threeCamera.updateMatrixWorld(true);');
+  element('canvas3d').listeners.rendered();
+  assert.deepEqual(pins.map(pin => pin.style.transform), [
+    'translate(250px, 225px) translate(-50%, -50%)',
+    'translate(300px, 175px) translate(-50%, -50%)'
+  ]);
+  const rendered = pins.map(pin => pin.style.transform);
+  c.animateLoop(1200);
+  assert.deepEqual(pins.map(pin => pin.style.transform), rendered,
+    'the final camera animation frame must also wait for the render');
+  run('threeCamera.position.y = -1; threeCamera.updateMatrixWorld(true);');
+  element('canvas3d').listeners.rendered();
+  assert.equal(pins[0].style.transform, 'translate(250px, 200px) translate(-50%, -50%)');
 });
 
 test('overlapping touch targets choose the nearest circle but preserve revealed-label activation', () => {

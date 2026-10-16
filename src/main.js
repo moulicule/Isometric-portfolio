@@ -537,6 +537,11 @@ function updateRoomEffects() {
 // Setup 3D Hotspot DOM Elements
 function setupHotspots() {
   hotspotContainer.innerHTML = '';
+  // Spline finalizes the camera through its controls immediately before rendering.
+  canvas.addEventListener('rendered', () => {
+    updateHotspots();
+    updateRoomEffects();
+  });
   const bubbleSpots = new Map();
   const bubbleObserver = new ResizeObserver(entries => {
     for (const entry of entries) {
@@ -660,7 +665,7 @@ function getPinHotspot(event, fallback) {
 }
 
 // Update Hotspot Screen Positions
-function updateHotspots() {
+function updateHotspots(projectPositions = true) {
   if (!threeCamera || !sceneViewport) return;
   if (!state.pinsVisible || activeModal) {
     hotspotsDirty = true;
@@ -668,6 +673,12 @@ function updateHotspots() {
       if (!spot.secondary || !spot.domElement) continue;
       spot.pinHovered = false;
       setHotspotRevealed(spot, false);
+    }
+    return;
+  }
+  if (!projectPositions) {
+    for (const spot of HOTSPOTS) {
+      if (spot.domElement) updateHotspotBubble(spot);
     }
     return;
   }
@@ -817,9 +828,8 @@ function animateLoop(now) {
   // Raw camera edits must still render between the slower atmosphere updates.
   if (cameraAnimating) splineApp?.requestRender();
   flushPointerHover();
-  // 4. Update 3D Hotspot Screen Coordinates
-  updateHotspots();
-  updateRoomEffects();
+  // Label reveals keep animating even when Spline has no new frame to render.
+  updateHotspots(false);
 }
 
 // Camera Preset Transition

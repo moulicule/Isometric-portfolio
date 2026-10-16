@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
+import { inject } from '@vercel/analytics';
 import { sound } from './audio.js';
 import { PORTFOLIO_DATA } from './data.js';
 import { waitForSceneReady } from './scene-ready.js';
@@ -1578,3 +1579,6 @@ function setupEventListeners() {
 
 // Start application
 initPage();
+
+// Initialize Vercel Analytics
+inject();

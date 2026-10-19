@@ -1371,6 +1371,11 @@ function renderContent() {
           <h3 class="skill-category-title" id="contactHeading">Let's connect</h3>
           <p class="contact-description">For projects, collaborations, or a hello.</p>
           <div class="profile-socials">
+            <a href="${dev.resume}" target="_blank" rel="noopener noreferrer" class="social-pill" aria-label="Resume (PDF, opens in a new tab)">
+              <svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6M8 13h8M8 17h6"/></svg>
+              <span>Resume</span>
+              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#arrow-up-right"/></svg>
+            </a>
             <a href="mailto:${dev.email}" class="social-pill contact-email-link">
               <svg class="social-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
               <span>Email</span>

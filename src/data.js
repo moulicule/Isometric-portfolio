@@ -4,11 +4,12 @@ export const PORTFOLIO_DATA = {
   developer: {
     name: "Moulik Nanda",
     title: "Multidisciplinary Designer, M.A. Experience Design @Srishti Manipal Institute of Art, Design and Technology",
-    bio: "I am a multidisciplinary designer driven by tinkering, iterating, and making. With hands-on experience spanning design research, UI/UX, design systems, web, 3D/CAD, motion graphics, and film, I stay medium-agnostic, caring far more about solving the right problem than the tools it takes to get there.",
+    bio: "I am a multidisciplinary designer driven by storytelling, tinkering and itering. I have hands on experience in design research, UI/UX, design systems, web, 3D/CAD, motion graphics and film. I remain fluid in mediums, and care far more about solving the right problem, rather than the tools it takes to get there.",
     photo: "/images/moulik-nanda.jpg",
     photoAlt: "Moulik Nanda sitting cross-legged with two laptops",
     location: "Bangalore, India",
     email: "mouliknanda@gmail.com",
+    resume: "/documents/moulik-nanda-design-cv.pdf",
     socials: [
       { label: "LinkedIn", url: "https://www.linkedin.com/in/moulik-nanda-868469205/", icon: "linkedin" }
     ]
@@ -35,7 +36,7 @@ export const PORTFOLIO_DATA = {
       category: "UI design for EdTech",
       description: "For a two-month summer internship at Unacademy, I turned educator-written scripts into lesson screens for Airlearn, a language learning app. I adapted company Figma templates and mid journey images to create lessons across several languages. My daily workflow covered 7–10 lessons, Midjourney visuals, and working on feedback from senior designers and educators.",
       image: "/projects/airlearn/assets/cover.svg",
-      imageAlt: "Airlearn internship: Finnish and Korean lesson screens with Midjourney visual aids",
+      imageAlt: "Airlearn internship: sky-blue case study with the waving mascot and Finnish and Korean lesson screens",
       tags: ["UI Design", "Figma", "Language Learning", "Midjourney", "Template Adaptation"],
       links: [
         { label: "Explore case study", url: "/projects/airlearn/index.html" },

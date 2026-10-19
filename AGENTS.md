@@ -3,6 +3,8 @@
 ## Git lock hygiene
 
 - For read-only inspection, use `git --no-optional-locks status` (or `GIT_OPTIONAL_LOCKS=0`) to avoid optional index writes.
+- Apply `GIT_OPTIONAL_LOCKS=0` to every agent-run Git inspection command, including commands inside scripts. This suppresses optional writes only; required Git locks must remain enabled.
+- This workspace's sandbox can make `.git` read-only. Request the required elevated access before starting Git writes (`add`, `commit`, `reset`, `checkout`, etc.); do not first attempt them in the restricted sandbox. After a permission failure, check for a leftover lock before retrying.
 - Run Git operations that write the index or repository one at a time. Await completion; do not background them or overlap them with another agent or Git UI operation.
 - Never create `.git/*.lock` files manually. Git creates temporary locks during normal writes; do not disable its locking or delete an active lock.
 - If an operation is interrupted or reports a lock error, inspect the exact lock and check for an active Git operation/open file owner before removing it. Remove only a confirmed stale lock; if ownership is uncertain, leave it and report the blocker.

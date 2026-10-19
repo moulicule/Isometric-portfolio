@@ -1,4 +1,4 @@
-# 🏠 Interactive Isometric Atelier | 3D Project Webpage
+# 🏠 Moulik's room
 
 An interactive, real-time 3D isometric room portfolio webpage powered by **Spline 3D** (`@splinetool/runtime`), **Three.js**, and modern web standards. The served scene is `public/scene.splinecode`. The Projects dialog features CAP, with its interactive case study and build journal, and Designing Dignity, a prosthetics and orthotics service and product design project.
 

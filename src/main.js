@@ -742,6 +742,8 @@ function updateHotspots(projectPositions = true) {
       const bubbleY = Math.max(8 + height / 2, y - lift);
       spot.domElement.style.setProperty('--pin-lift', `${y - bubbleY}px`);
       spot.bubbleX = THREE.MathUtils.clamp(x, width / 2 + 8, rect.width - width / 2 - 8) - x;
+      const pointerX = THREE.MathUtils.clamp(width / 2 - spot.bubbleX, 12, Math.max(12, width - 12));
+      spot.domElement.style.setProperty('--pin-pointer-x', `${pointerX}px`);
       spot.bubbleY = bubbleY - y;
       spot.bubbleRise = null;
     }

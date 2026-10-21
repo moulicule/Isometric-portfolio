@@ -9,7 +9,7 @@ import * as motion from '../src/scene-motion.js';
 // Run the real controller without importing the renderer or booting the page.
 const source = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8')
   .replace(/^import .*;\n/gm, '')
-  .replace(/\ninitPage\(\);\s*$/, '');
+  .replace(/^initPage\(\);|^inject\(\);/gm, '');
 
 function controller({ menus = false } = {}) {
   const elements = new Map(), activations = [], picks = [], sounds = [], toasts = [], warnings = [];
@@ -401,6 +401,38 @@ test('stationary hotspots do no layout reads or position writes, but follow came
   assert.equal(projections, 0);
   run('activeModal = null;'); c.updateHotspots();
   assert.ok(projections > 0, 'closing the dialog refreshes positions');
+});
+
+test('hotspot pointers follow their object when labels shift at viewport edges', () => {
+  const { context: c, run, element } = controller();
+  const pin = element('pin');
+  const properties = {};
+  pin.matches = () => false;
+  pin.style.setProperty = (name, value) => { properties[name] = value; };
+  c.pin = pin;
+  run(`threeCamera = new THREE.OrthographicCamera(-5,5,5,-5,0.1,100); threeCamera.position.z = 10;
+    sceneViewport = { width: 500, height: 500 };
+    objects.computer = new THREE.Object3D();
+    HOTSPOTS.splice(0, HOTSPOTS.length, { objKey: 'computer', domElement: pin,
+      secondary: true, worldMatrix: new THREE.Matrix4(), layoutDirty: true, bounds: [], offsetY: 0, revealOffsetY: 0,
+      bubbleSize: { width: 100, height: 44 }, motion: { rise: 1 },
+      revealTimeline: { play() {}, reverse() {} }, setBubbleX() {}, setBubbleY() {} });`);
+  for (const [screenX, expectedPointer] of [[250, 50], [30, 22], [470, 78], [5, 12], [495, 88]]) {
+    run(`objects.computer.position.x = ${(screenX - 250) / 50};`);
+    c.updateHotspots();
+    assert.ok(Math.abs(parseFloat(properties['--pin-pointer-x']) - expectedPointer) < 1e-8);
+    const spot = run('HOTSPOTS[0]');
+    if (screenX >= 20 && screenX <= 480) {
+      const tipX = spot.screenX + spot.bubbleX - spot.bubbleSize.width / 2 + expectedPointer;
+      assert.ok(Math.abs(tipX - screenX) < 1e-8, 'pointer stays aligned with the object');
+    }
+  }
+  run('objects.computer.position.x = 4.4; HOTSPOTS[0].bubbleSize.width = 200; HOTSPOTS[0].layoutDirty = true;');
+  c.updateHotspots();
+  assert.ok(Math.abs(parseFloat(properties['--pin-pointer-x']) - 178) < 1e-8, 'label resizing updates pointer');
+  run('sceneViewport.width = 1000; hotspotsDirty = true;');
+  c.updateHotspots();
+  assert.ok(Math.abs(parseFloat(properties['--pin-pointer-x']) - 148) < 1e-8, 'viewport resizing updates pointer');
 });
 
 test('camera animations request every frame, including their final frame, independently of lighting', () => {

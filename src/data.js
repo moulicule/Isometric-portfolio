@@ -3,7 +3,7 @@
 export const PORTFOLIO_DATA = {
   developer: {
     name: "Moulik Nanda",
-    title: "Multidisciplinary Designer, M.A. Experience Design @Srishti Manipal Institute of Art, Design and Technology",
+    title: "M.A. Experience Design @Srishti Manipal Institute of Art, Design and Technology",
     bio: "I am a multidisciplinary designer driven by storytelling, tinkering and iterating. I have hands on experience in design research, UI/UX, design systems, web, 3D/CAD, motion graphics and film. I remain fluid in mediums, and care far more about solving the right problem, rather than the tools it takes to get there.",
     photo: "/images/moulik-nanda.jpg",
     photoAlt: "Moulik Nanda sitting cross-legged with two laptops",

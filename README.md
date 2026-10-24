@@ -61,6 +61,12 @@ npm run build
 npm run preview
 ```
 
+### Social link previews
+
+The homepage includes static Open Graph and Twitter card metadata in `index.html`, with a 1920 × 1080 JPEG at `public/images/social-preview.jpg`. The canonical and image URLs use `https://mouliks.studio/`; update them if the public domain changes. The preview uses the supplied portfolio artwork, so sharing crawlers can fetch it without running the 3D scene.
+
+Rebuild and deploy to publish changes. After deployment, use [LinkedIn Post Inspector](https://www.linkedin.com/post-inspector/) or [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/) to refresh a previously cached preview. These tags apply to the homepage; case-study pages have separate HTML.
+
 ### CAP case study
 
 The Projects dialog links to CAP at `/projects/cap/index.html` and its build journal. All of CAP’s editable pages, scripts, styles, vendor libraries, and assets live in the real `public/projects/cap/` folder inside this repository. No external folder or separate CAP server is required.

@@ -10,8 +10,9 @@ export async function loadDeskController(app, room) {
   const width = 22.740570944319305;
   const screen = room.getObjectByName('Computer');
   const direction = screen ? new Box3().setFromObject(screen).getCenter(new Vector3()).sub(center) : new Vector3(0, 0, -1);
-  // The shoulder buttons face -Z; offset 10° clockwise from the monitor.
-  const angle = Math.atan2(-direction.x, -direction.z) - Math.PI / 18;
+  // The shoulder buttons face -Z; offset 20° clockwise from the monitor.
+  const angle = Math.atan2(-direction.x, -direction.z) - Math.PI / 9;
+  center.addScaledVector(direction.clone().setY(0).normalize(), 8);
   const { scene } = await new GLTFLoader().loadAsync('/models/controller.glb');
   scene.updateMatrixWorld(true);
   const bounds = new Box3().setFromObject(scene);

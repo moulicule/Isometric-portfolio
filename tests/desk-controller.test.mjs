@@ -13,10 +13,11 @@ test('the supplied controller loads on the desk surface with its materials', asy
     return model;
   });
   const room = new Group();
-  const x = -40.258056090413426, z = 35.73154673771854;
+  const originalX = -40.258056090413426, z = 35.73154673771854;
+  const x = originalX - 8;
   const screen = new Mesh(new BoxGeometry(30, 20, 5));
   screen.name = 'Computer';
-  screen.position.set(x - 100, 60, z);
+  screen.position.set(originalX - 100, 60, z);
   room.add(screen);
   const bounds = new Box3();
   let parts = 0;
@@ -41,7 +42,7 @@ test('the supplied controller loads on the desk surface with its materials', asy
       geometry.translate(parent.position.x, parent.position.y, parent.position.z);
       // Undo the decorative clockwise offset to check the desk placement.
       geometry.translate(-x, 0, -z);
-      geometry.rotateY(Math.PI / 18);
+      geometry.rotateY(Math.PI / 9);
       geometry.translate(x, 0, z);
       geometry.computeBoundingBox();
       bounds.union(geometry.boundingBox);

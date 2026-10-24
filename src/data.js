@@ -78,9 +78,9 @@ export const PORTFOLIO_DATA = {
       title: "Timescape",
       badge: "Interactive Exhibition",
       category: "Generative Art Installation",
-      description: "An experiment in making time something you can play with. Timescape uses webcam hand tracking to rotate, zoom, and twist a projected tesseract. Holding a fist captures trails of colour as a generative artwork to keep. Shown at BIC alongside two teammates’ interpretations, it invited visitors to shape the visuals with their hands. This collage brings together the first 100 artworks visitors made at the exhibition.",
-      image: "/projects/timescape/cover.webp",
-      imageAlt: "A collage of the first 100 visitor-made Timescape artworks: blue and purple tesseract trails against black",
+      description: "An experiment in making time something you can play with. Timescape uses webcam hand tracking to rotate, zoom, and twist a projected tesseract. Holding a fist captures trails of colour as a generative artwork to keep. Shown at Bangalore International Centre (BIC) alongside two teammates’ interpretations, it invited visitors to shape the visuals with their hands.",
+      image: "/projects/timescape/exhibition.jpg",
+      imageAlt: "A visitor raises both hands to interact with Timescape’s colourful generative visuals on a large exhibition screen",
       tags: ["Creative Coding", "p5.js", "Hand Tracking", "Generative Art"],
       links: [
         { label: "Try Timescape", url: "https://moulicule.github.io/timescape-Moulik/" },

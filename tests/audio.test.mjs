@@ -76,28 +76,10 @@ test('mute suppresses every sound effect and unmute restores effects', t => {
   engine.playPop();
   engine.playWhoosh();
   engine.playWaterPour();
-  engine.playCoffeeSip();
-  engine.playCoffeePour();
   assert.equal(engine.ctx, null, 'muted effects must not create audio sources');
   assert.equal(engine.toggleMute(), false);
   engine.playPop();
   assert.equal(engine.ctx.notes, 1);
-});
-
-test('coffee sip and refill are finite local sounds and leave lofi gain alone', t => {
-  const { engine, timers } = audio(t);
-  engine.toggleAmbient(true);
-  const fade = structuredClone(engine.ambientGain.gain.events);
-  engine.playCoffeeSip();
-  assert.equal(engine.ctx.sources.length, 1);
-  assert.equal(engine.ctx.sources[0].stoppedAt, 0.4);
-  engine.ctx.currentTime = 2;
-  engine.playCoffeePour();
-  assert.equal(engine.ctx.sources.length, 2);
-  assert.equal(engine.ctx.sources[1].stoppedAt, 2.85);
-  assert.equal(engine.ctx.notes, 9, 'each coffee sound adds two ceramic harmonics');
-  assert.deepEqual(engine.ambientGain.gain.events, fade);
-  assert.equal(timers.size, 1);
 });
 
 test('watering is a short, softly fading trickle without musical notes or lofi changes', t => {

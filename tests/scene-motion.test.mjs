@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Object3D, Quaternion, Vector3 } from 'three';
-import { createChairSwivel, createWallClock, createPlantInteraction, createCoffeeInteraction } from '../src/scene-motion.js';
+import { createChairSwivel, createWallClock, createPlantInteraction } from '../src/scene-motion.js';
 
 const near = (actual, expected) => assert.ok(Math.abs(actual - expected) < 1e-9, `${actual} != ${expected}`);
 const localTime = (hours, minutes = 0, seconds = 0) => new Date(2026, 9, 13, hours, minutes, seconds);
@@ -196,96 +196,10 @@ test('foliage perks around its base without moving the pot or accumulating trans
   assert.deepEqual(pot.toJSON(), potTransform);
 });
 
-function coffeeFixture() {
-  const mug = new Object3D(), liquid = new Object3D();
-  mug.position.set(12, 20, 31);
-  mug.rotation.set(0.1, 0.2, 0.3);
-  const initial = { position: mug.position.clone(), rotation: mug.rotation.toArray() };
-  return { mug, liquid, initial, coffee: createCoffeeInteraction(mug, liquid, { top: 10, bottom: 2, lift: 15 }) };
-}
-
-test('the mug tips toward the chair direction rather than a fixed screen-facing axis', () => {
-  for (const direction of [new Vector3(1, 0, 0), new Vector3(0, 0, 1), new Vector3(0.6, 0, -0.8)]) {
-    const mug = new Object3D();
-    const coffee = createCoffeeInteraction(mug, null, { tiltDirection: direction });
-    coffee.drink(0);
-    coffee.update(600);
-    const rim = new Vector3(0, 1, 0).applyQuaternion(mug.quaternion);
-    near(rim.y, Math.cos(Math.PI / 12));
-    rim.y = 0;
-    near(rim.dot(direction), Math.sin(Math.PI / 12));
-    near(rim.clone().cross(direction).length(), 0);
-    coffee.update(1200);
-    assert.deepEqual(mug.rotation.toArray(), [0, 0, 0, 'XYZ']);
-  }
-});
-
-test('four coffee sips lower the liquid, empty it, and refill without drinking again', () => {
-  const { coffee, mug, liquid, initial } = coffeeFixture();
-  assert.equal(liquid.position.y, 10);
-  for (let i = 0; i < 4; i++) {
-    const at = i * 2000;
-    assert.equal(coffee.drink(at), 'sip');
-    assert.equal(coffee.sips, 3 - i);
-    assert.equal(coffee.drink(at + 100), null);
-    coffee.update(at + 600);
-    assert.ok(mug.position.y > initial.position.y);
-    coffee.update(at + 1200);
-    assert.equal(liquid.position.y, 2 + (3 - i) * 2);
-    assert.equal(liquid.visible, i < 3);
-    assert.deepEqual(mug.position, initial.position);
-    assert.deepEqual(mug.rotation.toArray(), initial.rotation);
-  }
-  assert.equal(coffee.drink(8000), 'refill');
-  assert.equal(coffee.sips, 4);
-  coffee.update(8500);
-  assert.ok(liquid.position.y > 2 && liquid.position.y < 10);
-  assert.equal(liquid.visible, true);
-  assert.deepEqual(mug.position, initial.position, 'refilling does not lift the mug');
-  coffee.update(9000);
-  assert.equal(liquid.position.y, 10);
-  assert.equal(coffee.busy, false);
-  assert.equal(coffee.drink(9001), 'sip');
-  assert.equal(coffee.sips, 3);
-});
-
-test('hidden tabs and reduced motion settle interactions and preserve accepted progress', () => {
-  for (const options of [{ visible: false }, { reduced: true }]) {
-    const { coffee, mug, liquid, initial } = coffeeFixture();
-    const plant = createPlantInteraction([], new Vector3());
-    plant.water(0);
-    coffee.drink(0);
-    coffee.update(400);
-    coffee.update(500, options);
-    plant.update(500, options);
-    assert.equal(coffee.busy, false);
-    assert.equal(plant.busy, false);
-    assert.equal(coffee.sips, 3);
-    assert.equal(plant.hydration, 75);
-    assert.equal(liquid.position.y, 8);
-    assert.deepEqual(mug.position, initial.position);
-    assert.deepEqual(mug.rotation.toArray(), initial.rotation);
-  }
-  const { coffee, mug, initial } = coffeeFixture();
-  coffee.drink(0, { reduced: true });
-  assert.equal(coffee.busy, false);
-  assert.deepEqual(mug.position, initial.position);
-  coffee.drink(1);
-  coffee.update(999999);
-  assert.equal(coffee.busy, false);
-  assert.deepEqual(mug.rotation.toArray(), initial.rotation);
-});
-
-test('missing optional meshes remain usable and plant and coffee locks are independent', () => {
-  const coffee = createCoffeeInteraction(null, null);
+test('plant tolerates missing optional meshes', () => {
   const plant = createPlantInteraction([undefined], new Vector3());
   assert.equal(plant.water(0), 'water');
-  assert.equal(coffee.drink(0), 'sip');
   assert.equal(plant.busy, true);
-  assert.equal(coffee.busy, true);
   plant.update(1200);
   assert.equal(plant.busy, false);
-  assert.equal(coffee.busy, true);
-  coffee.update(1200);
-  assert.equal(coffee.sips, 3);
 });

@@ -161,58 +161,6 @@ class SoundEngine {
     source.stop(t + duration);
   }
 
-  playCoffeeSip() {
-    this.playCoffeeSound(false);
-  }
-
-  playCoffeePour() {
-    this.playCoffeeSound(true);
-  }
-
-  playCoffeeSound(pouring) {
-    if (this.isMuted) return;
-    this.init();
-    const t = this.ctx.currentTime;
-    const duration = pouring ? 0.85 : 0.4;
-    const buffer = this.ctx.createBuffer(1, Math.ceil(this.ctx.sampleRate * duration), this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++) {
-      const ripple = Math.sin(i / this.ctx.sampleRate * (pouring ? 85 : 45));
-      data[i] = (Math.random() * 2 - 1) * (0.3 + 0.7 * ripple * ripple);
-    }
-    const noise = this.ctx.createBufferSource();
-    const filter = this.ctx.createBiquadFilter();
-    const gain = this.ctx.createGain();
-    filter.type = 'bandpass';
-    filter.Q.setValueAtTime(1.5, t);
-    filter.frequency.setValueAtTime(pouring ? 1100 : 1700, t);
-    filter.frequency.exponentialRampToValueAtTime(pouring ? 650 : 800, t + duration);
-    gain.gain.setValueAtTime(0.001, t);
-    gain.gain.linearRampToValueAtTime(pouring ? 0.11 : 0.07, t + 0.08);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
-    noise.buffer = buffer;
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
-    noise.start(t);
-    noise.stop(t + duration);
-
-    // A quiet ceramic clink as the mug comes back to rest.
-    [2400, 3900].forEach(frequency => {
-      const osc = this.ctx.createOscillator();
-      const clink = this.ctx.createGain();
-      const at = t + (pouring ? 0.88 : 1.05);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(frequency, at);
-      clink.gain.setValueAtTime(0.025, at);
-      clink.gain.exponentialRampToValueAtTime(0.001, at + 0.12);
-      osc.connect(clink);
-      clink.connect(this.ctx.destination);
-      osc.start(at);
-      osc.stop(at + 0.14);
-    });
-  }
-
   // Procedural cozy Lofi chords
   toggleAmbient(enable = null) {
     this.init();

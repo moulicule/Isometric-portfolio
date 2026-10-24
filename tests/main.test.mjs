@@ -5,6 +5,7 @@ import { createContext, runInContext } from 'node:vm';
 import * as THREE from 'three';
 import * as cycle from '../src/day-night-cycle.js';
 import * as motion from '../src/scene-motion.js';
+import { PORTFOLIO_DATA } from '../src/data.js';
 
 // Run the real controller without importing the renderer or booting the page.
 const source = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8')
@@ -38,10 +39,10 @@ function controller({ menus = false } = {}) {
     return elements.get(id);
   };
   const context = createContext({
-    THREE, ...cycle, ...motion, activations, picks, toasts,
+    THREE, PORTFOLIO_DATA, ...cycle, ...motion, activations, picks, toasts,
     performance: { now: () => now }, requestAnimationFrame() {},
     sound: { toggleAmbient() {}, playPop: () => sounds.push('pop'),
-      playWaterPour: () => sounds.push('water'), playCoffeeSip: () => sounds.push('sip'), playCoffeePour: () => sounds.push('pour') },
+      playWaterPour: () => sounds.push('water') },
     console: { warn: message => warnings.push(message) },
     window: { matchMedia: () => ({ matches: false, addEventListener() {} }), addEventListener() {} },
     document: {
@@ -101,57 +102,38 @@ test('all dock menus dismiss on a second Safari tap and outside click, while ret
   }
 });
 
-test('object pins and Water Plant menu share progress, busy guards, and contextual names', () => {
-  const { context: c, run, advance, element, sounds, toasts, picks } = controller();
+test('plant pin and Water Plant menu share progress and busy guards', () => {
+  const { context: c, run, advance, element, sounds, toasts } = controller();
   run(`
     plantInteraction = createPlantInteraction([], new THREE.Vector3());
-    coffeeInteraction = createCoffeeInteraction(null, null);
-    for (const id of ['plant', 'coffee']) HOTSPOTS.find(spot => spot.id === id).domElement = document.getElementById('hotspot-' + id);
+    HOTSPOTS.find(spot => spot.id === 'plant').domElement = document.getElementById('hotspot-plant');
     setupModalSectionMotion = () => {};
     setupEventListeners();
     updateObjectInteractions(0);
-    setCameraPreset = (preset, options) => { picks.push({ preset, options }); state.cameraPreset = preset; };
     originalActivateHotspot(HOTSPOTS.find(spot => spot.id === 'plant'));
-    originalActivateHotspot(HOTSPOTS.find(spot => spot.id === 'coffee'));
   `);
-  assert.deepEqual(sounds, ['water', 'sip'], 'object-specific sounds replace the generic activation pop');
-  assert.equal(picks.length, 1);
-  assert.equal(picks[0].preset, 'desk');
-  assert.equal(picks[0].options.audible, false);
+  assert.deepEqual(sounds, ['water']);
   assert.equal(element('hotspot-plant').attributes['aria-label'], 'House Plant: 75% hydrated · Water plant');
-  assert.equal(element('hotspot-coffee').attributes['aria-disabled'], 'true');
+  assert.equal(element('hotspot-plant').attributes['aria-disabled'], 'true');
   element('waterPlantBtn').listeners.click();
-  run("originalActivateHotspot(HOTSPOTS.find(spot => spot.id === 'coffee'))");
-  assert.equal(toasts.length, 2, 'busy inputs do not add notifications or progress');
-  assert.equal(picks.length, 1, 'busy input does not restart the camera transition');
+  assert.equal(toasts.length, 1);
   advance(1200);
   c.updateObjectInteractions(1200);
-  assert.equal(element('hotspot-coffee').attributes['aria-disabled'], 'false');
+  assert.equal(element('hotspot-plant').attributes['aria-disabled'], 'false');
   element('waterPlantBtn').listeners.click();
   assert.equal(run('plantInteraction.hydration'), 100);
   assert.match(element('waterPlantBtn').attributes['aria-label'], /100% hydrated/);
-  for (let i = 1; i <= 3; i++) {
-    advance(1200 + i * 1200);
-    c.drinkCoffee();
-  }
-  assert.match(element('hotspot-coffee').attributes['aria-label'], /Empty · Refill coffee/);
-  advance(6000);
-  c.drinkCoffee();
-  assert.equal(run('coffeeInteraction.sips'), 4);
-  assert.equal(sounds.at(-1), 'pour');
 });
 
-test('visibility and reduced-motion changes settle the real interaction integration', () => {
+test('visibility and reduced-motion changes settle plant interaction', () => {
   const { context: c, run, advance } = controller();
   run(`
     plantInteraction = createPlantInteraction([], new THREE.Vector3());
-    coffeeInteraction = createCoffeeInteraction(null, null);
-    state.cameraPreset = 'desk';
-    waterPlant(); drinkCoffee();
+    waterPlant();
     document.hidden = true;
   `);
   c.updateObjectInteractions(1000);
-  assert.equal(run('coffeeInteraction.busy || plantInteraction.busy'), false);
+  assert.equal(run('plantInteraction.busy'), false);
   run('document.hidden = false');
   c.updateObjectInteractions(600000);
   assert.equal(run('plantInteraction.hydration'), 75);
@@ -159,59 +141,9 @@ test('visibility and reduced-motion changes settle the real interaction integrat
   assert.equal(run('plantInteraction.hydration'), 74);
   run('interactionMotionMedia.matches = true');
   advance(606000);
-  c.drinkCoffee();
-  assert.equal(run('coffeeInteraction.sips'), 2);
-  assert.equal(run('coffeeInteraction.busy'), false);
-});
-
-test('optional liquid creation failure preserves working coffee and room interaction setup', async () => {
-  const { context: c, run, warnings, sounds } = controller();
-  await run(`
-    objects.coffee = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.BoxGeometry(10, 12, 10));
-    body.name = 'Cylinder 11';
-    objects.coffee.add(body);
-    splineApp = {
-      findObjectById: id => objects.coffee.getObjectByProperty('uuid', id),
-      createObject: async () => { throw new Error('Optional geometry unavailable'); }
-    };
-    setupObjectInteractions();
-  `);
-  assert.equal(warnings.length, 1);
-  c.drinkCoffee();
-  assert.equal(run('coffeeInteraction.sips'), 3);
-  assert.deepEqual(sounds, ['sip']);
-  assert.equal(run('roomEffects.element.attributes["aria-hidden"]'), 'true');
-});
-
-test('coffee setup aims at the chair seat in the mug parent coordinates', async () => {
-  const { run } = controller();
-  await run(`
-    const room = new THREE.Group();
-    room.position.set(80, -20, 50);
-    room.rotation.y = 0.7;
-    room.scale.set(0.8, 1.2, 1.3);
-    objects.coffee = new THREE.Group();
-    objects.coffee.position.set(-10, 8, -5);
-    objects.chair = new THREE.Group();
-    objects.chair.position.set(20, 3, 30);
-    const seat = new THREE.Object3D();
-    seat.name = 'Cube 50';
-    seat.position.set(4, 7, -3);
-    objects.chair.add(seat);
-    room.add(objects.coffee, objects.chair);
-    splineApp = { findObjectById: id => room.getObjectByProperty('uuid', id) };
-    const coffeeFactory = createCoffeeInteraction;
-    let chairDirection;
-    createCoffeeInteraction = (mug, liquid, options) => {
-      chairDirection = options.tiltDirection;
-      return coffeeFactory(mug, liquid, options);
-    };
-    setupObjectInteractions();
-  `);
-  assert.ok(Math.abs(run('chairDirection.x') - 34) < 1e-9);
-  assert.ok(Math.abs(run('chairDirection.z') - 32) < 1e-9);
-  assert.equal(run('chairDirection.y'), 0);
+  c.waterPlant();
+  assert.equal(run('plantInteraction.hydration'), 99);
+  assert.equal(run('plantInteraction.busy'), false);
 });
 
 test('a primary tap picks at release, while a drag, right click, or orphan release does not activate', () => {
@@ -495,7 +427,7 @@ test('repeated chair activations spin without restarting the active Desk camera'
   run(`let spins = 0;
     chairSwivel = { start() { spins++; return true; } };
     sound.playWhoosh = () => {};
-    setCameraPreset = preset => { picks.push(preset); state.cameraPreset = preset; };
+    setCameraPreset = preset => { picks.push(preset); state.cameraPreset = preset; currentCamAnim = {}; };
     const chair = HOTSPOTS.find(spot => spot.id === 'chair');
     originalActivateHotspot(chair);
     originalActivateHotspot(chair);
@@ -506,6 +438,36 @@ test('repeated chair activations spin without restarting the active Desk camera'
   assert.deepEqual(picks, ['desk', 'desk'], 'returning from another view still focuses the desk');
 });
 
+test('desk object taps refocus after a completed transition and manual camera movement', () => {
+  for (const id of ['projects', 'chair', 'about', 'funProjects']) {
+    const { run } = controller();
+    run(`
+      threeCamera = new THREE.OrthographicCamera();
+      const spot = { ...HOTSPOTS.find(spot => spot.id === '${id}'), action: () => true };
+      originalActivateHotspot(spot);
+      const firstTransition = currentCamAnim;
+      originalActivateHotspot(spot);
+    `);
+    assert.equal(run('currentCamAnim === firstTransition'), true, `${id}: active transition is retained`);
+    run(`
+      threeCamera.position.copy(currentCamAnim.targetPos);
+      threeCamera.quaternion.copy(currentCamAnim.targetQuat);
+      threeCamera.zoom = currentCamAnim.targetZoom;
+      currentCamAnim = null;
+      threeCamera.position.x += 20;
+      threeCamera.zoom *= 0.8;
+      const movedPosition = threeCamera.position.clone();
+      const movedZoom = threeCamera.zoom;
+      originalActivateHotspot(spot);
+    `);
+    assert.equal(run('state.cameraPreset'), 'desk');
+    assert.equal(run('currentCamAnim.startPos.equals(movedPosition)'), true, `${id}: refocus starts from the moved camera`);
+    assert.equal(run('currentCamAnim.startZoom === movedZoom'), true);
+    assert.equal(run('currentCamAnim.targetPos.equals(CAMERA_PRESETS.desk.pos)'), true);
+    assert.equal(run('currentCamAnim.targetZoom === CAMERA_PRESETS.desk.zoom * cameraZoomScale'), true);
+  }
+});
+
 test('overlapping touch targets choose the nearest circle but preserve revealed-label activation', () => {
   const { context: c, run, element } = controller();
   c.firstPin = element('first-pin');
@@ -513,12 +475,47 @@ test('overlapping touch targets choose the nearest circle but preserve revealed-
   run(`sceneViewport = { left: 10, top: 20 };
     HOTSPOTS.splice(0, HOTSPOTS.length,
       { id: 'projects', screenX: 100, screenY: 100, domElement: firstPin },
-      { id: 'coffee', screenX: 116, screenY: 101, domElement: lastPin });`);
+      { id: 'about', screenX: 116, screenY: 101, domElement: lastPin });`);
   const topmost = run('HOTSPOTS[1]');
   const center = { clientX: 110, clientY: 120, target: { closest: () => null } };
   assert.equal(c.getPinHotspot(center, topmost).id, 'projects');
-  assert.equal(c.getPinHotspot({ ...center, clientX: 126 }, topmost).id, 'coffee');
-  assert.equal(c.getPinHotspot({ ...center, target: { closest: () => ({}) } }, topmost).id, 'coffee');
+  assert.equal(c.getPinHotspot({ ...center, clientX: 126 }, topmost).id, 'about');
+  assert.equal(c.getPinHotspot({ ...center, target: { closest: () => ({}) } }, topmost).id, 'about');
   c.firstPin.hidden = true;
-  assert.equal(c.getPinHotspot(center, topmost).id, 'coffee');
+  assert.equal(c.getPinHotspot(center, topmost).id, 'about');
+});
+
+test('controller parts resolve to the Creative Playground pin and open its dialog', () => {
+  const { run } = controller();
+  run(`
+    threeScene = new THREE.Group();
+    objects.controller = new THREE.Group();
+    objects.controller.name = 'Gaming Controller';
+    const controllerPart = new THREE.Mesh(new THREE.BoxGeometry());
+    objects.controller.add(controllerPart);
+    threeScene.add(objects.controller);
+    const trigger = { id: 'hotspot-funProjects' };
+    let openedDialog;
+    openModal = (name, opener) => { openedDialog = { name, opener }; };
+    setCameraPreset = () => {};
+    const controllerSpot = findInteractiveParent(controllerPart);
+    originalActivateHotspot(controllerSpot, trigger);
+  `);
+  assert.equal(run('controllerSpot.label'), 'Creative Playground');
+  assert.equal(run('controllerSpot.secondary'), true);
+  assert.equal(run('openedDialog.name'), 'funProjects');
+  assert.equal(run('openedDialog.opener === trigger'), true);
+});
+
+test('creative projects render in Creative Playground with their links', () => {
+  const { context: c, element } = controller();
+  c.renderContent();
+  const funProjects = element('funProjectsGrid').innerHTML;
+  assert.match(funProjects, /Timescape/);
+  assert.match(funProjects, /Film, Motion & Video Editing/);
+  assert.match(funProjects, /Video portfolio/);
+  assert.match(funProjects, /Watch Sunbird in the Garden/);
+  assert.match(funProjects, /href="https:\/\/github.com\/moulicule\/timescape-Moulik"/);
+  assert.doesNotMatch(funProjects, /exhibition-notes\.pdf/);
+  assert.doesNotMatch(element('projectsGrid').innerHTML, /Timescape|Film, Motion & Video Editing/);
 });

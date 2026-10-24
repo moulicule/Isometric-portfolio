@@ -14,7 +14,7 @@ An interactive, real-time 3D isometric room portfolio webpage powered by **Splin
 - **🌱 House Plant**: Water the plant to send droplets into its pot and watch its foliage perk up. Hydration starts at 50%, rises 25 points per watering, and drops 10 points per visible minute; hidden tabs pause thirst.
 - **🛏️ Cozy Bed**: Click the bed to enter **Zen Mode**—dimming room lights, launching soothing ambient lofi soundscapes, and displaying a live digital focus clock.
 - **🌤️ Skylight Window**: The room starts at **Golden Sunset** and smoothly cycles through **Cozy Night**, **Day**, and back to sunset every **10 minutes** once ready. Click the skylight, use the theme buttons, or press `1`–`3` to fade into a phase over **1 second** and continue the cycle from there. Zen mode holds night lighting; exiting resumes from night.
-- **☕ Coffee Mug**: Lift the mug for a sip with steam and local sound effects. Four sips empty the coffee; the next click refills it. Progress lasts until refresh and appears in the hotspot labels.
+- **🎮 Gaming Controller**: The controller’s Creative Playground pin opens Timescape, a hand-tracked generative-art installation, alongside selected film, motion, and video editing work.
 - **⏰ Live Wall Clock**: The hour (`Cylinder 19`) and minute (`Cylinder 18`) hands on the 3D wall clock tick and rotate in real-time according to the user's system clock.
 - **👤 Sticky Notes**: Click the colorful sticky notes on the wall to open **About & Contact**, with direct email and LinkedIn links.
 - **Markers**: All visible interactions, including About Me, Projects, and Skills, use small circle markers that animate into labels above their objects on hover or keyboard focus, with reduced-motion support.

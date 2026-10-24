@@ -70,6 +70,22 @@ export const PORTFOLIO_DATA = {
         { label: "Explore case study", url: "/projects/urban-death-care/index.html" },
         { label: "Project documentation", url: "/projects/urban-death-care/index.html#documentation" }
       ]
+    }
+  ],
+  funProjects: [
+    {
+      id: "timescape",
+      title: "Timescape",
+      badge: "Interactive Exhibition",
+      category: "Generative Art Installation",
+      description: "An experiment in making time something you can play with. Timescape uses webcam hand tracking to rotate, zoom, and twist a projected tesseract. Holding a fist captures trails of colour as a generative artwork to keep. Shown at BIC alongside two teammates’ interpretations, it invited visitors to shape the visuals with their hands. This collage brings together the first 100 artworks visitors made at the exhibition.",
+      image: "/projects/timescape/cover.webp",
+      imageAlt: "A collage of the first 100 visitor-made Timescape artworks: blue and purple tesseract trails against black",
+      tags: ["Creative Coding", "p5.js", "Hand Tracking", "Generative Art"],
+      links: [
+        { label: "Try Timescape", url: "https://moulicule.github.io/timescape-Moulik/" },
+        { label: "View source", url: "https://github.com/moulicule/timescape-Moulik" }
+      ]
     },
     {
       id: "film-motion",
@@ -82,7 +98,7 @@ export const PORTFOLIO_DATA = {
       tags: ["Video Editing", "Motion Graphics", "Special Effects", "Experimental Film", "Animation"],
       links: [
         { label: "Video portfolio", url: "https://drive.google.com/drive/folders/1qoEE_AjW4LM1DI3Lty8lldMrqGmoOaJA" },
-        { label: "Watch Sunbird", url: "https://drive.google.com/file/d/1iDBPJtSaNEq1VJtFWDFnEhzARwvIaR8o/view" }
+        { label: "Watch Sunbird in the Garden", url: "https://drive.google.com/file/d/1iDBPJtSaNEq1VJtFWDFnEhzARwvIaR8o/view" }
       ]
     }
   ],

@@ -1,5 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg">
 <!-- Lucide icons: https://lucide.dev | License notices below. -->
+  <symbol id="gamepad" viewBox="0 0 24 24">
+    <path d="M6 8h12c2 0 3 2 3.5 5l.5 4c.3 2-2 3-3.2 1.5L16 16H8l-2.8 2.5C4 20 1.7 19 2 17l.5-4C3 10 4 8 6 8Z"/>
+    <path d="M7 10v5m-2.5-2.5h5"/><circle cx="16" cy="11" r=".6"/><circle cx="18" cy="14" r=".6"/>
+  </symbol>
   <symbol id="user-round" viewBox="0 0 24 24">
     <circle cx="12" cy="8" r="5" />
     <path d="M20 21a8 8 0 0 0-16 0" />

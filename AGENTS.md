@@ -19,7 +19,7 @@ The architecture is intentionally small:
 ```text
 index.html + src/style.css       DOM shell and visual UI
 src/main.js                      application controller and scene integration
-src/scene-motion.js              chair, clock, plant, and coffee motion/progress
+src/scene-motion.js              chair, clock, and plant motion/progress
 src/day-night-cycle.js           ten-minute lighting phase calculation
 src/scene-ready.js               asset/render readiness gate for the loading card
 public/scene.splinecode          3D room loaded at runtime
@@ -57,7 +57,7 @@ The project does not use any external backend. The social/project URLs in `src/d
 
 - `index.html` — fixed DOM shell and all button/modal IDs.
 - `src/main.js` — lifecycle, camera behavior, scene object lookups, interactions, rendering loop, modals, and event listeners.
-- `src/scene-motion.js` — chair swivel, local-time wall clock, visible-time plant hydration, and coffee sip/refill controllers. Checks: `node --test tests/scene-motion.test.mjs`.
+- `src/scene-motion.js` — chair swivel, local-time wall clock, visible-time plant hydration controllers. Checks: `node --test tests/scene-motion.test.mjs`.
 - `src/day-night-cycle.js` — ten-minute sunset → night → day → sunset timing and smooth blend calculation. Checks: `node --test tests/day-night-cycle.test.mjs`.
 - `src/scene-ready.js` — awaits scene media/fonts, material resources, completed renderer frames, GPU submission, and browser presentation before dismissing the card.
 - `src/style.css` — all responsive and visual styling.
@@ -93,16 +93,14 @@ Canvas, hotspots, utility controls, and the dock start inert and the scene contr
 | `Point Light 2`, `Point Light 3` | Bedside lamp intensity |
 | `Directional Light`, `Directional Light 2` | Theme sun/sky lighting |
 | `Computer`, `Bed`, `Plant`, `Books`, `Window`, `Sticky Notes` | Hotspot targets |
-| ` Coffee Cup` (leading space) or `Coffee Cup` | Coffee hotspot |
 | `Cylinder 5` through `Cylinder 9` inside `Plant`; `Cylinder 2` | Foliage motion; fixed upper-pot watering pivot |
-| `Cylinder 11` inside `Coffee Cup` | Hollow mug body; parent of the runtime-created coffee surface |
 | `Clock`, `Cylinder 19`, `Cylinder 18` | Live clock and its hour/minute hands |
 
 Chair and clock transforms use handles from `Application.findObjectById()`. The underlying Spline objects have `matrixAutoUpdate=false`; writing directly to their rotations does not commit a rendered transform. Keep the raw cached objects for raycasting and hotspot geometry. Clock hands are scoped to `Clock` and orbit its center while preserving the face tilt and each hand's depth. The clock updates once per second from the visitor's local time, including minute/second contributions to the hour hand. Chair animation turns only the seat and back around the fixed center post; legs and wheels remain stationary. Every tap adds a full turn and retargets from the current pose over 1.2 seconds, with no cooldown. After completing the turns, each part returns to its authored transform.
 
-`HOTSPOTS` is the one source of truth for custom DOM pins. All visible hotspots, including About Me, Projects, and Skills, use concentric-circle markers that reveal labels above their objects on object/marker hover or keyboard focus. GSAP animates ring/label transforms and opacity on reversible timelines; projected geometry bounds set the default label clearance while the circle anchor stays fixed. Projects, Skills, Chair, Plant, Bed, and Lamp use calibrated `revealOffsetY` heights so labels stay close to the interaction area; the lamp clears its shade above the bedside-table pivot. Coffee uses `offsetX` to center both its circle and label over the cup body rather than its handle, scaled with camera zoom. Reduced-motion users get the same raised labels immediately. `secondary` selects this presentation; `pin: false` keeps the Window interaction without a DOM marker. Each entry maps a scene name/object cache key to an action. Pins use projected 3D positions in `updateHotspots()`. Scene clicking is not handled by Spline events here: the app raycasts the Spline scene with Three's `Raycaster` and walks parents in `findInteractiveParent()`.
+`HOTSPOTS` is the one source of truth for custom DOM pins. All visible hotspots, including About Me, Projects, and Skills, use concentric-circle markers that reveal labels above their objects on object/marker hover or keyboard focus. GSAP animates ring/label transforms and opacity on reversible timelines; projected geometry bounds set the default label clearance while the circle anchor stays fixed. Projects, Skills, Chair, Plant, Bed, and Lamp use calibrated `revealOffsetY` heights so labels stay close to the interaction area; the lamp clears its shade above the bedside-table pivot. Reduced-motion users get the same raised labels immediately. `secondary` selects this presentation; `pin: false` keeps the Window interaction without a DOM marker. Each entry maps a scene name/object cache key to an action. Pins use projected 3D positions in `updateHotspots()`. Scene clicking is not handled by Spline events here: the app raycasts the Spline scene with Three's `Raycaster` and walks parents in `findInteractiveParent()`.
 
-`activateHotspot()` handles both scene clicks and DOM pin activation. A hotspot's optional `cameraPreset` starts the existing smooth camera transition before its action: Computer, Chair, Books, Coffee Cup, and Sticky Notes focus Desk; Bed focuses Bed before entering Zen mode. These automatic camera transitions suppress perspective notifications; choosing a preset from Camera View still shows one. The Camera View menu selection stays synchronized with these transitions.
+`activateHotspot()` handles both scene clicks and DOM pin activation. A hotspot's optional `cameraPreset` starts the existing smooth camera transition before its action: Computer, Chair, and Sticky Notes focus Desk; Bed focuses Bed before entering Zen mode. These automatic camera transitions suppress perspective notifications; choosing a preset from Camera View still shows one. The Camera View menu selection stays synchronized with these transitions.
 
 ## Camera behavior: preserve this carefully
 
@@ -148,13 +146,14 @@ Automatic day/night lighting updates at most once per 100ms. Manual fades and ca
 | Lamp | `toggleLamp`, `updateLampLighting` | Sets the two named Spline point-light intensities. |
 | Chair | `spinChair` + `animateLoop` | Swivels the seat and back over one full revolution, leaving the base fixed. |
 | Plant | `waterPlant` | Starts at 50% hydration; watering adds 25 points with droplets and foliage sway. Loses one point per six visible seconds, pauses while hidden, and gives a contented reaction at 100%. |
-| Coffee | `drinkCoffee` | Four animated sips tilt toward the chair seat and lower the runtime-created liquid surface; the next activation refills it. The tilt direction is calculated in the mug parent's coordinates and stays independent of the camera. Steam and local sip/pour sounds accompany each action. |
 | Zen mode | `toggleZenMode` | Activates DOM overlay, ambient audio, and night theme; focuses Wake Up and restores focus on exit. Repeated exit requests do nothing. |
 | Modals | `openModal`, `closeAllModals`, `trapModalFocus`, `renderContent` | Renders trusted static data, opens named dialogs, makes background content inert, contains keyboard focus, and restores the opener on close. |
 | Notifications | `showToast` | Keeps the newest four in a polite live region; a GSAP timeline fades/scales them in place with a small vertical lift, starts the exit after 3.5 seconds, then removes them. Honors reduced motion and cancels tweens when replacing the oldest notification. |
 | Contact | `renderContent` | Renders a direct email link from `PORTFOLIO_DATA.developer.email`; no form or simulated submission. |
 
-Plant/coffee progress lives only in memory. Their controllers reject extra activations during an animation; accepted coffee hotspot actions use the configured Desk preset without a generic pop. `setupObjectInteractions()` creates the liquid before the readiness gate and tolerates a liquid-creation failure. A fixed DOM/SVG effect pool projects droplets and steam independently of Pins visibility. Reduced motion applies progress immediately, and visibility changes settle accepted actions back into resting poses. Hotspot labels and accessible names show progress; only explicit actions announce toasts.
+Plant progress lives only in memory. Its controller rejects extra activations during an animation. A fixed DOM effect pool projects watering droplets independently of Pins visibility. Reduced motion applies progress immediately, and visibility changes settle accepted actions back into resting poses. Hotspot labels and accessible names show progress; only explicit actions announce toasts.
+
+`src/desk-controller.js` loads `public/models/controller.glb` before the readiness gate and creates Spline-owned custom meshes with the model's colors. Its placement and width are calibrated directly to the desk surface in the scene asset. Its meshes share the `Gaming Controller` group, returned to `objects.controller` so both raycasting and the Creative Playground pin open the `funProjects` dialog. `PORTFOLIO_DATA.funProjects` supplies its cards; Timescape assets and exhibition notes live in `public/projects/timescape/`. Recalibrate its placement if the desk moves.
 
 ## Input and UI behavior
 

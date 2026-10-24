@@ -5,7 +5,8 @@ import { sound } from './audio.js';
 import { PORTFOLIO_DATA } from './data.js';
 import { waitForSceneReady } from './scene-ready.js';
 import { DAY_NIGHT_CYCLE_MS, DAY_NIGHT_PHASES, getDayNightPhase } from './day-night-cycle.js';
-import { createChairSwivel, createWallClock, createPlantInteraction, createCoffeeInteraction } from './scene-motion.js';
+import { loadDeskController } from './desk-controller.js';
+import { createChairSwivel, createWallClock, createPlantInteraction } from './scene-motion.js';
 
 // DOM References
 const appEl = document.getElementById('app');
@@ -24,6 +25,7 @@ const zenClock = document.getElementById('zenClock');
 
 // Modals
 const projectsModal = document.getElementById('projectsModal');
+const funProjectsModal = document.getElementById('funProjectsModal');
 const skillsModal = document.getElementById('skillsModal');
 const aboutModal = document.getElementById('aboutModal');
 let activeModal = null;
@@ -79,7 +81,6 @@ let chairSwivel = null;
 let wallClock = null;
 let lastClockSecond = null;
 let plantInteraction = null;
-let coffeeInteraction = null;
 let roomEffects = null;
 
 // Base Camera Settings
@@ -171,40 +172,40 @@ const objects = {
   sunLight: null,
   skyLight: null,
   computer: null,
+  controller: null,
   bed: null,
   plant: null,
   clock: null,
   clockHour: null,
   clockMin: null,
   books: null,
-  coffee: null,
   window: null,
   stickyNotes: null
 };
 
 // Hotspot definitions mapped to 3D room objects
 const HOTSPOTS = [
+  { id: 'funProjects', name: 'Gaming Controller', label: 'Creative Playground', icon: '🎮', objKey: 'controller', cameraPreset: 'desk', offsetY: 3, revealOffsetY: 12, secondary: true, action: trigger => openModal('funProjects', trigger) },
   { id: 'projects', name: 'Computer', label: 'Projects', icon: '💻', objKey: 'computer', cameraPreset: 'desk', offsetY: 0, revealOffsetY: 27, secondary: true, action: trigger => openModal('projects', trigger) },
   { id: 'lamp', name: 'Bed Table', label: 'Bedside Lamp', icon: '💡', objKey: 'bedTable', offsetY: 50, revealOffsetY: 65, secondary: true, action: () => toggleLamp() },
   { id: 'chair', name: 'Chair', label: 'Swivel Chair', icon: '🪑', objKey: 'chair', cameraPreset: 'desk', offsetY: 0, revealOffsetY: 45, secondary: true, action: () => spinChair() },
-  { id: 'skills', name: 'Books', label: 'Skills', icon: '📚', objKey: 'books', cameraPreset: 'desk', offsetY: 0, revealOffsetY: 27, secondary: true, action: trigger => openModal('skills', trigger) },
+  { id: 'skills', name: 'Books', label: 'Skills', icon: '📚', objKey: 'books', offsetY: 0, revealOffsetY: 27, secondary: true, action: trigger => openModal('skills', trigger) },
   { id: 'plant', name: 'Plant', label: 'House Plant', icon: '🌱', objKey: 'plant', offsetY: 0, revealOffsetY: 50, secondary: true, action: () => waterPlant() },
   { id: 'bed', name: 'Bed', label: 'Zen Mode', icon: '🛏️', objKey: 'bed', cameraPreset: 'bed', offsetY: 0, revealOffsetY: 25, secondary: true, action: () => toggleZenMode() },
   { id: 'window', name: 'Window', label: 'Atmosphere & Sky', icon: '🌤️', objKey: 'window', pin: false, action: () => cycleTheme() },
-  { id: 'coffee', name: ' Coffee Cup', label: 'Coffee Break', icon: '☕', objKey: 'coffee', cameraPreset: 'desk', offsetY: 0, offsetX: -6, secondary: true, action: () => drinkCoffee() },
   { id: 'about', name: 'Sticky Notes', label: 'About Me', icon: '👤', objKey: 'stickyNotes', cameraPreset: 'desk', offsetY: 0, secondary: true, action: trigger => openModal('about', trigger) }
 ];
 
 function activateHotspot(spot, trigger = null) {
-  if (spot.id === 'plant' || spot.id === 'coffee') {
+  if (spot.id === 'plant') {
     const accepted = spot.action(trigger);
-    if (accepted && spot.cameraPreset && state.cameraPreset !== spot.cameraPreset) {
+    if (accepted && spot.cameraPreset && (!currentCamAnim || state.cameraPreset !== spot.cameraPreset)) {
       setCameraPreset(spot.cameraPreset, { notify: false, audible: false });
     }
     return accepted;
   }
   sound.playPop();
-  if (spot.cameraPreset && state.cameraPreset !== spot.cameraPreset) {
+  if (spot.cameraPreset && (!currentCamAnim || state.cameraPreset !== spot.cameraPreset)) {
     setCameraPreset(spot.cameraPreset, { notify: false });
   }
   spot.action(trigger);
@@ -246,6 +247,7 @@ async function init() {
     syncResponsiveCameraZoom();
     configureCameraControls();
     setupSceneReferences();
+    objects.controller = await loadDeskController(splineApp, threeScene);
     await setupObjectInteractions();
     updateClockHands();
     setupHotspots();
@@ -379,7 +381,6 @@ function setupSceneReferences() {
   objects.clockHour = objects.clock?.getObjectByName('Cylinder 19');
   objects.clockMin = objects.clock?.getObjectByName('Cylinder 18');
   objects.books = threeScene.getObjectByName('Books');
-  objects.coffee = threeScene.getObjectByName(' Coffee Cup') || threeScene.getObjectByName('Coffee Cup');
   objects.window = threeScene.getObjectByName('Window');
   objects.stickyNotes = threeScene.getObjectByName('Sticky Notes');
 
@@ -412,49 +413,14 @@ async function setupObjectInteractions() {
   if (rim) pivot.y += (rim.data?.geometry?.height ?? 23) * rim.scale.y / 2;
   plantInteraction = createPlantInteraction(foliage.map(part => splineApp.findObjectById(part.uuid)), pivot);
 
-  const body = objects.coffee?.getObjectByName('Cylinder 11');
-  let liquid = null, top = 1, bottom = 0;
-  if (body?.geometry) {
-    try {
-      body.geometry.computeBoundingBox();
-      const bounds = body.geometry.boundingBox;
-      const size = bounds.getSize(new THREE.Vector3());
-      const center = bounds.getCenter(new THREE.Vector3());
-      top = bounds.max.y - size.y * 0.16;
-      bottom = bounds.min.y + size.y * 0.15;
-      liquid = await splineApp.createObject('Cylinder', {
-        name: 'Portfolio Coffee Liquid', parent: body.uuid,
-        position: [center.x, top, center.z],
-        width: size.x * 0.75, depth: size.z * 0.75, height: size.y * 0.018,
-        radialSegments: 32, cornerRadius: 0, hollow: 0,
-        material: { color: '#482719', roughness: 0.3 }, castShadow: false
-      });
-    } catch (error) {
-      console.warn('Coffee liquid unavailable; mug interaction remains usable.', error);
-    }
-  }
-  const tiltDirection = new THREE.Vector3(0, 0, 1);
-  const seat = objects.chair?.getObjectByName('Cube 50') || objects.chair;
-  if (seat && objects.coffee?.parent) {
-    const target = seat.getWorldPosition(new THREE.Vector3());
-    const origin = (body || objects.coffee).getWorldPosition(new THREE.Vector3());
-    const parent = objects.coffee.parent;
-    tiltDirection.copy(parent.worldToLocal(target)).sub(parent.worldToLocal(origin));
-    tiltDirection.y = 0;
-  }
-  coffeeInteraction = createCoffeeInteraction(
-    objects.coffee && splineApp.findObjectById(objects.coffee.uuid), liquid, { top, bottom, tiltDirection }
-  );
-
   const element = document.createElement('div');
   element.className = 'room-effects';
   element.setAttribute('aria-hidden', 'true');
   element.hidden = true;
-  element.innerHTML = `${'<span class="water-droplet"></span>'.repeat(8)}${'<svg class="coffee-steam" viewBox="0 0 16 36"><path d="M8 34C-3 24 19 21 8 11C2 5 9 2 10 1"/></svg>'.repeat(3)}`;
+  element.innerHTML = '<span class="water-droplet"></span>'.repeat(8);
   appEl.appendChild(element);
-  roomEffects = { element, rim, body, point: new THREE.Vector3(),
-    drops: [...element.querySelectorAll('.water-droplet')],
-    steam: [...element.querySelectorAll('.coffee-steam')] };
+  roomEffects = { element, rim, point: new THREE.Vector3(),
+    drops: [...element.querySelectorAll('.water-droplet')] };
 
   document.addEventListener('visibilitychange', () => updateObjectInteractions(performance.now()));
   interactionMotionMedia.addEventListener('change', () => updateObjectInteractions(performance.now()));
@@ -463,7 +429,6 @@ async function setupObjectInteractions() {
 function updateObjectInteractions(now) {
   const options = { visible: !document.hidden, reduced: interactionMotionMedia.matches };
   plantInteraction?.update(now, options);
-  coffeeInteraction?.update(now, options);
   updateInteractionLabels();
   if (document.hidden || interactionMotionMedia.matches) {
     if (roomEffects) roomEffects.element.hidden = true;
@@ -471,36 +436,32 @@ function updateObjectInteractions(now) {
 }
 
 function updateInteractionLabels() {
-  if (!plantInteraction || !coffeeInteraction) return;
-  for (const id of ['plant', 'coffee']) {
-    const spot = HOTSPOTS.find(item => item.id === id);
-    const interaction = id === 'plant' ? plantInteraction : coffeeInteraction;
-    const status = id === 'plant'
-      ? `${interaction.hydration}% hydrated · ${interaction.hydration === 100 ? 'All watered' : 'Water plant'}`
-      : interaction.sips === 0 ? 'Empty · Refill coffee' : `${interaction.sips} of 4 sips left · Take a sip`;
-    const busy = String(interaction.busy);
-    if (spot.statusText !== status) {
-      spot.statusText = status;
-      if (spot.domElement) {
-        spot.domElement.querySelector('.hotspot-progress').textContent = status;
-        spot.domElement.setAttribute('aria-label', `${spot.label}: ${status}`);
-      }
-      if (id === 'plant' && waterPlantBtn) waterPlantBtn.setAttribute('aria-label', `Water Plant: ${status}`);
-      if (state.hoveredInteractive === spot) hoverTooltip.textContent = `${spot.icon} ${spot.label} — ${status}`;
+  if (!plantInteraction) return;
+  const spot = HOTSPOTS.find(item => item.id === 'plant');
+  const interaction = plantInteraction;
+  const status = `${interaction.hydration}% hydrated · ${interaction.hydration === 100 ? 'All watered' : 'Water plant'}`;
+  const busy = String(interaction.busy);
+  if (spot.statusText !== status) {
+    spot.statusText = status;
+    if (spot.domElement) {
+      spot.domElement.querySelector('.hotspot-progress').textContent = status;
+      spot.domElement.setAttribute('aria-label', `${spot.label}: ${status}`);
     }
-    if (spot.interactionBusy !== busy) {
-      spot.interactionBusy = busy;
-      spot.domElement?.setAttribute('aria-disabled', busy);
-      if (id === 'plant' && waterPlantBtn) waterPlantBtn.setAttribute('aria-disabled', busy);
-    }
+    if (waterPlantBtn) waterPlantBtn.setAttribute('aria-label', `Water Plant: ${status}`);
+    if (state.hoveredInteractive === spot) hoverTooltip.textContent = `${spot.icon} ${spot.label} — ${status}`;
+  }
+  if (spot.interactionBusy !== busy) {
+    spot.interactionBusy = busy;
+    spot.domElement?.setAttribute('aria-disabled', busy);
+    if (waterPlantBtn) waterPlantBtn.setAttribute('aria-disabled', busy);
   }
 }
 
 function updateRoomEffects() {
   if (!roomEffects || !threeCamera) return;
-  const { element, rim, body, point, drops, steam } = roomEffects;
+  const { element, rim, point, drops } = roomEffects;
   element.hidden = !!activeModal || state.zenMode || document.hidden || interactionMotionMedia.matches
-    || (!plantInteraction.busy && !coffeeInteraction.busy);
+    || !plantInteraction.busy;
   if (element.hidden) return;
   const rect = sceneViewport;
   if (!rect) return;
@@ -523,18 +484,7 @@ function updateRoomEffects() {
     point.y += 42 * (1 - p * p);
     place(drop, Math.sin(Math.PI * p) * 0.95);
   });
-  steam.forEach((wisp, i) => {
-    const p = (coffeeInteraction.progress - i * 0.12) / 0.7;
-    if (!body || !coffeeInteraction.busy || p <= 0 || p >= 1) {
-      wisp.style.opacity = '0';
-      return;
-    }
-    point.set(0, body.geometry?.boundingBox?.max.y ?? 11.5, 0);
-    body.localToWorld(point);
-    point.y += p * 20;
-    point.x += (i - 1) * 3 + Math.sin(p * Math.PI * 2) * 2;
-    place(wisp, Math.sin(Math.PI * p) * 0.65);
-  });
+
 }
 
 // Setup 3D Hotspot DOM Elements
@@ -570,7 +520,7 @@ function setupHotspots() {
     el.hidden = true;
     const content = `
       <div class="hotspot-icon" aria-hidden="true">${spot.icon}</div>
-      <div class="hotspot-label">${spot.label}${['plant', 'coffee'].includes(spot.id) ? '<span class="hotspot-progress"></span>' : ''}</div>
+      <div class="hotspot-label">${spot.label}${spot.id === 'plant' ? '<span class="hotspot-progress"></span>' : ''}</div>
     `;
     el.innerHTML = spot.secondary
       ? `<span class="hotspot-ring" aria-hidden="true"></span><span class="hotspot-bubble">${content}</span>`
@@ -1006,20 +956,6 @@ function waterPlant() {
   return action;
 }
 
-// Coffee Interaction
-function drinkCoffee() {
-  if (!coffeeInteraction || document.hidden) return;
-  const action = coffeeInteraction.drink(performance.now(), { reduced: interactionMotionMedia.matches });
-  if (!action) return;
-  if (action === 'refill') sound.playCoffeePour();
-  else sound.playCoffeeSip();
-  updateInteractionLabels();
-  showToast(action === 'refill' ? 'Freshly refilled · Four sips to enjoy'
-    : coffeeInteraction.sips ? `A little coffee break · ${coffeeInteraction.sips} ${coffeeInteraction.sips === 1 ? 'sip' : 'sips'} left`
-      : 'Last sip · Tap the mug to refill', '☕');
-  return action;
-}
-
 // Zen / Relax Mode Toggle
 function toggleZenMode(enable = null) {
   const nextMode = enable !== null ? enable : !state.zenMode;
@@ -1197,7 +1133,7 @@ function setupModalSectionMotion() {
 }
 
 function openModal(modalName, trigger = null) {
-  const targetModal = { projects: projectsModal, skills: skillsModal, about: aboutModal }[modalName];
+  const targetModal = { projects: projectsModal, funProjects: funProjectsModal, skills: skillsModal, about: aboutModal }[modalName];
   if (!targetModal || targetModal === activeModal) return;
   const switchingSections = Boolean(activeModal && trigger?.closest('.modal-nav'));
   const previousNav = activeModal?.querySelector('.modal-nav');
@@ -1213,7 +1149,7 @@ function openModal(modalName, trigger = null) {
   sound.playPop(1.2);
   activeModal = targetModal;
   modalReturnFocus = returnTarget;
-  modalReturnFallback = document.querySelector(`[data-modal="${modalName}"]`);
+  modalReturnFallback = document.querySelector(`#sideNav [data-modal="${modalName === 'funProjects' ? 'projects' : modalName}"]`);
   // Disable the room and inactive dialogs without making the active dialog inert.
   for (const child of appEl.children) {
     if (child === targetModal || child === toastContainer) continue;
@@ -1301,32 +1237,34 @@ function setDockDropdownOpen(dropdown, isOpen, restoreFocus = false) {
 // Render Project Showcase & Skills Content
 function renderContent() {
   // 1. Projects
-  const projectsGrid = document.getElementById('projectsGrid');
-  if (projectsGrid) {
-    projectsGrid.innerHTML = PORTFOLIO_DATA.projects.map(p => `
-      <div class="project-card">
-        <img class="project-image" src="${p.image}" alt="${p.imageAlt}" loading="lazy">
-        <div class="project-card-header">
-          <div>
-            <div class="project-name">${p.title}</div>
-            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; white-space: pre-line;">${p.category}</div>
+  for (const [gridId, projects] of [['projectsGrid', PORTFOLIO_DATA.projects], ['funProjectsGrid', PORTFOLIO_DATA.funProjects]]) {
+    const projectsGrid = document.getElementById(gridId);
+    if (projectsGrid) {
+      projectsGrid.innerHTML = projects.map(p => `
+        <div class="project-card">
+          <img class="project-image" src="${p.image}" alt="${p.imageAlt}" loading="lazy">
+          <div class="project-card-header">
+            <div>
+              <div class="project-name">${p.title}</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; white-space: pre-line;">${p.category}</div>
+            </div>
+            <span class="project-badge">${p.badge}</span>
           </div>
-          <span class="project-badge">${p.badge}</span>
+          <p class="project-desc">${p.description}</p>
+          <div class="project-tags">
+            ${p.tags.map(t => `<span class="project-tag">${t}</span>`).join('')}
+          </div>
+          <div class="project-links">
+            ${p.links.map((link, index) => `
+              <a href="${link.url}" target="_blank" rel="noopener" class="${index === 0 ? 'btn-primary' : 'btn-secondary'}" aria-label="${link.label} (opens in a new tab)">
+                <span>${link.label}</span>
+                <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#arrow-up-right"/></svg>
+              </a>
+            `).join('')}
+          </div>
         </div>
-        <p class="project-desc">${p.description}</p>
-        <div class="project-tags">
-          ${p.tags.map(t => `<span class="project-tag">${t}</span>`).join('')}
-        </div>
-        <div class="project-links">
-          ${p.links.map((link, index) => `
-            <a href="${link.url}" target="_blank" rel="noopener" class="${index === 0 ? 'btn-primary' : 'btn-secondary'}" aria-label="${link.label} (opens in a new tab)">
-              <span>${link.label}</span>
-              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#arrow-up-right"/></svg>
-            </a>
-          `).join('')}
-        </div>
-      </div>
-    `).join('');
+      `).join('');
+    }
   }
 
   // 2. Skills

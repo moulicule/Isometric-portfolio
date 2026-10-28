@@ -14,6 +14,7 @@ const appEl = document.getElementById('app');
 const canvas = document.getElementById('canvas3d');
 const skyAtmosphere = document.getElementById('skyAtmosphere');
 const skyClouds = document.getElementById('skyClouds');
+const cloudDitherShadow = document.getElementById('cloudDitherShadow');
 const skyStars = document.getElementById('skyStars');
 const loadingScreen = document.getElementById('loadingScreen');
 const loadingBackdrop = document.getElementById('loadingBackdrop');
@@ -144,6 +145,7 @@ const THEMES = {
     skyIntensity: 0.25,
     lampIntensity: 1.6,
     cloudColor: new THREE.Color('#D4C3EF'),
+    cloudShadowColor: new THREE.Color('#604970'),
     cloudOpacity: 0.15,
     starOpacity: 1,
     label: 'Cozy Night'
@@ -156,6 +158,7 @@ const THEMES = {
     skyIntensity: 0.60,
     lampIntensity: 0.15,
     cloudColor: new THREE.Color('#FFFCF6'),
+    cloudShadowColor: new THREE.Color('#90AAA9'),
     cloudOpacity: 1,
     starOpacity: 0,
     label: 'Soft Daylight'
@@ -168,6 +171,7 @@ const THEMES = {
     skyIntensity: 0.50,
     lampIntensity: 1.3,
     cloudColor: new THREE.Color('#F7E1D2'),
+    cloudShadowColor: new THREE.Color('#B2748B'),
     cloudOpacity: 0.70,
     starOpacity: 0.15,
     label: 'Pastel Sunset'
@@ -176,6 +180,7 @@ const THEMES = {
 const cycleBackgroundColor = THEMES.night.bg.clone();
 const runtimeBackgroundColor = cycleBackgroundColor.clone();
 const cycleCloudColor = THEMES.night.cloudColor.clone();
+const cycleCloudShadowColor = THEMES.night.cloudShadowColor.clone();
 let cycleCloudOpacity = THEMES.night.cloudOpacity;
 let cycleStarOpacity = THEMES.night.starOpacity;
 let appliedBackground = null;
@@ -845,6 +850,7 @@ function setTheme(themeName, { notify = true, restartCycle = true } = {}) {
       from: {
         bg: cycleBackgroundColor.clone(),
         cloudColor: cycleCloudColor.clone(),
+        cloudShadowColor: cycleCloudShadowColor.clone(),
         cloudOpacity: cycleCloudOpacity,
         starOpacity: cycleStarOpacity,
         sunColor: objects.sunLight?.color.clone() ?? current.sunColor.clone(),
@@ -910,6 +916,7 @@ function applyThemeLighting(from, to = from, blend = 0) {
     appliedBackground = background;
   }
   skyClouds.style.color = cycleCloudColor.copy(from.cloudColor).lerp(to.cloudColor, blend).getStyle();
+  cloudDitherShadow.setAttribute('fill', cycleCloudShadowColor.copy(from.cloudShadowColor).lerp(to.cloudShadowColor, blend).getStyle());
   cycleCloudOpacity = THREE.MathUtils.lerp(from.cloudOpacity, to.cloudOpacity, blend);
   cycleStarOpacity = THREE.MathUtils.lerp(from.starOpacity, to.starOpacity, blend);
   skyClouds.style.opacity = cycleCloudOpacity;

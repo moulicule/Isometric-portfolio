@@ -746,6 +746,7 @@ test('interrupting a theme fade captures the visible sky and continues without a
   const visible = {
     bg: element('app').style.background,
     color: element('skyClouds').style.color,
+    shadow: element('cloudDitherShadow').getAttribute('fill'),
     clouds: element('skyClouds').style.opacity,
     stars: element('skyStars').style.opacity
   };
@@ -753,6 +754,7 @@ test('interrupting a theme fade captures the visible sky and continues without a
   c.updateDayNightCycle(400);
   assert.equal(element('app').style.background, visible.bg);
   assert.equal(element('skyClouds').style.color, visible.color);
+  assert.equal(element('cloudDitherShadow').getAttribute('fill'), visible.shadow);
   assert.equal(element('skyClouds').style.opacity, visible.clouds);
   assert.equal(element('skyStars').style.opacity, visible.stars);
   advance(900); c.updateDayNightCycle(900);
@@ -776,4 +778,21 @@ test('decorative motion follows page visibility, including an initially hidden p
   c.document.hidden = true;
   documentListeners.visibilitychange.forEach(listener => listener());
   assert.ok(sky.classList.contains('is-paused'));
+});
+
+test('cloud dither shadows blend with each lighting phase', () => {
+  const { run, element } = controller();
+  const fills = new Set();
+  for (const [from, to] of [['night', 'day'], ['day', 'sunset'], ['sunset', 'night']]) {
+    for (const blend of [0, 0.5, 1]) {
+      run(`applyThemeLighting(THEMES.${from}, THEMES.${to}, ${blend});`);
+      const fill = element('cloudDitherShadow').getAttribute('fill');
+      assert.equal(fill, run(`THEMES.${from}.cloudShadowColor.clone().lerp(THEMES.${to}.cloudShadowColor, ${blend}).getStyle()`));
+      fills.add(fill);
+    }
+  }
+  assert.equal(fills.size, 6, 'three distinct shadow colors and their intermediate blends');
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const pattern = html.match(/<pattern id="cloudDitherShadow"[\s\S]*?<\/pattern>/)[0];
+  assert.equal((pattern.match(/fill=/g) || []).length, 1, 'dots inherit the animated pattern fill');
 });

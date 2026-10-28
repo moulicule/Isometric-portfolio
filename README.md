@@ -61,6 +61,16 @@ npm run build
 npm run preview
 ```
 
+`node_modules/`, Vite's dependency cache, and the generated `dist/` directory stay local and are ignored by Git. Keep `package-lock.json` committed; use `npm ci` for a clean dependency install, then `npm run build` for deployment.
+
+### Delivery assets
+
+The optional desk controller has an eight-second download deadline. Failed downloads or mesh construction leave the room usable, and Creative Playground remains available through the dialog navigation. Dialog images load on their first opening; Airlearn and Timescape use smaller WebP thumbnails while their original artwork remains available.
+
+The controller delivery model has 17,730 triangles (328 KB). CAP has 95,611 triangles across 42 meshes (2.74 MB), with its nine inspection components and LCD surface preserved. To prepare a replacement from an original CAD export, run `node scripts/optimize-model.mjs controller original.glb public/models/controller.glb` or `node scripts/optimize-model.mjs cap original.glb public/projects/cap/assets/cap.glb`. Run against the original, never a previously optimized copy. The script uses Three.js's bundled mesh simplifier; it adds no dependency. Run `npm test` and inspect both viewers after replacing either model.
+
+The served room scene contains no legacy `4`-key events or their orphan states. Root-level scene copies are older source backups; copying them over `public/scene.splinecode` would restore those actions.
+
 ### Social link previews
 
 The homepage includes static Open Graph and Twitter card metadata in `index.html`, with a 1920 × 1080 JPEG at `public/images/social-preview.jpg`. The canonical and image URLs use `https://mouliks.studio/`; update them if the public domain changes. The preview uses the supplied portfolio artwork, so sharing crawlers can fetch it without running the 3D scene.
@@ -102,5 +112,5 @@ node --test tests/scene-ready.test.mjs
 │   ├── audio.js            # Procedural Web Audio API sound synthesis engine
 │   ├── data.js             # Project showcase, skills, and developer profile data
 │   └── style.css           # Tactile cream UI styles, animations, and responsive layouts
-└── package.json            # Project dependencies (@splinetool/runtime, three, canvas-confetti, gsap, vite)
+└── package.json            # Project dependencies (@splinetool/runtime, three, gsap, @vercel/analytics, vite)
 ```

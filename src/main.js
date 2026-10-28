@@ -992,7 +992,7 @@ function updateLampLighting({ applyIntensity = true } = {}) {
 function spinChair() {
   if (!chairSwivel?.start(performance.now())) return;
   sound.playWhoosh();
-  showToast('Swiveled the office chair!', '🪑');
+  showToast('Swiveled the chair!', '🪑');
 }
 
 // House Plant Interaction
@@ -1208,6 +1208,10 @@ function openModal(modalName, trigger = null) {
     child.inert = true;
   }
   targetModal.inert = false;
+  targetModal.querySelectorAll('img[data-src]').forEach(image => {
+    image.src = image.dataset.src;
+    image.removeAttribute('data-src');
+  });
   targetModal.classList.toggle('section-switch', switchingSections);
   targetModal.classList.add('open');
   targetModal.querySelector('.modal-body').scrollTop = 0;
@@ -1298,7 +1302,7 @@ function renderContent() {
     if (projectsGrid) {
       projectsGrid.innerHTML = projects.map(p => `
         <article class="project-card" aria-labelledby="project-${p.id}">
-          <img class="project-image" src="${p.image}" alt="${p.imageAlt}" loading="lazy">
+          <img class="project-image" data-src="${p.image}" alt="${p.imageAlt}" loading="lazy">
           <div class="project-card-header">
             <div>
               <h3 class="project-name" id="project-${p.id}">${p.title}</h3>
@@ -1360,7 +1364,7 @@ function renderContent() {
         </div>
 
         <div class="profile-photo-frame">
-          <img class="profile-photo" src="${dev.photo}" alt="${dev.photoAlt}" width="1600" height="1200" decoding="async">
+          <img class="profile-photo" data-src="${dev.photo}" alt="${dev.photoAlt}" width="1600" height="1200" decoding="async">
         </div>
 
         <p class="profile-bio">${dev.bio}</p>

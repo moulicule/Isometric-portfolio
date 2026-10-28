@@ -1359,7 +1359,7 @@ body, html {
   }
 }
 
-@media (max-width: 400px) {
+@media (max-width: 360px) {
   .dock-btn {
     padding: 0 4px;
     gap: 4px;
@@ -1404,10 +1404,6 @@ body, html {
   .modal-header { gap: 6px; padding: 6px; }
   .modal-nav { --section-gap: 2px; }
   .modal-nav-btn { padding: 8px 0; font-size: 0.7rem; }
-  .toast-container {
-    top: calc(172px + env(safe-area-inset-top, 0px));
-    max-width: calc(100vw - 90px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
-  }
 }
 
 @media (max-width: 360px) {

@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
-  <title>Cappy: curious</title>
-  <g transform="rotate(180 120 120)">
-  <circle cx="120" cy="120" r="104" fill="#090c0b"/>
-  <rect x="111" y="119" width="26" height="50" rx="13" fill="#ffe34d" transform="rotate(30 124 144)"/>
-  <rect x="161" y="127" width="22" height="50" rx="11" fill="#ffe34d" transform="rotate(30 172 152)"/>
-  </g>
-</svg>

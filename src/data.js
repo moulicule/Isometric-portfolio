@@ -37,7 +37,7 @@ export const PORTFOLIO_DATA = {
       badge: "UI Design Internship",
       category: "UI design for EdTech",
       description: "For a two-month summer internship at Unacademy, I turned educator-written scripts into lesson screens for Airlearn, a language learning app. I adapted company Figma templates and mid journey images to create lessons across several languages. My daily workflow covered 7–10 lessons, Midjourney visuals, and working on feedback from senior designers and educators.",
-      image: "/projects/airlearn/assets/cover.svg",
+      image: "/projects/airlearn/assets/cover-thumb.webp",
       imageAlt: "Airlearn internship: sky-blue case study with the waving mascot and Finnish and Korean lesson screens",
       tags: ["UI Design", "Figma", "Language Learning", "Midjourney", "Template Adaptation"],
       links: [
@@ -84,7 +84,7 @@ export const PORTFOLIO_DATA = {
       badge: "Interactive Exhibition",
       category: "Generative Art Installation",
       description: "An experiment in making time something you can play with. Timescape uses webcam hand tracking to rotate, zoom, and twist a projected tesseract. Holding a fist captures trails of colour as a generative artwork to keep. Shown at Bangalore International Centre (BIC) alongside two teammates’ interpretations, it invited visitors to shape the visuals with their hands.",
-      image: "/projects/timescape/exhibition.jpg",
+      image: "/projects/timescape/exhibition-thumb.webp",
       imageAlt: "A visitor raises both hands to interact with Timescape’s colourful generative visuals on a large exhibition screen",
       tags: ["Creative Coding", "p5.js", "Hand Tracking", "Generative Art"],
       links: [

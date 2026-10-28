@@ -2,15 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Box3, BufferAttribute, BufferGeometry, Group, Mesh, BoxGeometry, Vector3 } from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { loadDeskController } from '../src/desk-controller.js';
 
 test('the supplied controller loads on the desk surface with its materials', async t => {
   const buffer = readFileSync(new URL('../public/models/controller.glb', import.meta.url));
-  const model = await new GLTFLoader().parseAsync(buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength), '');
-  t.mock.method(GLTFLoader.prototype, 'loadAsync', async url => {
+  t.mock.method(globalThis, 'fetch', async (url, { signal }) => {
     assert.equal(url, '/models/controller.glb');
-    return model;
+    assert.equal(signal.aborted, false);
+    return new Response(buffer);
   });
   const room = new Group();
   const originalX = -40.258056090413426, z = 35.73154673771854;
@@ -57,4 +56,42 @@ test('the supplied controller loads on the desk surface with its materials', asy
   assert.ok(Math.abs(bounds.getSize(new Vector3()).z - 22.740570944319305) < 1e-4);
   assert.ok(Math.abs(bounds.getCenter(new Vector3()).x - x) < 1e-4);
   assert.ok(Math.abs(bounds.getCenter(new Vector3()).z - z) < 1e-4);
+});
+
+test('controller download errors and invalid files leave the room usable', async t => {
+  const room = new Group();
+  t.mock.method(console, 'warn', () => {});
+  const app = { createObject() { assert.fail('a failed download must not add scene objects'); } };
+  for (const response of [new Response('', { status: 404 }), new Response('invalid GLB')]) {
+    t.mock.method(globalThis, 'fetch', async () => response);
+    assert.equal(await loadDeskController(app, room), null);
+    assert.equal(room.children.length, 0);
+  }
+});
+
+test('a stalled controller request is aborted before it can hold up startup', async t => {
+  t.mock.method(console, 'warn', () => {});
+  let signal;
+  t.mock.method(globalThis, 'fetch', (_url, options) => new Promise((_resolve, reject) => {
+    signal = options.signal;
+    signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+  }));
+  assert.equal(await loadDeskController({}, new Group(), { timeoutMs: 5 }), null);
+  assert.equal(signal.aborted, true);
+});
+
+test('a mesh creation failure removes the partial controller', async t => {
+  t.mock.method(console, 'warn', () => {});
+  t.mock.method(globalThis, 'fetch', async () => new Response(
+    readFileSync(new URL('../public/models/controller.glb', import.meta.url))));
+  let removed;
+  const app = {
+    async createObject(type) {
+      if (type === 'Group') return { uuid: 'partial-controller' };
+      throw new Error('mesh construction failed');
+    },
+    removeObject(id) { removed = id; }
+  };
+  assert.equal(await loadDeskController(app, new Group()), null);
+  assert.equal(removed, 'partial-controller');
 });

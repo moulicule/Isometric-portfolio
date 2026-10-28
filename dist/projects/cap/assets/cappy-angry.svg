@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
-  <title>Cappy: angry</title>
-  <circle cx="120" cy="120" r="104" fill="#090c0b"/>
-  <rect x="67" y="96" width="30" height="60" rx="15" fill="#ff3434" transform="rotate(-45 82 126)"/>
-  <rect x="143" y="96" width="30" height="60" rx="15" fill="#ff3434" transform="rotate(45 158 126)"/>
-</svg>

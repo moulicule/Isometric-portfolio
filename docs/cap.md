@@ -26,6 +26,8 @@ The workbench follows the scroll chapters: its title, description, and camera fo
 
 Each 3D viewer initializes only when it comes within 200px of the viewport; both share one lazy model download. Visible viewers redraw for the existing face cadence, orbit controls, and GSAP transitions, while unchanged frames and off-screen viewers skip rendering. At viewport heights up to 500px the workbench scrolls normally instead of covering the chapter text; its height remains within the viewport and the view toggle stays 44px.
 
+The delivery GLB is optimized from the CAD export: 95,611 triangles, 42 meshes, and 2.74 MB, down from 260,162 triangles, 281 meshes, and 8.21 MB. Pieces sharing a material are merged within each of the nine inspection components. The LCD surface stays separate and unsimplified so Cappy's procedural face keeps its original alignment. Material colors and surface properties remain unchanged. Use `scripts/optimize-model.mjs` with the original CAD export to regenerate this copy; do not simplify the delivery file again. `tests/model-assets.test.mjs` guards the model budgets and component/screen contract.
+
 `node --test tests/cap-performance.test.mjs` checks deferred initialization, the shared download, failure fallbacks, and redraw scheduling. The portfolio's main-controller tests also check responsive framing, resize during transitions, hover coalescing, and idle marker work.
 
 - Unit checks for threshold boundaries, hysteresis, debounce, signal timeout, sleep/wake timing, emulated distance endpoints, spring speed/bounce, immediate drag response, circular screen alignment, and upright normal/resting eye poses with unchanged alert expressions, and the firmware’s three staggered vector Zs with rise/fade timing and a reduced-motion freeze.

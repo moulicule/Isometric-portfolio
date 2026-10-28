@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { createContext, runInContext } from 'node:vm';
 import * as THREE from 'three';
 import * as cycle from '../src/day-night-cycle.js';
@@ -10,6 +10,7 @@ import { PORTFOLIO_DATA } from '../src/data.js';
 // Run the real controller without importing the renderer or booting the page.
 const source = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8')
   .replace(/^import .*;\n/gm, '')
+  .replace("await import('@splinetool/runtime')", 'await loadSplineRuntime()')
   .replace(/^initPage\(\);|^inject\(\);/gm, '');
 
 function controller({ menus = false } = {}) {
@@ -76,6 +77,30 @@ function controller({ menus = false } = {}) {
 
 const pointer = (pointerId = 1, extra = {}) => ({
   pointerId, isPrimary: pointerId === 1, button: 0, clientX: 100, clientY: 100, ...extra
+});
+
+test('the room reaches readiness when its optional controller is unavailable', async () => {
+  const { context: c, run, element } = controller();
+  let disposed = false, checkedReadiness = false;
+  c.loadSplineRuntime = async () => ({ Application: class {
+    constructor() { this._scene = new THREE.Group(); this._camera = new THREE.OrthographicCamera(); }
+    async load() {}
+    dispose() { disposed = true; }
+  } });
+  c.loadDeskController = async () => null;
+  c.applyRoomPalette = () => {};
+  c.waitForSceneReady = async () => { checkedReadiness = true; };
+  c.ResizeObserver = class { observe() {} };
+  c.setTimeout = setTimeout;
+  c.clearTimeout = clearTimeout;
+  element('app').dataset = {};
+  run(`syncResponsiveCameraZoom = configureCameraControls = setupSceneReferences =
+    setupObjectInteractions = setupHotspots = setupLightingAndTheme = setupSceneInput = () => {};`);
+  await c.init();
+  assert.equal(element('app').dataset.sceneState, 'ready');
+  assert.equal(checkedReadiness, true);
+  assert.equal(disposed, false);
+  assert.equal(run('objects.controller'), null);
 });
 
 test('all dock menus dismiss on a second Safari tap and outside click, while retaining keyboard focus', () => {
@@ -637,7 +662,9 @@ test('both project grids show full descriptions, tags, and links without disclos
       assert.ok(article.includes(`<p class="project-desc">${project.description}</p>`), 'full description is visible');
       assert.equal(article.split(project.description).length - 1, 1, 'description appears once');
       assert.ok(!article.includes(project.summary), 'short preview is not repeated');
-      assert.ok(article.includes(`src="${project.image}"`));
+      assert.ok(article.includes(`data-src="${project.image}"`));
+      assert.doesNotMatch(article, /\ssrc="/, 'closed dialogs must not start image downloads');
+      assert.ok(existsSync(new URL(`../public${project.image}`, import.meta.url)), 'the delivery thumbnail exists');
       assert.ok(article.includes(project.badge));
       for (const tag of project.tags) assert.ok(article.includes(`<span class="project-tag">${tag}</span>`));
       for (const link of project.links) {
@@ -646,6 +673,32 @@ test('both project grids show full descriptions, tags, and links without disclos
       }
     });
   }
+});
+
+test('opening a dialog loads only its own deferred images, once', () => {
+  const { context: c, run, element } = controller();
+  c.HTMLElement = class {};
+  const images = new Map();
+  for (const id of ['projectsModal', 'funProjectsModal', 'aboutModal']) {
+    const image = { dataset: { src: `/${id}.webp` }, loads: 0,
+      set src(value) { this.loadedSource = value; this.loads++; },
+      removeAttribute() { delete this.dataset.src; } };
+    images.set(id, image);
+    const modal = element(id);
+    const originalQuery = modal.querySelector;
+    modal.querySelector = selector => selector === '.modal-nav' ? null : originalQuery(selector);
+    modal.querySelectorAll = selector => selector === 'img[data-src]' && image.dataset.src ? [image] : [];
+  }
+  element('app').children = [];
+  run('closeAllModals = () => { activeModal = null; };');
+  c.openModal('projects');
+  assert.equal(images.get('projectsModal').loads, 1);
+  assert.equal(images.get('funProjectsModal').loads, 0);
+  assert.equal(images.get('aboutModal').loads, 0);
+  c.openModal('about');
+  assert.equal(images.get('aboutModal').loads, 1);
+  c.openModal('projects');
+  assert.equal(images.get('projectsModal').loads, 1, 'reopening reuses the loaded image');
 });
 
 test('modal keyboard loop includes disclosure summaries and skips collapsed or disabled descendants', () => {

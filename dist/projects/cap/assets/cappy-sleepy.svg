@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
-  <title>Cappy: sleepy</title>
-  <circle cx="120" cy="120" r="104" fill="#090c0b"/>
-  <rect x="54" y="127" width="52" height="22" rx="11" fill="#f9faf4" transform="rotate(0 80 138)"/>
-  <rect x="134" y="127" width="52" height="22" rx="11" fill="#f9faf4" transform="rotate(0 160 138)"/>
-</svg>

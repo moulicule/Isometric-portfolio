@@ -557,20 +557,12 @@ body, html {
   display: flex;
   align-items: center;
   gap: 14px;
+  background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   padding: 8px 16px;
   border-radius: 9999px;
   box-shadow: var(--surface-shadow);
   z-index: 20;
-}
-.bottom-dock::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: var(--panel-bg);
-  pointer-events: none;
-  z-index: -1;
 }
 .dock-group {
   display: flex;

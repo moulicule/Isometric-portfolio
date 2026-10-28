@@ -39,7 +39,7 @@ export const PORTFOLIO_DATA = {
       description: "For a two-month summer internship at Unacademy, I turned educator-written scripts into lesson screens for Airlearn, a language learning app. I adapted company Figma templates and mid journey images to create lessons across several languages. My daily workflow covered 7–10 lessons, Midjourney visuals, and working on feedback from senior designers and educators.",
       image: "/projects/airlearn/assets/cover-thumb.webp",
       imageAlt: "Airlearn internship: sky-blue case study with the waving mascot and Finnish and Korean lesson screens",
-      tags: ["UI Design", "Figma", "Language Learning", "Midjourney", "Template Adaptation"],
+      tags: ["UI Design", "Figma", "Language Learning", "Midjourney"],
       links: [
         { label: "Explore case study", url: "/projects/airlearn/index.html" },
         { label: "View Figma work", url: "https://www.figma.com/design/dRf6MEUD0QRJimYOsy5YI3/airlearn?node-id=0-1" }

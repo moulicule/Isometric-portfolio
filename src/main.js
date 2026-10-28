@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { inject } from '@vercel/analytics';
+import { injectSpeedInsights } from '@vercel/speed-insights';
 import { sound } from './audio.js';
 import { PORTFOLIO_DATA } from './data.js';
 import { waitForSceneReady } from './scene-ready.js';
@@ -1591,3 +1592,6 @@ initPage();
 
 // Initialize Vercel Analytics
 inject();
+
+// Initialize Vercel Speed Insights
+injectSpeedInsights();

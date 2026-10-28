@@ -13,7 +13,7 @@ An interactive, real-time 3D isometric room portfolio webpage powered by **Splin
 - **📚 Bookshelf**: Click the wall bookshelf to open the **Skills & Tech Stack** with categorized proficiencies.
 - **🌱 House Plant**: Water the plant to send droplets into its pot and watch its foliage perk up. Hydration starts at 50%, rises 25 points per watering, and drops 10 points per visible minute; hidden tabs pause thirst.
 - **🛏️ Cozy Bed**: Click the bed to enter **Zen Mode**—dimming room lights, launching soothing ambient lofi soundscapes, and displaying a live digital focus clock.
-- **🌤️ Skylight Window**: The room starts at **Golden Sunset** and smoothly cycles through **Cozy Night**, **Day**, and back to sunset every **10 minutes** once ready. Click the skylight, use the theme buttons, or press `1`–`3` to fade into a phase over **1 second** and continue the cycle from there. Zen mode holds night lighting; exiting resumes from night.
+- **🌤️ Skylight Window**: The room starts at **Cozy Night** and smoothly cycles through **Soft Daylight**, **Pastel Sunset**, and back to night every **10 minutes** once ready. Open Lighting to scrub a horizontal **Day → Sunset → Night** slider; the room and sky update immediately and the cycle continues from that position. Click the skylight or press `1`–`3` to fade into a phase over **1 second**. Zen mode holds night lighting; exiting resumes from night.
 - **🎮 Gaming Controller**: The controller’s Creative Playground pin opens Timescape, a hand-tracked generative-art installation, alongside selected film, motion, and video editing work.
 - **⏰ Live Wall Clock**: The hour (`Cylinder 19`) and minute (`Cylinder 18`) hands on the 3D wall clock tick and rotate in real-time according to the user's system clock.
 - **👤 Sticky Notes**: Click the colorful sticky notes on the wall to open **About & Contact**, with direct email and LinkedIn links.
@@ -71,7 +71,7 @@ Rebuild and deploy to publish changes. After deployment, use [LinkedIn Post Insp
 
 The Projects dialog links to CAP at `/projects/cap/index.html` and its build journal. All of CAP’s editable pages, scripts, styles, vendor libraries, and assets live in the real `public/projects/cap/` folder inside this repository. No external folder or separate CAP server is required.
 
-Edit `public/projects/cap/`, then reopen or refresh the case study from the running portfolio. The card’s summary lives in `src/data.js`; its photo comes from CAP. The former external CAP folder is retained as a backup and is no longer linked to the portfolio.
+Edit `public/projects/cap/`, then reopen or refresh the case study from the running portfolio. The card’s full description lives in `src/data.js`; its photo comes from CAP. The former external CAP folder is retained as a backup and is no longer linked to the portfolio.
 
 `npm run build` includes the latest CAP files in the generated `dist/projects/cap/`. `npm run preview` shows that build snapshot. Commit and push the portfolio source together, and configure your hosting service to run `npm run build` and publish `dist/`.
 
@@ -101,6 +101,6 @@ node --test tests/scene-ready.test.mjs
 │   ├── scene-ready.js      # Asset/render readiness before revealing the room
 │   ├── audio.js            # Procedural Web Audio API sound synthesis engine
 │   ├── data.js             # Project showcase, skills, and developer profile data
-│   └── style.css           # Glassmorphic UI styles, animations, and responsive layouts
+│   └── style.css           # Tactile cream UI styles, animations, and responsive layouts
 └── package.json            # Project dependencies (@splinetool/runtime, three, canvas-confetti, gsap, vite)
 ```

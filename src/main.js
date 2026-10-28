@@ -6,11 +6,15 @@ import { PORTFOLIO_DATA } from './data.js';
 import { waitForSceneReady } from './scene-ready.js';
 import { DAY_NIGHT_CYCLE_MS, DAY_NIGHT_PHASES, getDayNightPhase } from './day-night-cycle.js';
 import { loadDeskController } from './desk-controller.js';
+import { applyRoomPalette } from './room-palette.js';
 import { createChairSwivel, createWallClock, createPlantInteraction } from './scene-motion.js';
 
 // DOM References
 const appEl = document.getElementById('app');
 const canvas = document.getElementById('canvas3d');
+const skyAtmosphere = document.getElementById('skyAtmosphere');
+const skyClouds = document.getElementById('skyClouds');
+const skyStars = document.getElementById('skyStars');
 const loadingScreen = document.getElementById('loadingScreen');
 const loadingBackdrop = document.getElementById('loadingBackdrop');
 const loadingStatus = document.getElementById('loadingStatus');
@@ -45,6 +49,8 @@ const waterPlantBtn = document.getElementById('waterPlantBtn');
 const togglePinsBtn = document.getElementById('togglePinsBtn');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
 const exitZenBtn = document.getElementById('exitZenBtn');
+const lightingSlider = document.getElementById('lightingSlider');
+const lightingIcons = [...document.querySelectorAll('.lighting-stops .ui-icon')];
 const dockDropdowns = [...document.querySelectorAll('.bottom-dock .dropdown')];
 const interactionMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -69,7 +75,7 @@ const pointerStart = { x: 0, y: 0 };
 // Room State
 const state = {
   lampOn: true,
-  theme: 'sunset',
+  theme: 'night',
   cameraPreset: 'iso',
   pinsVisible: true,
   zenMode: false,
@@ -128,37 +134,50 @@ const ZOOM_BOUNDS = {
   max: Math.max(...Object.values(CAMERA_PRESETS).map(({ zoom }) => zoom)) * 1.1
 };
 
-// Lighting Palettes
+// Lighting and decorative sky share one blend throughout the cycle.
 const THEMES = {
   night: {
-    bg: new THREE.Color('#30262c'),
-    sunColor: new THREE.Color(0.25, 0.35, 0.7),
-    sunIntensity: 0.35,
-    skyColor: new THREE.Color(0.15, 0.22, 0.45),
+    bg: new THREE.Color('#51495E'),
+    sunColor: new THREE.Color('#B9B1DE'),
+    sunIntensity: 0.30,
+    skyColor: new THREE.Color('#8D88AF'),
     skyIntensity: 0.25,
     lampIntensity: 1.6,
+    cloudColor: new THREE.Color('#D4C3EF'),
+    cloudOpacity: 0.15,
+    starOpacity: 1,
     label: 'Cozy Night'
   },
   day: {
-    bg: new THREE.Color('#8a674e'),
-    sunColor: new THREE.Color(1.0, 0.96, 0.88),
-    sunIntensity: 1.3,
-    skyColor: new THREE.Color(0.55, 0.78, 1.0),
-    skyIntensity: 0.65,
+    bg: new THREE.Color('#D8E8E7'),
+    sunColor: new THREE.Color('#FFF1DC'),
+    sunIntensity: 1.05,
+    skyColor: new THREE.Color('#D5E1CE'),
+    skyIntensity: 0.60,
     lampIntensity: 0.15,
-    label: 'Bright Daylight'
+    cloudColor: new THREE.Color('#FFFCF6'),
+    cloudOpacity: 1,
+    starOpacity: 0,
+    label: 'Soft Daylight'
   },
   sunset: {
-    bg: new THREE.Color('#70452e'),
-    sunColor: new THREE.Color(1.0, 0.5, 0.22),
-    sunIntensity: 1.2,
-    skyColor: new THREE.Color(0.85, 0.35, 0.65),
-    skyIntensity: 0.55,
+    bg: new THREE.Color('#DEA6B6'),
+    sunColor: new THREE.Color('#FFD9CA'),
+    sunIntensity: 0.80,
+    skyColor: new THREE.Color('#D4C3EF'),
+    skyIntensity: 0.50,
     lampIntensity: 1.3,
-    label: 'Golden Sunset'
+    cloudColor: new THREE.Color('#F7E1D2'),
+    cloudOpacity: 0.70,
+    starOpacity: 0.15,
+    label: 'Pastel Sunset'
   }
 };
-const cycleBackgroundColor = new THREE.Color();
+const cycleBackgroundColor = THEMES.night.bg.clone();
+const runtimeBackgroundColor = cycleBackgroundColor.clone();
+const cycleCloudColor = THEMES.night.cloudColor.clone();
+let cycleCloudOpacity = THEMES.night.cloudOpacity;
+let cycleStarOpacity = THEMES.night.starOpacity;
 let appliedBackground = null;
 let themeTransition = null;
 const THEME_FADE_MS = 1000;
@@ -185,15 +204,15 @@ const objects = {
 
 // Hotspot definitions mapped to 3D room objects
 const HOTSPOTS = [
-  { id: 'funProjects', name: 'Gaming Controller', label: 'Creative Playground', icon: '🎮', objKey: 'controller', cameraPreset: 'desk', offsetY: 3, revealOffsetY: 12, secondary: true, action: trigger => openModal('funProjects', trigger) },
-  { id: 'projects', name: 'Computer', label: 'Projects', icon: '💻', objKey: 'computer', cameraPreset: 'desk', offsetY: 0, revealOffsetY: 27, secondary: true, action: trigger => openModal('projects', trigger) },
-  { id: 'lamp', name: 'Bed Table', label: 'Bedside Lamp', icon: '💡', objKey: 'bedTable', offsetY: 50, revealOffsetY: 65, secondary: true, action: () => toggleLamp() },
-  { id: 'chair', name: 'Chair', label: 'Swivel Chair', icon: '🪑', objKey: 'chair', cameraPreset: 'desk', offsetY: 0, revealOffsetY: 45, secondary: true, action: () => spinChair() },
-  { id: 'skills', name: 'Books', label: 'Skills', icon: '📚', objKey: 'books', offsetY: 0, revealOffsetY: 27, secondary: true, action: trigger => openModal('skills', trigger) },
-  { id: 'plant', name: 'Plant', label: 'House Plant', icon: '🌱', objKey: 'plant', offsetY: 0, revealOffsetY: 50, secondary: true, action: () => waterPlant() },
-  { id: 'bed', name: 'Bed', label: 'Zen Mode', icon: '🛏️', objKey: 'bed', cameraPreset: 'bed', offsetY: 0, revealOffsetY: 25, secondary: true, action: () => toggleZenMode() },
+  { id: 'funProjects', name: 'Gaming Controller', label: 'Creative Playground', icon: '🎮', objKey: 'controller', cameraPreset: 'desk', offsetY: 3, revealOffsetY: 12, action: trigger => openModal('funProjects', trigger) },
+  { id: 'projects', name: 'Computer', label: 'Projects', icon: '💻', objKey: 'computer', cameraPreset: 'desk', offsetY: 0, revealOffsetY: 27, action: trigger => openModal('projects', trigger) },
+  { id: 'lamp', name: 'Bed Table', label: 'Bedside Lamp', icon: '💡', objKey: 'bedTable', offsetY: 50, revealOffsetY: 65, action: () => toggleLamp() },
+  { id: 'chair', name: 'Chair', label: 'Swivel Chair', icon: '🪑', objKey: 'chair', cameraPreset: 'desk', offsetY: 0, revealOffsetY: 45, action: () => spinChair() },
+  { id: 'skills', name: 'Books', label: 'Skills', icon: '📚', objKey: 'books', offsetY: 0, revealOffsetY: 27, action: trigger => openModal('skills', trigger) },
+  { id: 'plant', name: 'Plant', label: 'House Plant', icon: '🌱', objKey: 'plant', offsetY: 0, revealOffsetY: 50, action: () => waterPlant() },
+  { id: 'bed', name: 'Bed', label: 'Zen Mode', icon: '🛏️', objKey: 'bed', cameraPreset: 'bed', offsetY: 0, revealOffsetY: 25, action: () => toggleZenMode() },
   { id: 'window', name: 'Window', label: 'Atmosphere & Sky', icon: '🌤️', objKey: 'window', pin: false, action: () => cycleTheme() },
-  { id: 'about', name: 'Sticky Notes', label: 'About Me', icon: '👤', objKey: 'stickyNotes', cameraPreset: 'desk', offsetY: 0, secondary: true, action: trigger => openModal('about', trigger) }
+  { id: 'about', name: 'Sticky Notes', label: 'About Me', icon: '👤', objKey: 'stickyNotes', cameraPreset: 'desk', offsetY: 0, action: trigger => openModal('about', trigger) }
 ];
 
 function activateHotspot(spot, trigger = null) {
@@ -247,6 +266,7 @@ async function init() {
     syncResponsiveCameraZoom();
     configureCameraControls();
     setupSceneReferences();
+    applyRoomPalette(splineApp, threeScene);
     objects.controller = await loadDeskController(splineApp, threeScene);
     await setupObjectInteractions();
     updateClockHands();
@@ -513,44 +533,39 @@ function setupHotspots() {
     if (spot.pin === false) return;
     const el = document.createElement('button');
     el.type = 'button';
-    el.className = spot.secondary ? 'hotspot-pin hotspot-secondary' : 'hotspot-pin';
+    el.className = 'hotspot-pin';
     el.id = `hotspot-${spot.id}`;
     el.setAttribute('aria-label', spot.label);
-    if (!spot.secondary) el.title = spot.label;
     el.hidden = true;
     const content = `
       <div class="hotspot-icon" aria-hidden="true">${spot.icon}</div>
       <div class="hotspot-label">${spot.label}${spot.id === 'plant' ? '<span class="hotspot-progress"></span>' : ''}</div>
     `;
-    el.innerHTML = spot.secondary
-      ? `<span class="hotspot-ring" aria-hidden="true"></span><span class="hotspot-bubble">${content}</span>`
-      : content;
-    if (spot.secondary) {
-      spot.bubble = el.querySelector('.hotspot-bubble');
-      spot.ring = el.querySelector('.hotspot-ring');
-      const obj = objects[spot.objKey];
-      const bounds = obj && spot.revealOffsetY === undefined && new THREE.Box3().setFromObject(obj);
-      spot.bounds = [];
-      if (bounds && !bounds.isEmpty()) {
-        // Cache geometry bounds once; project their corners as the camera moves.
-        for (const x of [bounds.min.x, bounds.max.x]) {
-          for (const y of [bounds.min.y, bounds.max.y]) {
-            for (const z of [bounds.min.z, bounds.max.z]) {
-              spot.bounds.push(obj.worldToLocal(new THREE.Vector3(x, y, z)));
-            }
+    el.innerHTML = `<span class="hotspot-ring" aria-hidden="true"></span><span class="hotspot-bubble">${content}</span>`;
+    spot.bubble = el.querySelector('.hotspot-bubble');
+    spot.ring = el.querySelector('.hotspot-ring');
+    const obj = objects[spot.objKey];
+    const bounds = obj && spot.revealOffsetY === undefined && new THREE.Box3().setFromObject(obj);
+    spot.bounds = [];
+    if (bounds && !bounds.isEmpty()) {
+      // Cache geometry bounds once; project their corners as the camera moves.
+      for (const x of [bounds.min.x, bounds.max.x]) {
+        for (const y of [bounds.min.y, bounds.max.y]) {
+          for (const z of [bounds.min.z, bounds.max.z]) {
+            spot.bounds.push(obj.worldToLocal(new THREE.Vector3(x, y, z)));
           }
         }
       }
-      const hoverPin = event => {
-        const target = getPinHotspot(event, spot);
-        for (const pin of HOTSPOTS) pin.pinHovered = pin === target;
-      };
-      el.addEventListener('pointerenter', hoverPin);
-      el.addEventListener('pointermove', hoverPin);
-      el.addEventListener('pointerleave', () => {
-        for (const pin of HOTSPOTS) pin.pinHovered = false;
-      });
     }
+    const hoverPin = event => {
+      const target = getPinHotspot(event, spot);
+      for (const pin of HOTSPOTS) pin.pinHovered = pin === target;
+    };
+    el.addEventListener('pointerenter', hoverPin);
+    el.addEventListener('pointermove', hoverPin);
+    el.addEventListener('pointerleave', () => {
+      for (const pin of HOTSPOTS) pin.pinHovered = false;
+    });
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       const target = e.detail === 0 ? spot : getPinHotspot(e, spot);
@@ -560,14 +575,12 @@ function setupHotspots() {
     spot.domElement = el;
     spot.worldMatrix = new THREE.Matrix4();
     spot.layoutDirty = true;
-    if (spot.secondary) {
-      spot.bubbleSize = { width: 0, height: 0 };
-      bubbleSpots.set(spot.bubble, spot);
-      bubbleObserver.observe(spot.bubble);
-    }
+    spot.bubbleSize = { width: 0, height: 0 };
+    bubbleSpots.set(spot.bubble, spot);
+    bubbleObserver.observe(spot.bubble);
   });
   gsap.matchMedia().add({ motion: '(prefers-reduced-motion: no-preference)', reduced: '(prefers-reduced-motion: reduce)' }, context => {
-    HOTSPOTS.filter(spot => spot.secondary).forEach(spot => {
+    HOTSPOTS.filter(spot => spot.domElement).forEach(spot => {
       spot.reducedMotion = context.conditions.reduced;
       spot.revealed = null;
       spot.layoutDirty = true;
@@ -623,7 +636,7 @@ function updateHotspots(projectPositions = true) {
   if (!state.pinsVisible || activeModal) {
     hotspotsDirty = true;
     for (const spot of HOTSPOTS) {
-      if (!spot.secondary || !spot.domElement) continue;
+      if (!spot.domElement) continue;
       spot.pinHovered = false;
       setHotspotRevealed(spot, false);
     }
@@ -672,31 +685,29 @@ function updateHotspots(projectPositions = true) {
     const y = (-v.y * 0.5 + 0.5) * rect.height;
     spot.screenX = x;
     spot.screenY = y;
-    if (spot.secondary) {
-      const { width, height } = spot.bubbleSize;
-      let objectTop = y;
-      // Use tuned reveal heights for large objects instead of their full bounds.
-      if (spot.revealOffsetY !== undefined) {
-        obj.getWorldPosition(v);
-        v.y += spot.revealOffsetY;
-        v.project(threeCamera);
-        objectTop = Math.min(objectTop, (-v.y * 0.5 + 0.5) * rect.height);
-      }
-      for (const corner of spot.bounds) {
-        v.copy(corner);
-        obj.localToWorld(v);
-        v.project(threeCamera);
-        objectTop = Math.min(objectTop, (-v.y * 0.5 + 0.5) * rect.height);
-      }
-      const lift = Math.max(44, y - objectTop + height / 2 + 14);
-      const bubbleY = Math.max(8 + height / 2, y - lift);
-      spot.domElement.style.setProperty('--pin-lift', `${y - bubbleY}px`);
-      spot.bubbleX = THREE.MathUtils.clamp(x, width / 2 + 8, rect.width - width / 2 - 8) - x;
-      const pointerX = THREE.MathUtils.clamp(width / 2 - spot.bubbleX, 12, Math.max(12, width - 12));
-      spot.domElement.style.setProperty('--pin-pointer-x', `${pointerX}px`);
-      spot.bubbleY = bubbleY - y;
-      spot.bubbleRise = null;
+    const { width, height } = spot.bubbleSize;
+    let objectTop = y;
+    // Use tuned reveal heights for large objects instead of their full bounds.
+    if (spot.revealOffsetY !== undefined) {
+      obj.getWorldPosition(v);
+      v.y += spot.revealOffsetY;
+      v.project(threeCamera);
+      objectTop = Math.min(objectTop, (-v.y * 0.5 + 0.5) * rect.height);
     }
+    for (const corner of spot.bounds) {
+      v.copy(corner);
+      obj.localToWorld(v);
+      v.project(threeCamera);
+      objectTop = Math.min(objectTop, (-v.y * 0.5 + 0.5) * rect.height);
+    }
+    const lift = Math.max(44, y - objectTop + height / 2 + 14);
+    const bubbleY = Math.max(8 + height / 2, y - lift);
+    spot.domElement.style.setProperty('--pin-lift', `${y - bubbleY}px`);
+    spot.bubbleX = THREE.MathUtils.clamp(x, width / 2 + 8, rect.width - width / 2 - 8) - x;
+    const pointerX = THREE.MathUtils.clamp(width / 2 - spot.bubbleX, 12, Math.max(12, width - 12));
+    spot.domElement.style.setProperty('--pin-pointer-x', `${pointerX}px`);
+    spot.bubbleY = bubbleY - y;
+    spot.bubbleRise = null;
 
     spot.domElement.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
     updateHotspotBubble(spot);
@@ -705,7 +716,6 @@ function updateHotspots(projectPositions = true) {
 }
 
 function updateHotspotBubble(spot) {
-  if (!spot.secondary) return;
   setHotspotRevealed(spot, !spot.domElement.hidden && !isDragging
     && (state.hoveredInteractive === spot || spot.pinHovered || spot.domElement.matches(':focus-visible')));
   if (spot.domElement.hidden) return;
@@ -834,6 +844,9 @@ function setTheme(themeName, { notify = true, restartCycle = true } = {}) {
       start: now,
       from: {
         bg: cycleBackgroundColor.clone(),
+        cloudColor: cycleCloudColor.clone(),
+        cloudOpacity: cycleCloudOpacity,
+        starOpacity: cycleStarOpacity,
         sunColor: objects.sunLight?.color.clone() ?? current.sunColor.clone(),
         sunIntensity: objects.sunLight?.intensity ?? current.sunIntensity,
         skyColor: objects.skyLight?.color.clone() ?? current.skyColor.clone(),
@@ -848,14 +861,7 @@ function setTheme(themeName, { notify = true, restartCycle = true } = {}) {
   state.theme = themeName;
   appEl.setAttribute('data-theme', themeName);
 
-  // Keep menu selection in sync with manual changes and the day/night cycle.
-  document.querySelectorAll('#themeGroup [data-theme]').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.theme === themeName);
-    btn.setAttribute('aria-checked', String(btn.dataset.theme === themeName));
-  });
-  const themeOption = document.querySelector(`#themeMenu [data-theme="${themeName}"]`);
-  const themeToggle = document.getElementById('themeToggleBtn');
-  themeToggle.setAttribute('aria-label', `Lighting: ${themeOption.lastElementChild.textContent}`);
+  updateLightingSlider({ day: 0, sunset: 50, night: 100 }[themeName], { automatic: !restartCycle });
 
   // Bedside Lamp behavior based on theme
   if (themeName === 'night') {
@@ -867,14 +873,46 @@ function setTheme(themeName, { notify = true, restartCycle = true } = {}) {
   if (notify) showToast(`Atmosphere set to ${theme.label}`, '🌤️');
 }
 
+function updateLightingSlider(value, { automatic = false } = {}) {
+  if (automatic && document.getElementById('themeDropdown').classList.contains('open')) return;
+  lightingSlider.value = String(Math.round(value * 10) / 10);
+  const label = value < 0.25 ? 'Day' : Math.abs(value - 50) < 0.25 ? 'Sunset' : value > 99.75 ? 'Night'
+    : value < 50 ? `Day to Sunset, ${Math.round(value * 2)}%`
+    : `Sunset to Night, ${Math.round((value - 50) * 2)}%`;
+  lightingSlider.setAttribute('aria-valuetext', label);
+  document.getElementById('themeToggleBtn').setAttribute('aria-label', `Lighting: ${label}`);
+  const thumbTravel = lightingSlider.clientWidth - 30;
+  lightingIcons.forEach((icon, index) => {
+    icon.classList.toggle('is-lit', Math.abs(value / 100 - index / 2) * thumbTravel <= 15);
+  });
+}
+
+function setTimeOfDay(value) {
+  if (state.zenMode) return;
+  const now = performance.now();
+  const elapsed = (1 + value / 50) * (DAY_NIGHT_CYCLE_MS / DAY_NIGHT_PHASES.length);
+  // Scrubbing applies immediately, then the existing cycle continues from here.
+  themeTransition = null;
+  dayNightCycleStart = now - elapsed;
+  lastCycleUpdate = -Infinity;
+  updateLightingSlider(value);
+  updateDayNightCycle(now);
+}
+
 function applyThemeLighting(from, to = from, blend = 0) {
   const background = cycleBackgroundColor.copy(from.bg).lerp(to.bg, blend).getStyle();
   if (background !== appliedBackground) {
-    // Spline's opaque canvas covers the CSS atmosphere behind it.
-    splineApp?.setBackgroundColor(background);
+    // Spline 2.0.60's Color4 keeps alpha zero; explicit sRGB also respects its color management.
+    const rgb = runtimeBackgroundColor.copy(cycleBackgroundColor).convertLinearToSRGB();
+    threeScene?.activePage.bgColor.setRGB(rgb.r, rgb.g, rgb.b, 'srgb');
     appEl.style.background = background;
     appliedBackground = background;
   }
+  skyClouds.style.color = cycleCloudColor.copy(from.cloudColor).lerp(to.cloudColor, blend).getStyle();
+  cycleCloudOpacity = THREE.MathUtils.lerp(from.cloudOpacity, to.cloudOpacity, blend);
+  cycleStarOpacity = THREE.MathUtils.lerp(from.starOpacity, to.starOpacity, blend);
+  skyClouds.style.opacity = cycleCloudOpacity;
+  skyStars.style.opacity = cycleStarOpacity;
   if (objects.sunLight) {
     objects.sunLight.color.copy(from.sunColor).lerp(to.sunColor, blend);
     objects.sunLight.intensity = THREE.MathUtils.lerp(from.sunIntensity, to.sunIntensity, blend);
@@ -905,6 +943,9 @@ function updateDayNightCycle(now) {
   const { from, to, blend } = getDayNightPhase(now - dayNightCycleStart);
   if (state.theme !== from) setTheme(from, { notify: false, restartCycle: false });
   applyThemeLighting(THEMES[from], THEMES[to], blend);
+  const position = ((now - dayNightCycleStart) % DAY_NIGHT_CYCLE_MS + DAY_NIGHT_CYCLE_MS)
+    % DAY_NIGHT_CYCLE_MS / (DAY_NIGHT_CYCLE_MS / DAY_NIGHT_PHASES.length);
+  updateLightingSlider(position < 1 ? (1 - position) * 100 : (position - 1) * 50, { automatic: true });
 }
 
 function cycleTheme() {
@@ -914,7 +955,8 @@ function cycleTheme() {
 }
 
 function setupLightingAndTheme() {
-  setTheme('sunset', { notify: false });
+  splineApp.setBackgroundColor('transparent');
+  setTheme('night', { notify: false });
 }
 
 // Bedside Lamp Toggle
@@ -1037,7 +1079,7 @@ function flushPointerHover() {
     hoverTooltip.textContent = `${targetSpot.icon} ${targetSpot.label} — ${targetSpot.statusText || 'Click to interact'}`;
     hoverTooltip.style.left = `${e.clientX}px`;
     hoverTooltip.style.top = `${e.clientY}px`;
-    const revealedPin = targetSpot.secondary && state.pinsVisible && targetSpot.domElement && !targetSpot.domElement.hidden;
+    const revealedPin = state.pinsVisible && targetSpot.domElement && !targetSpot.domElement.hidden;
     hoverTooltip.classList.toggle('visible', !revealedPin);
   } else {
     state.hoveredInteractive = null;
@@ -1211,8 +1253,13 @@ function closeAllModals({ restoreFocus = true, immediate = false } = {}) {
 
 function trapModalFocus(event) {
   const dialog = activeModal.querySelector('[role="dialog"]');
-  const focusable = [...dialog.querySelectorAll('a[href], button, input, select, textarea, [tabindex]')]
-    .filter(el => !el.disabled && el.tabIndex >= 0 && !el.closest('[inert]') && el.getClientRects().length);
+  const focusable = [...dialog.querySelectorAll('a[href], button, input, select, textarea, summary, [tabindex]')]
+    .filter(el => {
+      const closedDetails = el.closest('details:not([open])');
+      const insideClosedDetails = closedDetails && el !== closedDetails.querySelector('summary');
+      return !el.disabled && el.tabIndex >= 0 && !el.closest('[inert]')
+        && !insideClosedDetails && el.getClientRects().length;
+    });
   const first = focusable[0] || dialog;
   const last = focusable.at(-1) || dialog;
   const focused = document.activeElement;
@@ -1241,12 +1288,12 @@ function renderContent() {
     const projectsGrid = document.getElementById(gridId);
     if (projectsGrid) {
       projectsGrid.innerHTML = projects.map(p => `
-        <div class="project-card">
+        <article class="project-card" aria-labelledby="project-${p.id}">
           <img class="project-image" src="${p.image}" alt="${p.imageAlt}" loading="lazy">
           <div class="project-card-header">
             <div>
-              <div class="project-name">${p.title}</div>
-              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; white-space: pre-line;">${p.category}</div>
+              <h3 class="project-name" id="project-${p.id}">${p.title}</h3>
+              <p class="project-category">${p.category}</p>
             </div>
             <span class="project-badge">${p.badge}</span>
           </div>
@@ -1262,7 +1309,7 @@ function renderContent() {
               </a>
             `).join('')}
           </div>
-        </div>
+        </article>
       `).join('');
     }
   }
@@ -1270,20 +1317,21 @@ function renderContent() {
   // 2. Skills
   const skillsContainer = document.getElementById('skillsContainer');
   if (skillsContainer) {
-    skillsContainer.innerHTML = `
-      ${PORTFOLIO_DATA.skills.map(cat => `
-        <div>
-          <h3 class="skill-category-title">${cat.category}</h3>
-          <div class="skills-row">
+    const skillCards = PORTFOLIO_DATA.skills.map((cat, index) => `
+        <section class="skill-group${index % 2 ? ' skill-group-support' : ''}" style="order: ${index}">
+          <h3 class="skill-category-title"><span class="skill-group-icon"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#${cat.icon}"/></svg></span>${cat.category}</h3>
+          <ul class="skills-row">
             ${cat.items.map(s => `
-              <div class="skill-card">
-                ${s.name}
-              </div>
+              <li class="skill-card">${s.name}</li>
             `).join('')}
-          </div>
-        </div>
-      `).join('')}
-    `;
+          </ul>
+        </section>
+      `);
+    skillsContainer.innerHTML = [0, 1].map(column => `
+      <div class="skills-column">
+        ${skillCards.filter((_, index) => index % 2 === column).join('')}
+      </div>
+    `).join('');
   }
 
   // 3. About & Contact
@@ -1296,8 +1344,9 @@ function renderContent() {
     aboutContainer.innerHTML = `
       <div class="profile-card">
         <div>
-          <h2 style="font-size: 1.4rem; font-weight: 700;">${dev.name}</h2>
-          <div style="font-size: 0.9rem; color: var(--accent-amber); margin-top: 4px;">${dev.title}</div>
+          <p class="section-eyebrow">A little about me</p>
+          <h2 class="profile-name">${dev.name}</h2>
+          <p class="profile-title">${dev.title}</p>
           <div class="profile-location"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#map-pin"/></svg><span>${dev.location}</span></div>
         </div>
 
@@ -1367,6 +1416,9 @@ function setupSceneInput() {
 
 // DOM controls are available independently of the renderer.
 function setupEventListeners() {
+  const syncSkyMotion = () => skyAtmosphere.classList.toggle('is-paused', document.hidden);
+  document.addEventListener('visibilitychange', syncSkyMotion);
+  syncSkyMotion();
   setupModalSectionMotion();
   // Top Nav Modal Buttons
   document.querySelectorAll('[data-modal]').forEach(btn => {
@@ -1401,20 +1453,17 @@ function setupEventListeners() {
     showToast(`Sound Effects: ${isMuted ? 'MUTED' : 'ENABLED'}`, isMuted ? '🔇' : '🔊');
   });
 
-  // Theme menu options
-  document.querySelectorAll('#themeGroup [data-theme]').forEach(btn => {
-    btn.addEventListener('click', () => setTheme(btn.dataset.theme));
-  });
+  lightingSlider.addEventListener('input', () => setTimeOfDay(Number(lightingSlider.value)));
 
   // Camera menu options
   document.querySelectorAll('#cameraGroup [data-cam]').forEach(btn => {
     btn.addEventListener('click', () => setCameraPreset(btn.dataset.cam));
   });
 
-  // All dock menus share the Interactions behavior.
+  // Dock panels share disclosure and dismissal behavior.
   dockDropdowns.forEach(dropdown => {
     const toggle = dropdown.querySelector('.dropdown-toggle');
-    const items = [...dropdown.querySelectorAll('.dropdown-item')];
+    const items = [...dropdown.querySelectorAll('.dropdown-item, input[type="range"]')];
     toggle.addEventListener('click', (e) => {
       e.stopPropagation();
       const isOpen = !dropdown.classList.contains('open');
@@ -1424,7 +1473,7 @@ function setupEventListeners() {
     });
 
     // Close dropdown on action selection
-    items.forEach(item => {
+    items.filter(item => item !== lightingSlider).forEach(item => {
       item.addEventListener('click', () => {
         setDockDropdownOpen(dropdown, false, true);
       });
@@ -1441,6 +1490,8 @@ function setupEventListeners() {
       if (e.relatedTarget && !dropdown.contains(e.relatedTarget)) setDockDropdownOpen(dropdown, false);
     });
     dropdown.addEventListener('keydown', (e) => {
+      // Range inputs own their arrow, Home, End, and Tab behavior.
+      if (e.target === lightingSlider) return;
       const index = items.indexOf(document.activeElement);
       if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
         e.preventDefault();

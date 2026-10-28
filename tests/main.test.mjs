@@ -21,6 +21,7 @@ function controller({ menus = false } = {}) {
       const classes = new Set();
       elements.set(id, {
         id,
+        clientWidth: 242,
         attributes: {}, listeners: {}, style: {},
         classList: {
           add: value => classes.add(value), remove: value => classes.delete(value),
@@ -30,9 +31,12 @@ function controller({ menus = false } = {}) {
         setAttribute(name, value) { this.attributes[name] = value; },
         getAttribute(name) { return this.attributes[name]; },
         addEventListener(name, listener) { this.listeners[name] = listener; },
-        querySelector: selector => element(`${id} ${selector === '[aria-checked="true"]' ? 'item' : selector}`),
-        querySelectorAll: selector => selector === '.dropdown-item' ? [element(`${id} item`)] : [], appendChild() {},
-        contains: target => target?.id === id || target?.id?.startsWith(`${id} `),
+        querySelector: selector => id === 'themeDropdown' && selector === '[aria-checked="true"]'
+          ? null : element(`${id} ${selector === '[aria-checked="true"]' ? 'item' : selector}`),
+        querySelectorAll: selector => selector === '.dropdown-item, input[type="range"]'
+          ? [id === 'themeDropdown' ? element('lightingSlider') : element(`${id} item`)] : [], appendChild() {},
+        contains: target => target?.id === id || target?.id?.startsWith(`${id} `)
+          || (id === 'themeDropdown' && target?.id === 'lightingSlider'),
         focus() { context.document.activeElement = this; }
       });
     }
@@ -50,8 +54,10 @@ function controller({ menus = false } = {}) {
       addEventListener(name, listener) { (documentListeners[name] ||= []).push(listener); },
       createElement: () => element('created'),
       getElementById: element,
-      querySelectorAll: selector => menus && selector === '.bottom-dock .dropdown'
-        ? ['theme', 'camera', 'interactions'].map(id => element(`${id}Dropdown`)) : [],
+      querySelectorAll: selector => selector === '.lighting-stops .ui-icon'
+        ? ['dayIcon', 'sunsetIcon', 'nightIcon'].map(element)
+        : menus && selector === '.bottom-dock .dropdown'
+          ? ['theme', 'camera', 'interactions'].map(id => element(`${id}Dropdown`)) : [],
       querySelector: () => ({ lastElementChild: { textContent: 'Night' } })
     }
   });
@@ -92,7 +98,7 @@ test('all dock menus dismiss on a second Safari tap and outside click, while ret
     assert.equal(menu.inert, true, 'outside tap closes the menu');
 
     toggle.listeners.click({ detail: 0, stopPropagation() {} });
-    assert.equal(run('document.activeElement.id'), `${id}Dropdown item`);
+    assert.equal(run('document.activeElement.id'), id === 'theme' ? 'lightingSlider' : `${id}Dropdown item`);
     dropdown.listeners.keydown({ key: 'Tab' });
     assert.equal(menu.inert, true);
     assert.equal(run('document.activeElement.id'), toggle.id);
@@ -100,6 +106,85 @@ test('all dock menus dismiss on a second Safari tap and outside click, while ret
     dropdown.listeners.focusout({ relatedTarget: element('outside') });
     assert.equal(menu.inert, true, 'keyboard focus leaving the dropdown closes it');
   }
+});
+
+test('lighting slider scrubs the full atmosphere, interrupts fades, and resumes the cycle', () => {
+  const { context: c, run, element, advance, toasts } = controller();
+  run('setupModalSectionMotion = () => {}; setupEventListeners(); dayNightCycleStart = 0;');
+  c.setTheme('day');
+  advance(250);
+  for (const [value, from, to, blend] of [
+    [0, 'day', 'sunset', 0], [25, 'day', 'sunset', 0.5],
+    [50, 'sunset', 'night', 0], [75, 'sunset', 'night', 0.5], [100, 'night', 'day', 0]
+  ]) {
+    element('lightingSlider').value = String(value);
+    element('lightingSlider').listeners.input();
+    assert.equal(run('themeTransition'), null);
+    assert.equal(Number(element('lightingSlider').value), value);
+    const expected = run(`THEMES.${from}.bg.clone().lerp(THEMES.${to}.bg, ${blend}).getStyle()`);
+    assert.equal(element('app').style.background, expected);
+    assert.equal(run('cycleCloudColor.getStyle()'), run(`THEMES.${from}.cloudColor.clone().lerp(THEMES.${to}.cloudColor, ${blend}).getStyle()`));
+    assert.equal(run('cycleStarOpacity'), run(`THREE.MathUtils.lerp(THEMES.${from}.starOpacity, THEMES.${to}.starOpacity, ${blend})`));
+  }
+  assert.equal(toasts.length, 1, 'scrubbing does not flood notifications');
+  c.setTimeOfDay(25);
+  c.updateDayNightCycle(100250);
+  assert.equal(Number(element('lightingSlider').value), 50);
+  assert.equal(element('lightingSlider').attributes['aria-valuetext'], 'Sunset');
+  c.setTheme('night');
+  assert.equal(Number(element('lightingSlider').value), 100);
+  c.toggleZenMode(true);
+  c.setTimeOfDay(0);
+  assert.equal(Number(element('lightingSlider').value), 100, 'Zen keeps night');
+});
+
+test('lighting slider keeps native keyboard handling and stays open during input', () => {
+  const { run, element } = controller({ menus: true });
+  run('setupModalSectionMotion = () => {}; setupEventListeners();');
+  const dropdown = element('themeDropdown');
+  dropdown.querySelector('.dropdown-toggle').listeners.click({ detail: 0, stopPropagation() {} });
+  for (const key of ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Tab']) {
+    dropdown.listeners.keydown({ key, target: element('lightingSlider'), preventDefault() { assert.fail('native slider key was intercepted'); } });
+  }
+  element('lightingSlider').value = '50';
+  element('lightingSlider').listeners.input();
+  assert.equal(dropdown.querySelector('.dropdown-menu').inert, false);
+});
+
+test('an open lighting slider stays fixed through automatic phase changes but still accepts input', () => {
+  const { context: c, run, element, advance } = controller({ menus: true });
+  run('setupModalSectionMotion = () => {}; setupEventListeners();');
+  c.setTimeOfDay(25);
+  const dropdown = element('themeDropdown');
+  dropdown.querySelector('.dropdown-toggle').listeners.click({ detail: 1, stopPropagation() {} });
+  const valueText = element('lightingSlider').attributes['aria-valuetext'];
+  for (const now of [100, 100000, 300000]) {
+    c.updateDayNightCycle(now);
+    assert.equal(Number(element('lightingSlider').value), 25);
+    assert.equal(element('lightingSlider').attributes['aria-valuetext'], valueText);
+  }
+  assert.equal(run('state.theme'), 'night', 'the atmosphere continues cycling');
+  advance(300000);
+  element('lightingSlider').value = '75';
+  element('lightingSlider').listeners.input();
+  assert.equal(element('lightingSlider').attributes['aria-valuetext'], 'Sunset to Night, 50%');
+  c.updateDayNightCycle(350000);
+  assert.equal(Number(element('lightingSlider').value), 75);
+  dropdown.querySelector('.dropdown-toggle').listeners.click({ detail: 1, stopPropagation() {} });
+  c.updateDayNightCycle(350100);
+  assert.ok(Number(element('lightingSlider').value) > 75, 'closed sliders sync with the cycle again');
+});
+
+test('lighting icons light up only while under the thumb, including after resizing', () => {
+  const { context: c, element } = controller();
+  const icons = ['dayIcon', 'sunsetIcon', 'nightIcon'].map(element);
+  for (const [value, litIndex] of [[0, 0], [5, 0], [10, -1], [45, 1], [50, 1], [60, -1], [95, 2], [100, 2]]) {
+    c.updateLightingSlider(value);
+    assert.deepEqual(icons.map(icon => icon.classList.contains('is-lit')), icons.map((_, index) => index === litIndex));
+  }
+  element('lightingSlider').clientWidth = 180;
+  c.updateLightingSlider(9);
+  assert.equal(icons[0].classList.contains('is-lit'), true, 'coverage follows the rendered thumb size');
 });
 
 test('plant pin and Water Plant menu share progress and busy guards', () => {
@@ -304,7 +389,7 @@ test('stationary hotspots do no layout reads or position writes, but follow came
     sceneViewport = { width: 500, height: 500 };
     objects.computer = new THREE.Object3D();
     HOTSPOTS.splice(0, HOTSPOTS.length, { id: 'test', objKey: 'computer', domElement: pin, bubble,
-      secondary: true, worldMatrix: new THREE.Matrix4(), layoutDirty: true, bounds: [], offsetY: 0, revealOffsetY: 0,
+      worldMatrix: new THREE.Matrix4(), layoutDirty: true, bounds: [], offsetY: 0, revealOffsetY: 0,
       bubbleSize: { width: 100, height: 44 }, motion: { rise: 0 },
       revealTimeline: { play() {}, reverse() {} }, setBubbleX: countBubbleWrite, setBubbleY: countBubbleWrite });`);
   const object = run('objects.computer');
@@ -346,7 +431,7 @@ test('hotspot pointers follow their object when labels shift at viewport edges',
     sceneViewport = { width: 500, height: 500 };
     objects.computer = new THREE.Object3D();
     HOTSPOTS.splice(0, HOTSPOTS.length, { objKey: 'computer', domElement: pin,
-      secondary: true, worldMatrix: new THREE.Matrix4(), layoutDirty: true, bounds: [], offsetY: 0, revealOffsetY: 0,
+      worldMatrix: new THREE.Matrix4(), layoutDirty: true, bounds: [], offsetY: 0, revealOffsetY: 0,
       bubbleSize: { width: 100, height: 44 }, motion: { rise: 1 },
       revealTimeline: { play() {}, reverse() {} }, setBubbleX() {}, setBubbleY() {} });`);
   for (const [screenX, expectedPointer] of [[250, 50], [30, 22], [470, 78], [5, 12], [495, 88]]) {
@@ -392,8 +477,14 @@ test('chair camera transitions keep pins on the rendered room until Spline final
     lastTime = 0; updateDayNightCycle = updateClockHands = updateObjectInteractions = () => {};
     objects.chair = new THREE.Object3D(); objects.computer = new THREE.Object3D();
     objects.computer.position.set(1, 1, 0);
-    HOTSPOTS.push(...['chair', 'computer'].map(objKey => ({ objKey, offsetY: 0,
-      domElement: document.getElementById(objKey + '-pin'), worldMatrix: new THREE.Matrix4() })));
+    HOTSPOTS.push(...['chair', 'computer'].map(objKey => ({ objKey, offsetY: 0, bounds: [],
+      domElement: document.getElementById(objKey + '-pin'), worldMatrix: new THREE.Matrix4(),
+      bubbleSize: { width: 100, height: 44 }, motion: { rise: 0 },
+      revealTimeline: { play() {}, reverse() {} }, setBubbleX() {}, setBubbleY() {} })));
+    for (const spot of HOTSPOTS) {
+      spot.domElement.matches = () => false;
+      spot.domElement.style.setProperty = () => {};
+    }
     chairSwivel = { start() { return true; }, update() {} };
     sound.playWhoosh = () => {};
     originalActivateHotspot({ id: 'chair', cameraPreset: 'desk', action: spinChair });
@@ -502,7 +593,7 @@ test('controller parts resolve to the Creative Playground pin and open its dialo
     originalActivateHotspot(controllerSpot, trigger);
   `);
   assert.equal(run('controllerSpot.label'), 'Creative Playground');
-  assert.equal(run('controllerSpot.secondary'), true);
+  assert.notEqual(run('controllerSpot.pin'), false);
   assert.equal(run('openedDialog.name'), 'funProjects');
   assert.equal(run('openedDialog.opener === trigger'), true);
 });
@@ -518,4 +609,157 @@ test('creative projects render in Creative Playground with their links', () => {
   assert.match(funProjects, /href="https:\/\/github.com\/moulicule\/timescape-Moulik"/);
   assert.doesNotMatch(funProjects, /exhibition-notes\.pdf/);
   assert.doesNotMatch(element('projectsGrid').innerHTML, /Timescape|Film, Motion & Video Editing/);
+});
+
+test('both project grids show full descriptions, tags, and links without disclosures or duplicate previews', () => {
+  const { context: c, element } = controller();
+  c.renderContent();
+  for (const [grid, projects] of [['projectsGrid', PORTFOLIO_DATA.projects], ['funProjectsGrid', PORTFOLIO_DATA.funProjects]]) {
+    const articles = [...element(grid).innerHTML.matchAll(/<article\b[^>]*>([\s\S]*?)<\/article>/g)];
+    assert.equal(articles.length, projects.length);
+    projects.forEach((project, index) => {
+      const article = articles[index][1];
+      assert.doesNotMatch(article, /<details\b|<summary\b|\shidden(?:\s|=|>)|project-summary/);
+      assert.ok(article.includes(`<p class="project-desc">${project.description}</p>`), 'full description is visible');
+      assert.equal(article.split(project.description).length - 1, 1, 'description appears once');
+      assert.ok(!article.includes(project.summary), 'short preview is not repeated');
+      assert.ok(article.includes(`src="${project.image}"`));
+      assert.ok(article.includes(project.badge));
+      for (const tag of project.tags) assert.ok(article.includes(`<span class="project-tag">${tag}</span>`));
+      for (const link of project.links) {
+        assert.ok(article.includes(`href="${link.url}"`), 'original link is preserved');
+        assert.ok(article.includes(`<span>${link.label}</span>`));
+      }
+    });
+  }
+});
+
+test('modal keyboard loop includes disclosure summaries and skips collapsed or disabled descendants', () => {
+  const { context, run } = controller();
+  const focusable = (id, extra = {}) => ({
+    id, tabIndex: 0, disabled: false, getClientRects: () => [{}], closest: () => null,
+    focus() { context.document.activeElement = this; }, ...extra
+  });
+  const first = focusable('first');
+  const summary = focusable('summary');
+  let open = false;
+  const details = { querySelector: () => summary };
+  const closedAncestor = selector => selector === 'details:not([open])' && !open ? details : null;
+  summary.closest = closedAncestor;
+  const hiddenLink = focusable('details-link', { closest: closedAncestor });
+  const disabled = focusable('disabled', { disabled: true });
+  const offscreen = focusable('hidden', { getClientRects: () => [] });
+  context.testDialog = { querySelectorAll(selector) {
+    assert.ok(selector.includes('summary'));
+    return [first, summary, hiddenLink, disabled, offscreen];
+  }};
+  run('activeModal = { querySelector: () => testDialog };');
+  let prevented = 0;
+  context.key = { shiftKey: false, preventDefault() { prevented++; } };
+  context.document.activeElement = first;
+  run('trapModalFocus(key)');
+  assert.equal(prevented, 0, 'Tab from first proceeds naturally toward summary');
+  context.document.activeElement = summary;
+  run('trapModalFocus(key)');
+  assert.equal(context.document.activeElement, first, 'closed summary is the last reachable control');
+  open = true;
+  context.document.activeElement = summary;
+  run('trapModalFocus(key)');
+  assert.equal(context.document.activeElement, summary, 'open content participates in natural tab order');
+  context.document.activeElement = hiddenLink;
+  run('trapModalFocus(key)');
+  assert.equal(context.document.activeElement, first);
+  context.key.shiftKey = true;
+  run('trapModalFocus(key)');
+  assert.equal(context.document.activeElement, hiddenLink, 'Shift+Tab wraps to expanded content');
+});
+
+test('sky blends preserve Spline RGB and alpha without repeated parsing or warnings', async t => {
+  // The installed browser runtime's Color4 import needs a window during module setup.
+  globalThis.window = {};
+  let SplineColor;
+  try {
+    ({ i: SplineColor } = await import('../node_modules/@splinetool/runtime/build/runtime-chunk-KMKMRLPZ.js'));
+  } finally {
+    delete globalThis.window;
+  }
+  const warn = t.mock.method(console, 'warn', () => {});
+  const { context: c, run, element } = controller();
+  c.runtimeBackground = new SplineColor();
+  run(`
+    const skyBackgrounds = [];
+    threeScene = { activePage: { bgColor: runtimeBackground } };
+    splineApp = {
+      setBackgroundColor(color) { skyBackgrounds.push(color); runtimeBackground.setStyle(color); },
+      requestRender() {}
+    };
+    setupLightingAndTheme();
+    objects.sunLight = { color: new THREE.Color(), intensity: 0 };
+    objects.skyLight = { color: new THREE.Color(), intensity: 0 };
+    objects.lampLight1 = { intensity: 0 };
+    objects.lampLight2 = { intensity: 0 };
+    applyThemeLighting(THEMES.sunset, THEMES.night, 0.5);
+  `);
+  assert.equal(element('skyClouds').style.opacity, 0.425);
+  assert.equal(element('skyStars').style.opacity, 0.575);
+  assert.equal(element('skyClouds').style.color,
+    run('THEMES.sunset.cloudColor.clone().lerp(THEMES.night.cloudColor, 0.5).getStyle()'));
+  assert.equal(element('app').style.background,
+    run('THEMES.sunset.bg.clone().lerp(THEMES.night.bg, 0.5).getStyle()'));
+  assert.equal(run('skyBackgrounds.length'), 1);
+  assert.equal(run('skyBackgrounds[0]'), 'transparent');
+  assert.equal(c.runtimeBackground.a, 0);
+  assert.equal(c.runtimeBackground.getStyle(), element('app').style.background);
+  assert.equal(c.runtimeBackground.r, run('runtimeBackgroundColor.r'));
+  assert.ok(Math.abs(run('objects.lampLight1.intensity') - 1.45) < 1e-12);
+  run('state.lampOn = false; applyThemeLighting(THEMES.night);');
+  assert.equal(run('objects.lampLight1.intensity'), 0);
+  assert.equal(element('skyStars').style.opacity, 1, 'lamp toggle does not dim the sky');
+  for (const blend of [0, 0.2, 0.8, 1, 0.3]) {
+    run(`applyThemeLighting(THEMES.day, THEMES.sunset, ${blend});`);
+    assert.equal(c.runtimeBackground.a, 0);
+    assert.equal(c.runtimeBackground.getStyle(), element('app').style.background);
+  }
+  assert.equal(run('skyBackgrounds.length'), 1, 'blending never reparses a background string');
+  assert.equal(warn.mock.callCount(), 0);
+});
+
+test('interrupting a theme fade captures the visible sky and continues without a jump', () => {
+  const { context: c, run, advance, element } = controller();
+  run('applyThemeLighting(THEMES.sunset); dayNightCycleStart = 0;');
+  c.setTheme('night', { notify: false });
+  advance(400); c.updateDayNightCycle(400);
+  const visible = {
+    bg: element('app').style.background,
+    color: element('skyClouds').style.color,
+    clouds: element('skyClouds').style.opacity,
+    stars: element('skyStars').style.opacity
+  };
+  c.setTheme('day', { notify: false });
+  c.updateDayNightCycle(400);
+  assert.equal(element('app').style.background, visible.bg);
+  assert.equal(element('skyClouds').style.color, visible.color);
+  assert.equal(element('skyClouds').style.opacity, visible.clouds);
+  assert.equal(element('skyStars').style.opacity, visible.stars);
+  advance(900); c.updateDayNightCycle(900);
+  assert.equal(element('skyClouds').style.opacity, (visible.clouds + 1) / 2);
+  assert.equal(element('skyStars').style.opacity, visible.stars / 2);
+  advance(1400); c.updateDayNightCycle(1400);
+  assert.equal(element('skyClouds').style.opacity, 1);
+  assert.equal(element('skyStars').style.opacity, 0);
+  assert.equal(run('themeTransition'), null);
+});
+
+test('decorative motion follows page visibility, including an initially hidden page', () => {
+  const { context: c, run, element, documentListeners } = controller();
+  c.document.hidden = true;
+  run('setupModalSectionMotion = () => {}; setupEventListeners();');
+  const sky = element('skyAtmosphere');
+  assert.ok(sky.classList.contains('is-paused'));
+  c.document.hidden = false;
+  documentListeners.visibilitychange.forEach(listener => listener());
+  assert.equal(sky.classList.contains('is-paused'), false);
+  c.document.hidden = true;
+  documentListeners.visibilitychange.forEach(listener => listener());
+  assert.ok(sky.classList.contains('is-paused'));
 });

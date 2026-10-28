@@ -22,11 +22,74 @@
   <meta name="twitter:image" content="https://mouliks.studio/images/social-preview.jpg">
   <meta name="twitter:image:alt" content="Moulik Nanda's design portfolio: a warm isometric 3D room with a desk, chair, plant and bed.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
-  <script type="module" crossorigin src="/assets/index-MrNVcN3e.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-C-wBBP7u.css">
+  <script type="module" crossorigin src="/assets/index-BtbH2G1N.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-C9zmrSh2.css">
 </head>
 <body>
-  <div id="app" data-theme="sunset" data-scene-state="loading">
+  <div id="app" data-theme="night" data-scene-state="loading">
+    <!-- Decorative sky stays behind the transparent Spline canvas. -->
+    <div class="sky-atmosphere" id="skyAtmosphere" aria-hidden="true" inert>
+      <svg class="sky-definitions" width="0" height="0" focusable="false">
+        <defs>
+          <path id="skyCloudOutline" d="M47 108C25 108 12 94 12 77C12 60 25 47 43 47C48 24 67 12 88 18C101 0 133 4 146 25C169 15 193 29 196 50C217 47 230 61 230 79C230 96 216 108 198 108Z"/>
+          <clipPath id="skyCloudClip" clipPathUnits="userSpaceOnUse"><use href="#skyCloudOutline"/></clipPath>
+          <!-- Ordered pixel densities replace smooth cloud gradients. -->
+          <pattern id="cloudDitherSparse" width="8" height="8" patternUnits="userSpaceOnUse">
+            <path d="M0 0h2v2H0zM4 4h2v2H4z" fill="#604970" shape-rendering="crispEdges"/>
+          </pattern>
+          <pattern id="cloudDitherMedium" width="8" height="8" patternUnits="userSpaceOnUse">
+            <path d="M0 0h2v2H0zM4 0h2v2H4zM0 4h2v2H0zM4 4h2v2H4z" fill="#604970" shape-rendering="crispEdges"/>
+          </pattern>
+          <pattern id="cloudDitherDense" width="8" height="8" patternUnits="userSpaceOnUse">
+            <path d="M0 0h2v2H0zM4 0h2v2H4zM2 2h2v2H2zM6 2h2v2H6zM0 4h2v2H0zM4 4h2v2H4zM2 6h2v2H2zM6 6h2v2H6z" fill="#604970" shape-rendering="crispEdges"/>
+          </pattern>
+          <pattern id="cloudDitherHighlight" width="8" height="8" patternUnits="userSpaceOnUse">
+            <path d="M0 0h2v2H0zM4 0h2v2H4zM0 4h2v2H0zM4 4h2v2H4z" fill="#fff" shape-rendering="crispEdges"/>
+          </pattern>
+          <symbol id="skyCloudShape" viewBox="0 0 240 128">
+            <use href="#skyCloudOutline" fill="currentColor"/>
+            <g clip-path="url(#skyCloudClip)" opacity="0.38">
+              <rect x="12" y="52" width="218" height="22" fill="url(#cloudDitherSparse)"/>
+              <rect x="12" y="74" width="218" height="18" fill="url(#cloudDitherMedium)"/>
+              <rect x="12" y="92" width="218" height="16" fill="url(#cloudDitherDense)"/>
+            </g>
+            <path d="M54 45C61 28 76 25 87 29M105 20C116 15 128 20 134 27" fill="none" stroke="url(#cloudDitherHighlight)" stroke-opacity="0.65" stroke-width="8"/>
+          </symbol>
+        </defs>
+      </svg>
+      <div class="sky-clouds" id="skyClouds">
+        <svg class="sky-cloud sky-cloud-one" viewBox="0 0 240 128" focusable="false"><use href="#skyCloudShape"/></svg>
+        <svg class="sky-cloud sky-cloud-two" viewBox="0 0 240 128" focusable="false"><use href="#skyCloudShape"/></svg>
+        <svg class="sky-cloud sky-cloud-three" viewBox="0 0 240 128" focusable="false"><use href="#skyCloudShape"/></svg>
+      </div>
+      <div class="sky-stars" id="skyStars">
+        <span class="sky-star sky-star-point" style="left: 22%; top: 18%; --star-size: 12px; --twinkle-duration: 4s; --twinkle-delay: 0.0s"></span>
+        <span class="sky-star" style="left: 39%; top: 9%; --star-size: 3px; --twinkle-duration: 5s; --twinkle-delay: -1.3s"></span>
+        <span class="sky-star sky-star-point" style="left: 69%; top: 12%; --star-size: 12px; --twinkle-duration: 6s; --twinkle-delay: -2.6s"></span>
+        <span class="sky-star" style="left: 84%; top: 29%; --star-size: 3px; --twinkle-duration: 7s; --twinkle-delay: -3.9000000000000004s"></span>
+        <span class="sky-star sky-star-point" style="left: 10%; top: 56%; --star-size: 12px; --twinkle-duration: 5.5s; --twinkle-delay: -5.2s"></span>
+        <span class="sky-star" style="left: 88%; top: 76%; --star-size: 3px; --twinkle-duration: 6.5s; --twinkle-delay: -6.5s"></span>
+        <span class="sky-star" style="left: 14%; top: 36%; --star-size: 3px"></span>
+        <span class="sky-star" style="left: 31%; top: 24%; --star-size: 3px"></span>
+        <span class="sky-star" style="left: 60%; top: 20%; --star-size: 3px"></span>
+        <span class="sky-star" style="left: 81%; top: 47%; --star-size: 3px"></span>
+        <span class="sky-star" style="left: 20%; top: 81%; --star-size: 3px"></span>
+        <span class="sky-star" style="left: 76%; top: 83%; --star-size: 3px"></span>
+        <span class="sky-star" style="left: 8%; top: 69%; --star-size: 3px"></span>
+        <span class="sky-star sky-star-point" style="left: 18%; top: 46%; --star-size: 12px"></span>
+        <span class="sky-star" style="left: 26%; top: 64%; --star-size: 3px"></span>
+        <span class="sky-star" style="left: 34%; top: 78%; --star-size: 3px"></span>
+        <span class="sky-star" style="left: 44%; top: 16%; --star-size: 3px"></span>
+        <span class="sky-star" style="left: 54%; top: 10%; --star-size: 4px"></span>
+        <span class="sky-star" style="left: 64%; top: 29%; --star-size: 3px"></span>
+        <span class="sky-star" style="left: 74%; top: 40%; --star-size: 3px"></span>
+        <span class="sky-star" style="left: 91%; top: 56%; --star-size: 3px"></span>
+        <span class="sky-star" style="left: 87%; top: 65%; --star-size: 4px"></span>
+        <span class="sky-star" style="left: 66%; top: 78%; --star-size: 3px"></span>
+        <span class="sky-star" style="left: 12%; top: 88%; --star-size: 3px"></span>
+      </div>
+    </div>
+
     <!-- 3D Canvas -->
     <canvas id="canvas3d" inert></canvas>
 
@@ -77,21 +140,20 @@
       <!-- Lighting Atmosphere Modes -->
       <div class="dock-group" id="themeGroup">
         <div class="dropdown" id="themeDropdown">
-          <button class="dock-btn dropdown-toggle" id="themeToggleBtn" aria-expanded="false" aria-haspopup="menu" aria-controls="themeMenu" title="Lighting" aria-label="Lighting: Sunset">
+          <button class="dock-btn dropdown-toggle" id="themeToggleBtn" aria-expanded="false" aria-controls="themeMenu" title="Lighting" aria-label="Lighting: Night">
             <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#lightbulb"/></svg>
             <span class="dock-label">Lighting</span>
             <svg class="ui-icon dropdown-chevron" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#chevron-down"/></svg>
           </button>
-          <div class="dropdown-menu" id="themeMenu" role="menu" aria-labelledby="themeToggleBtn" inert>
-            <button class="dropdown-item" data-theme="day" role="menuitemradio" aria-checked="false" tabindex="-1">
-              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#sun"/></svg><span>Day</span>
-            </button>
-            <button class="dropdown-item active" data-theme="sunset" role="menuitemradio" aria-checked="true" tabindex="-1">
-              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#sunset"/></svg><span>Sunset</span>
-            </button>
-            <button class="dropdown-item" data-theme="night" role="menuitemradio" aria-checked="false" tabindex="-1">
-              <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#moon"/></svg><span>Night</span>
-            </button>
+          <div class="dropdown-menu lighting-panel" id="themeMenu" role="group" aria-label="Time of day" inert>
+            <div class="lighting-control">
+              <input class="lighting-slider" id="lightingSlider" type="range" min="0" max="100" step="0.1" value="100" aria-label="Time of day" aria-valuetext="Night">
+              <div class="lighting-stops" aria-hidden="true">
+                <svg class="ui-icon" viewBox="0 0 24 24"><use href="/ui-icons.svg#sun"/></svg>
+                <svg class="ui-icon" viewBox="0 0 24 24"><use href="/ui-icons.svg#sunset"/></svg>
+                <svg class="ui-icon" viewBox="0 0 24 24"><use href="/ui-icons.svg#moon"/></svg>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 export const DAY_NIGHT_CYCLE_MS = 10 * 60 * 1000;
-export const DAY_NIGHT_PHASES = ['sunset', 'night', 'day'];
+export const DAY_NIGHT_PHASES = ['night', 'day', 'sunset'];
 
 export function getDayNightPhase(elapsed) {
   const position = ((elapsed % DAY_NIGHT_CYCLE_MS + DAY_NIGHT_CYCLE_MS) % DAY_NIGHT_CYCLE_MS)

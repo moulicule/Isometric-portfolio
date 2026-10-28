@@ -17,6 +17,7 @@ export const PORTFOLIO_DATA = {
   projects: [
     {
       id: "cap",
+      summary: "A wearable privacy project exploring recording and consent, with an expressive companion, Cappy, on its screen.",
       title: "CAP (Catch a Pervert)",
       badge: "Master’s Project",
       category: "End-to-end product development",
@@ -31,6 +32,7 @@ export const PORTFOLIO_DATA = {
     },
     {
       id: "airlearn",
+      summary: "Turning educator-written scripts into language lessons through UI design, Figma templates, and AI-generated visuals at Unacademy.",
       title: "Airlearn @Unacademy",
       badge: "UI Design Internship",
       category: "UI design for EdTech",
@@ -45,6 +47,7 @@ export const PORTFOLIO_DATA = {
     },
     {
       id: "designing-dignity",
+      summary: "Exploring access to prosthetic care and everyday footwear choice through field research, service design, and physical prototyping.",
       title: "Designing Dignity",
       badge: "Master’s Project",
       category: "User research, product & service design",
@@ -59,6 +62,7 @@ export const PORTFOLIO_DATA = {
     },
     {
       id: "urban-death-care",
+      summary: "Designing a service ecosystem that gives urban Indian families more room to grieve, from planning to remembrance.",
       title: "Urban Death Care",
       badge: "Master’s Project",
       category: "Service Design & Systems Thinking",
@@ -75,6 +79,7 @@ export const PORTFOLIO_DATA = {
   funProjects: [
     {
       id: "timescape",
+      summary: "An interactive installation that lets visitors shape time, colour, and a projected tesseract with their hands.",
       title: "Timescape",
       badge: "Interactive Exhibition",
       category: "Generative Art Installation",
@@ -89,6 +94,7 @@ export const PORTFOLIO_DATA = {
     },
     {
       id: "film-motion",
+      summary: "A collection of film, motion graphics, and video editing, including my animation and effects work for Sunbird in the Garden.",
       title: "Film, Motion & Video Editing",
       badge: "Selected Work",
       category: "Video editing · Motion graphics · Film",
@@ -105,6 +111,7 @@ export const PORTFOLIO_DATA = {
   skills: [
     {
       category: "UI/UX & Interaction Design",
+      icon: "laptop",
       items: [
         { name: "UI/UX & User-Centred Design" },
         { name: "Figma & FigJam" },
@@ -118,6 +125,7 @@ export const PORTFOLIO_DATA = {
     },
     {
       category: "Research & Service Design",
+      icon: "book-open",
       items: [
         { name: "User Research, Interviews & Surveys" },
         { name: "Usability Testing & Think-Aloud Studies" },
@@ -129,6 +137,7 @@ export const PORTFOLIO_DATA = {
     },
     {
       category: "Product Design & Making",
+      icon: "box",
       items: [
         { name: "CAD: Fusion 360 & Tinkercad" },
         { name: "Physical Prototyping & 3D Printing" },
@@ -137,6 +146,7 @@ export const PORTFOLIO_DATA = {
     },
     {
       category: "Physical Computing",
+      icon: "zap",
       items: [
         { name: "ESP32 & Arduino Prototyping" },
         { name: "C++ Firmware & PlatformIO" },
@@ -145,6 +155,7 @@ export const PORTFOLIO_DATA = {
     },
     {
       category: "Motion, Visual Design & Film",
+      icon: "camera",
       items: [
         { name: "Motion Graphics & After Effects" },
         { name: "Video Production, Editing & Premiere Pro" },
@@ -155,11 +166,12 @@ export const PORTFOLIO_DATA = {
     },
     {
       category: "Web & Creative Development",
+      icon: "gamepad",
       items: [
         { name: "HTML, CSS & JavaScript" },
         { name: "Three.js & Interactive 3D" },
         { name: "GSAP & Web Animation" },
-        { name: "Responsive Web Design & Vite" }
+        { name: "Responsive Web Design" }
       ]
     }
   ]

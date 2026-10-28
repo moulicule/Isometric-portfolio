@@ -18,7 +18,7 @@ function checkGlassRules(css, file) {
   return count;
 }
 
-test('production glass styles retain matching standard and Safari filters, including Zen mode', async () => {
+test('only the translucent dialog backdrop retains blur with a Safari fallback in production', async () => {
   // Exercise Vite's production minifier without rebuilding or writing the scene bundle.
   const result = await build({
     root: fileURLToPath(new URL('../', import.meta.url)),
@@ -33,13 +33,9 @@ test('production glass styles retain matching standard and Safari filters, inclu
     .filter(asset => asset.type === 'asset' && asset.fileName.endsWith('.css'))
     .map(asset => String(asset.source)).join('\n');
   const source = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8');
-  const expected = checkGlassRules(source, 'src/style.css');
-  assert.ok(expected > 0);
-  assert.equal(checkGlassRules(css, 'production CSS'), expected, 'No glass surface may lose its filters');
-  assert.match(css, /\.zen-overlay\{[^{}]*;backdrop-filter:blur\(24px\)/);
-  const pin = css.match(/\.hotspot-pin\{([^{}]*)\}/)[1];
-  assert.doesNotMatch(pin, /will-change:[^;}]*(?:opacity|filter)/,
-    'The hotspot anchor must let its child label blur the room');
+  assert.equal(checkGlassRules(source, 'src/style.css'), 1);
+  assert.equal(checkGlassRules(css, 'production CSS'), 1, 'Opaque surfaces must not regain glass effects');
+  assert.match(css, /\.modal-backdrop\{[^{}]*;backdrop-filter:blur\(2px\)/);
 
   // Files in public/ are copied verbatim, so check their fallbacks separately.
   const publicRoot = new URL('../public/', import.meta.url);

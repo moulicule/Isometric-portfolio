@@ -2,14 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DAY_NIGHT_CYCLE_MS, getDayNightPhase } from '../src/day-night-cycle.js';
 
-test('starts at sunset and completes sunset → night → day in ten minutes', () => {
+test('starts at night and completes night → day → sunset in ten minutes', () => {
   assert.equal(DAY_NIGHT_CYCLE_MS, 600000);
   for (const [elapsed, from, to] of [
-    [0, 'sunset', 'night'],
-    [200000, 'night', 'day'],
-    [400000, 'day', 'sunset'],
-    [600000, 'sunset', 'night'],
-    [1800000, 'sunset', 'night']
+    [0, 'night', 'day'],
+    [200000, 'day', 'sunset'],
+    [400000, 'sunset', 'night'],
+    [600000, 'night', 'day'],
+    [1800000, 'night', 'day']
   ]) {
     assert.deepEqual(getDayNightPhase(elapsed), { from, to, blend: 0 });
   }

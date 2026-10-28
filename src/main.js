@@ -881,7 +881,8 @@ function updateLightingSlider(value, { automatic = false } = {}) {
     : `Sunset to Night, ${Math.round((value - 50) * 2)}%`;
   lightingSlider.setAttribute('aria-valuetext', label);
   document.getElementById('themeToggleBtn').setAttribute('aria-label', `Lighting: ${label}`);
-  const thumbTravel = lightingSlider.clientWidth - 30;
+  // Match the 4px clearance around the 30px thumb in the 38px track.
+  const thumbTravel = lightingSlider.clientWidth - 2 * 4 - 30;
   lightingIcons.forEach((icon, index) => {
     icon.classList.toggle('is-lit', Math.abs(value / 100 - index / 2) * thumbTravel <= 15);
   });
@@ -945,7 +946,8 @@ function updateDayNightCycle(now) {
   applyThemeLighting(THEMES[from], THEMES[to], blend);
   const position = ((now - dayNightCycleStart) % DAY_NIGHT_CYCLE_MS + DAY_NIGHT_CYCLE_MS)
     % DAY_NIGHT_CYCLE_MS / (DAY_NIGHT_CYCLE_MS / DAY_NIGHT_PHASES.length);
-  updateLightingSlider(position < 1 ? (1 - position) * 100 : (position - 1) * 50, { automatic: true });
+  // Dawn has no stop on the Day → Sunset → Night slider; retain Night until Day begins.
+  updateLightingSlider(position < 1 ? 100 : (position - 1) * 50, { automatic: true });
 }
 
 function cycleTheme() {

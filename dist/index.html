@@ -22,8 +22,8 @@
   <meta name="twitter:image" content="https://mouliks.studio/images/social-preview.jpg">
   <meta name="twitter:image:alt" content="Moulik Nanda's design portfolio: a warm isometric 3D room with a desk, chair, plant and bed.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
-  <script type="module" crossorigin src="/assets/index-BtbH2G1N.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-C9zmrSh2.css">
+  <script type="module" crossorigin src="/assets/index-BaQB__ym.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BJtkqEwp.css">
 </head>
 <body>
   <div id="app" data-theme="night" data-scene-state="loading">
@@ -31,28 +31,18 @@
     <div class="sky-atmosphere" id="skyAtmosphere" aria-hidden="true" inert>
       <svg class="sky-definitions" width="0" height="0" focusable="false">
         <defs>
-          <path id="skyCloudOutline" d="M47 108C25 108 12 94 12 77C12 60 25 47 43 47C48 24 67 12 88 18C101 0 133 4 146 25C169 15 193 29 196 50C217 47 230 61 230 79C230 96 216 108 198 108Z"/>
-          <clipPath id="skyCloudClip" clipPathUnits="userSpaceOnUse"><use href="#skyCloudOutline"/></clipPath>
-          <!-- Ordered pixel densities replace smooth cloud gradients. -->
-          <pattern id="cloudDitherSparse" width="8" height="8" patternUnits="userSpaceOnUse">
-            <path d="M0 0h2v2H0zM4 4h2v2H4z" fill="#604970" shape-rendering="crispEdges"/>
-          </pattern>
-          <pattern id="cloudDitherMedium" width="8" height="8" patternUnits="userSpaceOnUse">
-            <path d="M0 0h2v2H0zM4 0h2v2H4zM0 4h2v2H0zM4 4h2v2H4z" fill="#604970" shape-rendering="crispEdges"/>
-          </pattern>
-          <pattern id="cloudDitherDense" width="8" height="8" patternUnits="userSpaceOnUse">
-            <path d="M0 0h2v2H0zM4 0h2v2H4zM2 2h2v2H2zM6 2h2v2H6zM0 4h2v2H0zM4 4h2v2H4zM2 6h2v2H2zM6 6h2v2H6z" fill="#604970" shape-rendering="crispEdges"/>
+          <!-- Paint the dither into the silhouette: nested use/clipPath references can drop shadows in Safari. -->
+          <pattern id="cloudDitherShadow" width="8" height="128" patternUnits="userSpaceOnUse">
+            <path d="M4 52h2v2h-2zM0 56h2v2h-2zM4 60h2v2h-2zM0 64h2v2h-2zM4 68h2v2h-2zM0 72h2v2h-2z" fill="#604970" shape-rendering="crispEdges"/>
+            <path d="M0 76h2v2h-2zM4 76h2v2h-2zM0 80h2v2h-2zM4 80h2v2h-2zM0 84h2v2h-2zM4 84h2v2h-2zM0 88h2v2h-2zM4 88h2v2h-2z" fill="#604970" shape-rendering="crispEdges"/>
+            <path d="M0 92h2v2h-2zM4 92h2v2h-2zM2 94h2v2h-2zM6 94h2v2h-2zM0 96h2v2h-2zM4 96h2v2h-2zM2 98h2v2h-2zM6 98h2v2h-2zM0 100h2v2h-2zM4 100h2v2h-2zM2 102h2v2h-2zM6 102h2v2h-2zM0 104h2v2h-2zM4 104h2v2h-2zM2 106h2v2h-2zM6 106h2v2h-2z" fill="#604970" shape-rendering="crispEdges"/>
           </pattern>
           <pattern id="cloudDitherHighlight" width="8" height="8" patternUnits="userSpaceOnUse">
             <path d="M0 0h2v2H0zM4 0h2v2H4zM0 4h2v2H0zM4 4h2v2H4z" fill="#fff" shape-rendering="crispEdges"/>
           </pattern>
           <symbol id="skyCloudShape" viewBox="0 0 240 128">
-            <use href="#skyCloudOutline" fill="currentColor"/>
-            <g clip-path="url(#skyCloudClip)" opacity="0.38">
-              <rect x="12" y="52" width="218" height="22" fill="url(#cloudDitherSparse)"/>
-              <rect x="12" y="74" width="218" height="18" fill="url(#cloudDitherMedium)"/>
-              <rect x="12" y="92" width="218" height="16" fill="url(#cloudDitherDense)"/>
-            </g>
+            <path d="M47 108C25 108 12 94 12 77C12 60 25 47 43 47C48 24 67 12 88 18C101 0 133 4 146 25C169 15 193 29 196 50C217 47 230 61 230 79C230 96 216 108 198 108Z" fill="currentColor"/>
+            <path d="M47 108C25 108 12 94 12 77C12 60 25 47 43 47C48 24 67 12 88 18C101 0 133 4 146 25C169 15 193 29 196 50C217 47 230 61 230 79C230 96 216 108 198 108Z" fill="url(#cloudDitherShadow)" opacity="0.38"/>
             <path d="M54 45C61 28 76 25 87 29M105 20C116 15 128 20 134 27" fill="none" stroke="url(#cloudDitherHighlight)" stroke-opacity="0.65" stroke-width="8"/>
           </symbol>
         </defs>

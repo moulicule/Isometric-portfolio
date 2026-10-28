@@ -138,6 +138,20 @@ test('lighting slider scrubs the full atmosphere, interrupts fades, and resumes 
   assert.equal(Number(element('lightingSlider').value), 100, 'Zen keeps night');
 });
 
+test('automatic dawn keeps Night selected without sweeping through Sunset', () => {
+  const { context: c, run, element } = controller();
+  run('dayNightCycleStart = 0');
+  c.updateDayNightCycle(100000);
+  assert.equal(Number(element('lightingSlider').value), 100);
+  assert.equal(element('lightingSlider').attributes['aria-valuetext'], 'Night');
+  assert.equal(element('sunsetIcon').classList.contains('is-lit'), false);
+  assert.equal(element('app').style.background, run('THEMES.night.bg.clone().lerp(THEMES.day.bg, 0.5).getStyle()'));
+  for (const [now, value] of [[200000, 0], [300000, 25], [400000, 50], [500000, 75], [600000, 100], [700000, 100], [800000, 0]]) {
+    c.updateDayNightCycle(now);
+    assert.equal(Number(element('lightingSlider').value), value, `slider at ${now}ms`);
+  }
+});
+
 test('lighting slider keeps native keyboard handling and stays open during input', () => {
   const { run, element } = controller({ menus: true });
   run('setupModalSectionMotion = () => {}; setupEventListeners();');
@@ -178,7 +192,7 @@ test('an open lighting slider stays fixed through automatic phase changes but st
 test('lighting icons light up only while under the thumb, including after resizing', () => {
   const { context: c, element } = controller();
   const icons = ['dayIcon', 'sunsetIcon', 'nightIcon'].map(element);
-  for (const [value, litIndex] of [[0, 0], [5, 0], [10, -1], [45, 1], [50, 1], [60, -1], [95, 2], [100, 2]]) {
+  for (const [value, litIndex] of [[0, 0], [5, 0], [7.3, 0], [7.4, -1], [8, -1], [10, -1], [45, 1], [50, 1], [60, -1], [95, 2], [100, 2]]) {
     c.updateLightingSlider(value);
     assert.deepEqual(icons.map(icon => icon.classList.contains('is-lit')), icons.map((_, index) => index === litIndex));
   }

@@ -686,38 +686,44 @@ body, html {
   position: relative;
   height: 44px;
 }
+.lighting-control::before {
+  content: '';
+  position: absolute;
+  inset: 3px 0;
+  border: 1px solid #ffffff88;
+  border-radius: 999px;
+  background: var(--lighting-track) border-box no-repeat;
+  box-shadow: inset 0 1px 3px #66516f26;
+  pointer-events: none;
+}
 .lighting-slider {
+  position: relative;
   appearance: none;
   -webkit-appearance: none;
   width: 100%;
   height: 44px;
   margin: 0;
+  padding: 0 4px;
   background: transparent;
   cursor: pointer;
   touch-action: pan-y;
 }
 .lighting-slider::-webkit-slider-runnable-track {
   height: 38px;
-  box-sizing: border-box;
-  border: 1px solid #ffffff88;
-  border-radius: 999px;
-  background: var(--lighting-track) border-box no-repeat;
-  box-shadow: inset 0 1px 3px #66516f26;
+  border: 0;
+  background: transparent;
 }
 .lighting-slider::-moz-range-track {
   height: 38px;
-  box-sizing: border-box;
-  border: 1px solid #ffffff88;
-  border-radius: 999px;
-  background: var(--lighting-track) border-box no-repeat;
-  box-shadow: inset 0 1px 3px #66516f26;
+  border: 0;
+  background: transparent;
 }
 .lighting-slider::-webkit-slider-thumb {
   appearance: none;
   -webkit-appearance: none;
   width: 30px;
   height: 30px;
-  margin-top: 3px;
+  margin-top: 4px;
   border: 2px solid #fffdf8;
   border-radius: 50%;
   background: #ffffff55;
@@ -738,7 +744,7 @@ body, html {
 }
 .lighting-stops {
   position: absolute;
-  inset: 0 5px;
+  inset: 0 9px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -750,6 +756,10 @@ body, html {
 .lighting-stops .ui-icon.is-lit {
   color: #fff0a6;
   filter: drop-shadow(0 0 3px #ffe8a0) drop-shadow(0 1px 1px #60497080);
+}
+.lighting-stops .ui-icon:last-child.is-lit {
+  color: #b4e7ff;
+  filter: drop-shadow(0 0 3px #79caff) drop-shadow(0 1px 1px #60497080);
 }
 
 /* Toast Notifications */
@@ -1126,19 +1136,21 @@ body, html {
 }
 .profile-location .ui-icon { width: 16px; height: 16px; }
 .profile-photo-frame {
+  position: relative;
   width: 100%;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  padding: 10px;
   background: var(--surface-raised);
   border-radius: var(--radius-md);
   border: 1px solid var(--panel-border);
   box-shadow: var(--card-shadow);
 }
 .profile-photo {
+  position: absolute;
+  inset: 10px;
   display: block;
-  width: 100%;
-  height: 100%;
+  width: calc(100% - 20px);
+  height: calc(100% - 20px);
   border-radius: 12px;
   object-fit: cover;
   object-position: center;

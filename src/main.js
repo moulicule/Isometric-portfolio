@@ -25,6 +25,9 @@ const loadingAboutBtn = document.getElementById('loadingAboutBtn');
 const retrySceneBtn = document.getElementById('retrySceneBtn');
 const hotspotContainer = document.getElementById('hotspotContainer');
 const hoverTooltip = document.getElementById('hoverTooltip');
+const plantHydration = document.getElementById('plantHydration');
+const plantHydrationSurface = document.getElementById('plantHydrationSurface');
+const plantHydrationFill = document.getElementById('plantHydrationFill');
 const zenOverlay = document.getElementById('zenOverlay');
 const zenClock = document.getElementById('zenClock');
 
@@ -51,6 +54,10 @@ const togglePinsBtn = document.getElementById('togglePinsBtn');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
 const exitZenBtn = document.getElementById('exitZenBtn');
 const lightingSlider = document.getElementById('lightingSlider');
+const lightingThumb = document.getElementById('lightingThumb');
+const lightingThumbSurface = document.getElementById('lightingThumbSurface');
+const lightingSliderMotion = { value: 100 };
+let lightingThumbPressed = false;
 const lightingIcons = [...document.querySelectorAll('.lighting-stops .ui-icon')];
 const dockDropdowns = [...document.querySelectorAll('.bottom-dock .dropdown')];
 const interactionMotionMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -88,6 +95,9 @@ let chairSwivel = null;
 let wallClock = null;
 let lastClockSecond = null;
 let plantInteraction = null;
+let plantMeterUntil = 0;
+const plantMeterBounds = [];
+const plantMeterPoint = new THREE.Vector3();
 let roomEffects = null;
 
 // Base Camera Settings
@@ -214,7 +224,7 @@ const HOTSPOTS = [
   { id: 'lamp', name: 'Bed Table', label: 'Bedside Lamp', icon: '💡', objKey: 'bedTable', offsetY: 50, revealOffsetY: 65, action: () => toggleLamp() },
   { id: 'chair', name: 'Chair', label: 'Swivel Chair', icon: '🪑', objKey: 'chair', cameraPreset: 'desk', offsetY: 0, revealOffsetY: 45, action: () => spinChair() },
   { id: 'skills', name: 'Books', label: 'Skills', icon: '📚', objKey: 'books', offsetY: 0, revealOffsetY: 27, action: trigger => openModal('skills', trigger) },
-  { id: 'plant', name: 'Plant', label: 'House Plant', icon: '🌱', objKey: 'plant', offsetY: 0, revealOffsetY: 50, action: () => waterPlant() },
+  { id: 'plant', name: 'Plant', label: 'Water Plant', icon: '💧', objKey: 'plant', offsetY: 0, revealOffsetY: 50, action: () => waterPlant() },
   { id: 'bed', name: 'Bed', label: 'Zen Mode', icon: '🛏️', objKey: 'bed', cameraPreset: 'bed', offsetY: 0, revealOffsetY: 25, action: () => toggleZenMode() },
   { id: 'window', name: 'Window', label: 'Atmosphere & Sky', icon: '🌤️', objKey: 'window', pin: false, action: () => cycleTheme() },
   { id: 'about', name: 'Sticky Notes', label: 'About Me', icon: '👤', objKey: 'stickyNotes', cameraPreset: 'desk', offsetY: 0, action: trigger => openModal('about', trigger) }
@@ -437,6 +447,16 @@ async function setupObjectInteractions() {
   const pivot = rim?.position.clone() || new THREE.Vector3();
   if (rim) pivot.y += (rim.data?.geometry?.height ?? 23) * rim.scale.y / 2;
   plantInteraction = createPlantInteraction(foliage.map(part => splineApp.findObjectById(part.uuid)), pivot);
+  const bounds = objects.plant && new THREE.Box3().setFromObject(objects.plant);
+  if (bounds && !bounds.isEmpty()) {
+    for (const x of [bounds.min.x, bounds.max.x]) {
+      for (const y of [bounds.min.y, bounds.max.y]) {
+        for (const z of [bounds.min.z, bounds.max.z]) {
+          plantMeterBounds.push(objects.plant.worldToLocal(new THREE.Vector3(x, y, z)));
+        }
+      }
+    }
+  }
 
   const element = document.createElement('div');
   element.className = 'room-effects';
@@ -448,13 +468,17 @@ async function setupObjectInteractions() {
     drops: [...element.querySelectorAll('.water-droplet')] };
 
   document.addEventListener('visibilitychange', () => updateObjectInteractions(performance.now()));
-  interactionMotionMedia.addEventListener('change', () => updateObjectInteractions(performance.now()));
+  interactionMotionMedia.addEventListener('change', () => {
+    updateObjectInteractions(performance.now());
+    if (interactionMotionMedia.matches) animatePlantMeter(plantHydration.classList.contains('is-visible'));
+  });
 }
 
 function updateObjectInteractions(now) {
   const options = { visible: !document.hidden, reduced: interactionMotionMedia.matches };
   plantInteraction?.update(now, options);
   updateInteractionLabels();
+  updatePlantMeter(now);
   if (document.hidden || interactionMotionMedia.matches) {
     if (roomEffects) roomEffects.element.hidden = true;
   }
@@ -468,18 +492,76 @@ function updateInteractionLabels() {
   const busy = String(interaction.busy);
   if (spot.statusText !== status) {
     spot.statusText = status;
+    canvas.classList.toggle('is-hydrated', interaction.hydration === 100);
+    spot.domElement?.classList.toggle('is-hydrated', interaction.hydration === 100);
     if (spot.domElement) {
-      spot.domElement.querySelector('.hotspot-progress').textContent = status;
       spot.domElement.setAttribute('aria-label', `${spot.label}: ${status}`);
     }
+    plantHydration.setAttribute('aria-valuenow', String(interaction.hydration));
+    plantHydrationFill.style.clipPath = `inset(${100 - interaction.hydration}% 0 0)`;
     if (waterPlantBtn) waterPlantBtn.setAttribute('aria-label', `Water Plant: ${status}`);
-    if (state.hoveredInteractive === spot) hoverTooltip.textContent = `${spot.icon} ${spot.label} — ${status}`;
   }
   if (spot.interactionBusy !== busy) {
     spot.interactionBusy = busy;
     spot.domElement?.setAttribute('aria-disabled', busy);
+    spot.domElement?.classList.toggle('is-watering', interaction.busy && interaction.watering);
+    canvas.classList.toggle('is-watering', interaction.busy && interaction.watering);
     if (waterPlantBtn) waterPlantBtn.setAttribute('aria-disabled', busy);
   }
+}
+
+function updatePlantMeter(now, projectPosition = false) {
+  const spot = HOTSPOTS.find(item => item.id === 'plant');
+  const hovered = !!spot && !isDragging && (state.hoveredInteractive === spot || spot.pinHovered
+    || spot?.domElement?.matches(':focus-visible'));
+  const visible = !!(plantInteraction && threeCamera && sceneViewport && plantMeterBounds.length
+    && !activeModal && !state.zenMode && !document.hidden
+    && (hovered || now < plantMeterUntil));
+  const wasVisible = plantHydration.classList.contains('is-visible');
+  if (visible && (projectPosition || !wasVisible)) positionPlantMeter();
+  if (visible !== wasVisible) {
+    plantHydration.classList.toggle('is-visible', visible);
+    plantHydration.setAttribute('aria-hidden', String(!visible));
+    animatePlantMeter(visible);
+  }
+}
+
+// Animate the surface separately so camera projection retains the outer transform.
+function animatePlantMeter(visible) {
+  const immediate = interactionMotionMedia.matches || document.hidden || !!activeModal || state.zenMode;
+  gsap.to(plantHydration, {
+    autoAlpha: visible ? 1 : 0,
+    duration: immediate ? 0 : 0.2,
+    overwrite: true
+  });
+  gsap.to(plantHydrationSurface, {
+    y: visible ? 0 : 5,
+    scale: visible ? 1 : 0.9,
+    duration: immediate ? 0 : visible ? 0.36 : 0.2,
+    ease: visible ? 'back.out(1.3)' : 'power2.in',
+    overwrite: true
+  });
+}
+
+function positionPlantMeter() {
+  let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+  const rect = sceneViewport;
+  for (const corner of plantMeterBounds) {
+    plantMeterPoint.copy(corner);
+    objects.plant.localToWorld(plantMeterPoint);
+    plantMeterPoint.project(threeCamera);
+    const x = (plantMeterPoint.x * 0.5 + 0.5) * rect.width;
+    const y = (-plantMeterPoint.y * 0.5 + 0.5) * rect.height;
+    left = Math.min(left, x); right = Math.max(right, x);
+    top = Math.min(top, y); bottom = Math.max(bottom, y);
+  }
+  // Inset the conservative projected box toward the foliage; keep a 2px gap.
+  const inset = (right - left) * 0.1;
+  left += inset; right -= inset;
+  // Match the 22 × 76px pill and leave the bottom dock clear.
+  const x = THREE.MathUtils.clamp(left >= 32 ? left - 24 : right + 2, 8, rect.width - 30);
+  const y = THREE.MathUtils.clamp((top + bottom) / 2 - 38, 12, Math.max(12, rect.height - 176));
+  plantHydration.style.transform = `translate(${x}px, ${y}px)`;
 }
 
 function updateRoomEffects() {
@@ -518,6 +600,7 @@ function setupHotspots() {
   // Spline finalizes the camera through its controls immediately before rendering.
   canvas.addEventListener('rendered', () => {
     updateHotspots();
+    updatePlantMeter(performance.now(), true);
     updateRoomEffects();
   });
   const bubbleSpots = new Map();
@@ -544,7 +627,7 @@ function setupHotspots() {
     el.hidden = true;
     const content = `
       <div class="hotspot-icon" aria-hidden="true">${spot.icon}</div>
-      <div class="hotspot-label">${spot.label}${spot.id === 'plant' ? '<span class="hotspot-progress"></span>' : ''}</div>
+      <div class="hotspot-label">${spot.label}</div>
     `;
     el.innerHTML = `<span class="hotspot-ring" aria-hidden="true"></span><span class="hotspot-bubble">${content}</span>`;
     spot.bubble = el.querySelector('.hotspot-bubble');
@@ -563,6 +646,7 @@ function setupHotspots() {
       }
     }
     const hoverPin = event => {
+      if (event.pointerType === 'touch') return;
       const target = getPinHotspot(event, spot);
       for (const pin of HOTSPOTS) pin.pinHovered = pin === target;
     };
@@ -835,28 +919,32 @@ function setCameraPreset(presetName, { audible = true } = {}) {
 }
 
 // Lighting & Atmosphere Transition
+function captureThemeLighting() {
+  const current = THEMES[state.theme];
+  return {
+    bg: cycleBackgroundColor.clone(),
+    cloudColor: cycleCloudColor.clone(),
+    cloudShadowColor: cycleCloudShadowColor.clone(),
+    cloudOpacity: cycleCloudOpacity,
+    starOpacity: cycleStarOpacity,
+    sunColor: objects.sunLight?.color.clone() ?? current.sunColor.clone(),
+    sunIntensity: objects.sunLight?.intensity ?? current.sunIntensity,
+    skyColor: objects.skyLight?.color.clone() ?? current.skyColor.clone(),
+    skyIntensity: objects.skyLight?.intensity ?? current.skyIntensity,
+    lampIntensity: objects.lampLight1?.intensity ?? (state.lampOn ? current.lampIntensity : 0)
+  };
+}
+
 function setTheme(themeName, { restartCycle = true } = {}) {
   const theme = THEMES[themeName];
   if (!theme || (state.zenMode && themeName !== 'night')) return;
 
   const now = performance.now();
   if (restartCycle && dayNightCycleStart !== null) {
-    const current = THEMES[state.theme];
-    // Capture what is actually visible so repeated clicks can retarget mid-fade.
+    // Capture what is visible so repeated selections can retarget mid-fade.
     themeTransition = {
       start: now,
-      from: {
-        bg: cycleBackgroundColor.clone(),
-        cloudColor: cycleCloudColor.clone(),
-        cloudShadowColor: cycleCloudShadowColor.clone(),
-        cloudOpacity: cycleCloudOpacity,
-        starOpacity: cycleStarOpacity,
-        sunColor: objects.sunLight?.color.clone() ?? current.sunColor.clone(),
-        sunIntensity: objects.sunLight?.intensity ?? current.sunIntensity,
-        skyColor: objects.skyLight?.color.clone() ?? current.skyColor.clone(),
-        skyIntensity: objects.skyLight?.intensity ?? current.skyIntensity,
-        lampIntensity: objects.lampLight1?.intensity ?? (state.lampOn ? current.lampIntensity : 0)
-      },
+      from: captureThemeLighting(),
       to: theme
     };
     dayNightCycleStart = now + THEME_FADE_MS
@@ -883,21 +971,60 @@ function updateLightingSlider(value, { automatic = false } = {}) {
     : `Sunset to Night, ${Math.round((value - 50) * 2)}%`;
   lightingSlider.setAttribute('aria-valuetext', label);
   document.getElementById('themeToggleBtn').setAttribute('aria-label', `Lighting: ${label}`);
-  // Match the 4px clearance around the 30px thumb in the 38px track.
-  const thumbTravel = lightingSlider.clientWidth - 2 * 4 - 30;
-  lightingIcons.forEach((icon, index) => {
-    icon.classList.toggle('is-lit', Math.abs(value / 100 - index / 2) * thumbTravel <= 15);
+  // The native range owns input; only its decorative thumb eases toward the value.
+  const immediate = interactionMotionMedia.matches || document.hidden
+    || !document.getElementById('themeDropdown').classList.contains('open');
+  gsap.to(lightingSliderMotion, {
+    value,
+    duration: immediate ? 0 : 0.16,
+    ease: 'power3.out',
+    overwrite: true,
+    onUpdate: renderLightingSlider
   });
 }
 
-function setTimeOfDay(value) {
+function renderLightingSlider() {
+  gsap.set(lightingThumb, { x: 0, xPercent: lightingSliderMotion.value });
+  // Match the 4px clearance around the 30px thumb in the 38px track.
+  const thumbTravel = lightingSlider.clientWidth - 2 * 4 - 30;
+  lightingIcons.forEach((icon, index) => {
+    icon.classList.toggle('is-lit', Math.abs(lightingSliderMotion.value / 100 - index / 2) * thumbTravel <= 15);
+  });
+}
+
+function animateLightingThumb(pressed) {
+  const immediate = interactionMotionMedia.matches || document.hidden
+    || !document.getElementById('themeDropdown').classList.contains('open');
+  if (pressed === lightingThumbPressed && !immediate) return;
+  lightingThumbPressed = pressed && !immediate;
+  gsap.to(lightingThumbSurface, {
+    scaleX: lightingThumbPressed ? 1.06 : 1,
+    scaleY: lightingThumbPressed ? 0.94 : 1,
+    duration: immediate ? 0 : pressed ? 0.12 : 0.32,
+    ease: pressed ? 'power2.out' : 'back.out(1.5)',
+    overwrite: true
+  });
+}
+
+function setTimeOfDay(value, { fade = false } = {}) {
   if (state.zenMode) return;
   const now = performance.now();
   const elapsed = (1 + value / 50) * (DAY_NIGHT_CYCLE_MS / DAY_NIGHT_PHASES.length);
-  // Scrubbing applies immediately, then the existing cycle continues from here.
+  const from = fade && !interactionMotionMedia.matches ? captureThemeLighting() : null;
   themeTransition = null;
   dayNightCycleStart = now - elapsed;
   lastCycleUpdate = -Infinity;
+  if (from) {
+    const phase = getDayNightPhase(elapsed);
+    const a = THEMES[phase.from], b = THEMES[phase.to];
+    const to = Object.fromEntries(Object.keys(from).map(key => [key, a[key].isColor
+      ? a[key].clone().lerp(b[key], phase.blend)
+      : THREE.MathUtils.lerp(a[key], b[key], phase.blend)]));
+    const duration = 400;
+    themeTransition = { start: now, from, to, duration, ease: gsap.parseEase('power2.out') };
+    dayNightCycleStart += duration;
+    if (state.theme !== phase.from) setTheme(phase.from, { restartCycle: false });
+  }
   updateLightingSlider(value);
   updateDayNightCycle(now);
 }
@@ -933,8 +1060,8 @@ function applyThemeLighting(from, to = from, blend = 0) {
 
 function updateDayNightCycle(now) {
   if (themeTransition) {
-    const progress = Math.min(1, Math.max(0, (now - themeTransition.start) / THEME_FADE_MS));
-    applyThemeLighting(themeTransition.from, themeTransition.to, progress * progress * (3 - 2 * progress));
+    const progress = Math.min(1, Math.max(0, (now - themeTransition.start) / (themeTransition.duration ?? THEME_FADE_MS)));
+    applyThemeLighting(themeTransition.from, themeTransition.to, themeTransition.ease ? themeTransition.ease(progress) : progress * progress * (3 - 2 * progress));
     if (progress === 1) {
       themeTransition = null;
       lastCycleUpdate = now;
@@ -993,9 +1120,11 @@ function waterPlant() {
   if (!plantInteraction || document.hidden) return;
   const action = plantInteraction.water(performance.now(), { reduced: interactionMotionMedia.matches });
   if (!action) return;
+  plantMeterUntil = performance.now() + 4000;
   if (action === 'water') sound.playWaterPour();
   else sound.playPop(0.8);
   updateInteractionLabels();
+  updatePlantMeter(performance.now());
   return action;
 }
 
@@ -1058,11 +1187,15 @@ function handlePointerMove(e) {
     const distance = Math.hypot(e.clientX - pointerStart.x, e.clientY - pointerStart.y);
     if (distance > 6) {
       isDragging = true;
+      state.hoveredInteractive = null;
+      canvas.classList.remove('watering-cursor');
+      canvas.classList.remove('pointer-cursor');
       hoverTooltip.classList.remove('visible');
     }
     return;
   }
 
+  if (e.pointerType === 'touch') return;
   pendingHover = e;
 }
 
@@ -1075,14 +1208,16 @@ function flushPointerHover() {
   if (targetSpot) {
     state.hoveredInteractive = targetSpot;
     canvas.classList.add('pointer-cursor');
+    canvas.classList.toggle('watering-cursor', targetSpot.id === 'plant');
     hoverTooltip.textContent = `${targetSpot.icon} ${targetSpot.label} — ${targetSpot.statusText || 'Click to interact'}`;
     hoverTooltip.style.left = `${e.clientX}px`;
     hoverTooltip.style.top = `${e.clientY}px`;
     const revealedPin = state.pinsVisible && targetSpot.domElement && !targetSpot.domElement.hidden;
-    hoverTooltip.classList.toggle('visible', !revealedPin);
+    hoverTooltip.classList.toggle('visible', !revealedPin && targetSpot.id !== 'plant');
   } else {
     state.hoveredInteractive = null;
     canvas.classList.remove('pointer-cursor');
+    canvas.classList.remove('watering-cursor');
     hoverTooltip.classList.remove('visible');
   }
 }
@@ -1260,6 +1395,13 @@ function setDockDropdownOpen(dropdown, isOpen, restoreFocus = false) {
   toggle.setAttribute('aria-expanded', String(isOpen));
   toggle.classList.toggle('active', isOpen);
   dropdown.querySelector('.dropdown-menu').inert = !isOpen;
+  if (dropdown.id === 'themeDropdown') {
+    if (isOpen) renderLightingSlider();
+    else {
+      updateLightingSlider(Number(lightingSlider.value));
+      animateLightingThumb(false);
+    }
+  }
   if (restoreFocus) toggle.focus();
 }
 
@@ -1375,6 +1517,7 @@ function setupSceneInput() {
     pendingHover = null;
     state.hoveredInteractive = null;
     canvas.classList.remove('pointer-cursor');
+    canvas.classList.remove('watering-cursor');
     hoverTooltip.classList.remove('visible');
   });
   canvas.addEventListener('pointermove', keepOrbitDragActive);
@@ -1433,7 +1576,21 @@ function setupEventListeners() {
     muteBtn.setAttribute('aria-pressed', String(isMuted));
   });
 
-  lightingSlider.addEventListener('input', () => setTimeOfDay(Number(lightingSlider.value)));
+  lightingSlider.addEventListener('input', () => setTimeOfDay(Number(lightingSlider.value), { fade: true }));
+  lightingSlider.addEventListener('pointerdown', event => {
+    if (event.button === 0) animateLightingThumb(true);
+  });
+  for (const event of ['pointerup', 'pointercancel', 'lostpointercapture', 'blur']) {
+    lightingSlider.addEventListener(event, () => animateLightingThumb(false));
+  }
+  window.addEventListener('pointerup', () => animateLightingThumb(false));
+  const settleLightingSlider = () => {
+    if (!interactionMotionMedia.matches && !document.hidden) return;
+    updateLightingSlider(Number(lightingSlider.value));
+    animateLightingThumb(false);
+  };
+  interactionMotionMedia.addEventListener('change', settleLightingSlider);
+  document.addEventListener('visibilitychange', settleLightingSlider);
 
   // Camera menu options
   document.querySelectorAll('#cameraGroup [data-cam]').forEach(btn => {

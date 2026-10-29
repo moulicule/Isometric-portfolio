@@ -85,6 +85,15 @@
     <!-- 3D Hotspot Pins Container -->
     <div class="hotspot-container" id="hotspotContainer" inert></div>
 
+    <div class="plant-hydration" id="plantHydration" role="meter" aria-label="Plant hydration" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-hidden="true">
+      <span class="plant-hydration-surface" id="plantHydrationSurface">
+        <span class="plant-hydration-track" aria-hidden="true">
+          <span id="plantHydrationFill"></span>
+          <span class="plant-hydration-marks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+        </span>
+      </span>
+    </div>
+
     <!-- Hover Tooltip -->
     <div class="hover-tooltip" id="hoverTooltip">Click to interact</div>
 
@@ -137,6 +146,7 @@
           <div class="dropdown-menu lighting-panel" id="themeMenu" role="group" aria-label="Time of day" inert>
             <div class="lighting-control">
               <input class="lighting-slider" id="lightingSlider" type="range" min="0" max="100" step="0.1" value="100" aria-label="Time of day" aria-valuetext="Night">
+              <span class="lighting-thumb" id="lightingThumb" aria-hidden="true"><span class="lighting-thumb-surface" id="lightingThumbSurface"></span></span>
               <div class="lighting-stops" aria-hidden="true">
                 <svg class="ui-icon" viewBox="0 0 24 24"><use href="/ui-icons.svg#sun"/></svg>
                 <svg class="ui-icon" viewBox="0 0 24 24"><use href="/ui-icons.svg#sunset"/></svg>

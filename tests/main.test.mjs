@@ -23,6 +23,7 @@ function controller({ menus = false } = {}) {
       elements.set(id, {
         id,
         clientWidth: 242,
+        value: id === 'lightingSlider' ? '100' : '',
         attributes: {}, listeners: {}, style: {},
         classList: {
           add: value => classes.add(value), remove: value => classes.delete(value),
@@ -31,6 +32,7 @@ function controller({ menus = false } = {}) {
         },
         setAttribute(name, value) { this.attributes[name] = value; },
         getAttribute(name) { return this.attributes[name]; },
+        matches: () => false,
         addEventListener(name, listener) { this.listeners[name] = listener; },
         querySelector: selector => id === 'themeDropdown' && selector === '[aria-checked="true"]'
           ? null : element(`${id} ${selector === '[aria-checked="true"]' ? 'item' : selector}`),
@@ -45,6 +47,14 @@ function controller({ menus = false } = {}) {
   };
   const context = createContext({
     THREE, PORTFOLIO_DATA, ...cycle, ...motion, activations, picks,
+    gsap: {
+      parseEase: () => p => 1 - (1 - p) ** 3,
+      to(target, vars) {
+        if ('value' in vars) target.value = vars.value;
+        vars.onUpdate?.();
+      },
+      set: (target, vars) => Object.assign(target.style, vars)
+    },
     performance: { now: () => now }, requestAnimationFrame() {},
     sound: { toggleAmbient() {}, playPop: () => sounds.push('pop'),
       playWaterPour: () => sounds.push('water') },
@@ -142,7 +152,7 @@ test('lighting slider scrubs the full atmosphere, interrupts fades, and resumes 
     [50, 'sunset', 'night', 0], [75, 'sunset', 'night', 0.5], [100, 'night', 'day', 0]
   ]) {
     element('lightingSlider').value = String(value);
-    element('lightingSlider').listeners.input();
+    c.setTimeOfDay(value);
     assert.equal(run('themeTransition'), null);
     assert.equal(Number(element('lightingSlider').value), value);
     const expected = run(`THEMES.${from}.bg.clone().lerp(THEMES.${to}.bg, ${blend}).getStyle()`);
@@ -224,6 +234,79 @@ test('lighting icons light up only while under the thumb, including after resizi
   assert.equal(icons[0].classList.contains('is-lit'), true, 'coverage follows the rendered thumb size');
 });
 
+test('lighting thumb eases independently of native values and retargets without moving the lighting late', () => {
+  const { context: c, run, element } = controller();
+  run("document.getElementById('themeDropdown').classList.add('open');");
+  const tweens = [];
+  c.gsap.to = (target, vars) => {
+    tweens.push({ target, ...vars });
+    if (vars.duration === 0) {
+      if ('value' in vars) target.value = vars.value;
+      vars.onUpdate?.();
+    }
+  };
+  c.setTimeOfDay(50);
+  assert.equal(element('lightingSlider').value, '50');
+  assert.equal(element('lightingSlider').attributes['aria-valuetext'], 'Sunset');
+  assert.equal(element('app').style.background, run('THEMES.sunset.bg.getStyle()'));
+  assert.equal(run('lightingSliderMotion.value'), 100, 'only the decorative thumb follows with easing');
+  assert.equal(tweens.at(-1).duration, 0.16);
+  run('lightingSliderMotion.value = 75;');
+  tweens.at(-1).onUpdate();
+  assert.equal(element('lightingThumb').style.xPercent, 75);
+  assert.equal(element('lightingThumb').style.x, 0, 'CSS initial translation does not double the offset');
+  assert.equal(element('sunsetIcon').classList.contains('is-lit'), false, 'glow follows the visible thumb');
+  c.setTimeOfDay(0);
+  assert.equal(tweens.at(-1).overwrite, true);
+  assert.equal(run('lightingSliderMotion.value'), 75, 'retarget starts from the current visual position');
+  assert.equal(element('app').style.background, run('THEMES.day.bg.getStyle()'));
+  run('interactionMotionMedia.matches = true;');
+  c.updateLightingSlider(50);
+  assert.equal(tweens.at(-1).duration, 0);
+  assert.equal(element('lightingThumb').style.xPercent, 50);
+  assert.equal(element('sunsetIcon').classList.contains('is-lit'), true);
+  run('interactionMotionMedia.matches = false; document.hidden = true;');
+  c.updateLightingSlider(100);
+  assert.equal(tweens.at(-1).duration, 0);
+  assert.equal(element('lightingThumb').style.xPercent, 100);
+});
+
+test('lighting thumb press settles on release, cancellation, blur, panel close, and reduced motion', () => {
+  const { context: c, run, element } = controller({ menus: true });
+  run('setupModalSectionMotion = () => {}; setupEventListeners();');
+  const dropdown = element('themeDropdown');
+  c.setDockDropdownOpen(dropdown, true);
+  const tweens = [];
+  c.gsap.to = (target, vars) => tweens.push({ target, ...vars });
+  const slider = element('lightingSlider');
+  slider.listeners.pointerdown(pointer());
+  assert.equal(tweens.at(-1).scaleX, 1.06);
+  assert.equal(tweens.at(-1).scaleY, 0.94);
+  assert.equal(tweens.at(-1).duration, 0.12);
+  for (const event of ['pointerup', 'pointercancel', 'lostpointercapture', 'blur']) {
+    slider.listeners.pointerdown(pointer());
+    slider.listeners[event]();
+    assert.equal(tweens.at(-1).scaleX, 1);
+    assert.equal(tweens.at(-1).scaleY, 1);
+    assert.equal(tweens.at(-1).overwrite, true);
+  }
+  const settled = tweens.length;
+  slider.listeners.pointerup();
+  assert.equal(tweens.length, settled, 'unrelated pointer releases do not restart the response');
+  const count = tweens.length;
+  slider.listeners.pointerdown(pointer(1, { button: 2 }));
+  assert.equal(tweens.length, count, 'right click does not press the thumb');
+  c.setDockDropdownOpen(dropdown, false);
+  assert.equal(tweens.at(-1).duration, 0);
+  assert.equal(tweens.at(-2).duration, 0, 'closing also settles thumb position');
+  c.setDockDropdownOpen(dropdown, true);
+  run('interactionMotionMedia.matches = true;');
+  slider.listeners.pointerdown(pointer());
+  assert.equal(tweens.at(-1).duration, 0);
+  assert.equal(tweens.at(-1).scaleX, 1);
+  assert.equal(tweens.at(-1).scaleY, 1);
+});
+
 test('plant pin and Water Plant menu share progress and busy guards', () => {
   const { context: c, run, advance, element, sounds } = controller();
   run(`
@@ -235,7 +318,7 @@ test('plant pin and Water Plant menu share progress and busy guards', () => {
     originalActivateHotspot(HOTSPOTS.find(spot => spot.id === 'plant'));
   `);
   assert.deepEqual(sounds, ['water']);
-  assert.equal(element('hotspot-plant').attributes['aria-label'], 'House Plant: 75% hydrated · Water plant');
+  assert.equal(element('hotspot-plant').attributes['aria-label'], 'Water Plant: 75% hydrated · Water plant');
   assert.equal(element('hotspot-plant').attributes['aria-disabled'], 'true');
   element('waterPlantBtn').listeners.click();
   assert.equal(run('plantInteraction.hydration'), 75, 'busy plant rejects repeat watering');
@@ -246,6 +329,15 @@ test('plant pin and Water Plant menu share progress and busy guards', () => {
   element('waterPlantBtn').listeners.click();
   assert.equal(run('plantInteraction.hydration'), 100);
   assert.match(element('waterPlantBtn').attributes['aria-label'], /100% hydrated/);
+  assert.equal(element('plantHydrationFill').style.clipPath, 'inset(0% 0 0)', 'full hydration leaves no unfilled area');
+  for (const id of ['canvas3d', 'hotspot-plant']) {
+    assert.equal(element(id).classList.contains('is-hydrated'), true);
+  }
+  c.updateObjectInteractions(7200);
+  assert.equal(run('plantInteraction.hydration'), 99);
+  for (const id of ['canvas3d', 'hotspot-plant']) {
+    assert.equal(element(id).classList.contains('is-hydrated'), false, 'watering cursor returns as hydration drops');
+  }
 });
 
 test('visibility and reduced-motion changes settle plant interaction', () => {
@@ -267,6 +359,110 @@ test('visibility and reduced-motion changes settle plant interaction', () => {
   c.waterPlant();
   assert.equal(run('plantInteraction.hydration'), 99);
   assert.equal(run('plantInteraction.busy'), false);
+});
+
+test('plant meter appears for hover and keyboard focus, then lingers four seconds after watering', () => {
+  const { context: c, run, advance, element } = controller();
+  run(`plantInteraction = createPlantInteraction([], new THREE.Vector3());
+    threeCamera = new THREE.OrthographicCamera(-5,5,5,-5,0.1,100);
+    threeCamera.position.z = 10; threeCamera.updateMatrixWorld(true);
+    sceneViewport = { width: 500, height: 500 };
+    objects.plant = new THREE.Object3D();
+    plantMeterBounds.push(new THREE.Vector3(-1,-1,0), new THREE.Vector3(1,1,0));
+    const plantSpot = HOTSPOTS.find(spot => spot.id === 'plant');
+    plantSpot.domElement = document.getElementById('hotspot-plant');
+    state.pinsVisible = false;
+    state.hoveredInteractive = plantSpot;`);
+  const meter = element('plantHydration');
+  c.updateObjectInteractions(0);
+  assert.equal(meter.attributes['aria-hidden'], 'false', 'hover works with Pins off');
+  assert.equal(meter.attributes['aria-valuenow'], '50');
+  assert.equal(meter.style.transform, 'translate(186px, 212px)');
+  run('state.hoveredInteractive = null;');
+  c.updatePlantMeter(1);
+  assert.equal(meter.attributes['aria-hidden'], 'true');
+  element('hotspot-plant').matches = () => true;
+  c.updatePlantMeter(2);
+  assert.equal(meter.attributes['aria-hidden'], 'false', 'keyboard focus also reveals hydration');
+  element('hotspot-plant').matches = () => false;
+  advance(100);
+  c.waterPlant();
+  assert.equal(meter.attributes['aria-valuenow'], '75');
+  assert.equal(element('plantHydrationFill').style.clipPath, 'inset(25% 0 0)');
+  assert.equal(element('canvas3d').classList.contains('is-watering'), true);
+  c.updateObjectInteractions(1300);
+  assert.equal(element('canvas3d').classList.contains('is-watering'), false);
+  c.updatePlantMeter(4099);
+  assert.equal(meter.attributes['aria-hidden'], 'false');
+  c.updatePlantMeter(4100);
+  assert.equal(meter.attributes['aria-hidden'], 'true');
+  run('state.hoveredInteractive = plantSpot; activeModal = {};');
+  c.updatePlantMeter(4101);
+  assert.equal(meter.attributes['aria-hidden'], 'true', 'dialogs hide the meter');
+  run('activeModal = null; state.zenMode = true;');
+  c.updatePlantMeter(4102);
+  assert.equal(meter.attributes['aria-hidden'], 'true', 'Zen hides the meter');
+  run('state.zenMode = false; document.hidden = true;');
+  c.updatePlantMeter(4103);
+  assert.equal(meter.attributes['aria-hidden'], 'true', 'hidden pages hide the meter');
+});
+
+test('meter animation retargets current tweens and settles immediately for reduced motion and dialogs', () => {
+  const { context: c, run, element } = controller();
+  const tweens = [];
+  c.gsap = { to: (target, vars) => tweens.push({ target, ...vars }) };
+  const meter = element('plantHydration');
+  meter.style.transform = 'translate(100px, 200px)';
+  c.animatePlantMeter(true);
+  c.animatePlantMeter(false);
+  c.animatePlantMeter(true);
+  assert.ok(tweens.every(tween => tween.overwrite === true));
+  assert.equal(tweens.at(-2).autoAlpha, 1);
+  assert.equal(tweens.at(-1).scale, 1);
+  assert.equal(meter.style.transform, 'translate(100px, 200px)', 'animation leaves camera projection alone');
+  run('interactionMotionMedia.matches = true;');
+  c.animatePlantMeter(true);
+  assert.equal(tweens.at(-2).duration, 0);
+  assert.equal(tweens.at(-1).duration, 0);
+  run('interactionMotionMedia.matches = false; activeModal = {};');
+  c.animatePlantMeter(false);
+  assert.equal(tweens.at(-2).autoAlpha, 0);
+  assert.equal(tweens.at(-2).duration, 0);
+  assert.equal(tweens.at(-1).duration, 0);
+});
+
+test('watering cursor follows plant hover, clears on exit and drag, and ignores touch hover', () => {
+  const { context: c, run, element } = controller();
+  run(`getInteractiveAtPointer = () => HOTSPOTS.find(spot => spot.id === 'plant'); setupSceneInput();`);
+  const canvas = element('canvas3d');
+  c.handlePointerMove(pointer()); c.flushPointerHover();
+  assert.equal(canvas.classList.contains('watering-cursor'), true);
+  assert.equal(element('hoverTooltip').classList.contains('visible'), false);
+  canvas.listeners.pointerleave();
+  assert.equal(canvas.classList.contains('watering-cursor'), false);
+  c.handlePointerMove(pointer(1, { pointerType: 'touch' })); c.flushPointerHover();
+  assert.equal(canvas.classList.contains('watering-cursor'), false);
+  c.handlePointerMove(pointer()); c.flushPointerHover();
+  c.handlePointerDown(pointer());
+  c.handlePointerMove(pointer(1, { clientX: 120 }));
+  assert.equal(canvas.classList.contains('watering-cursor'), false);
+  assert.equal(run('state.hoveredInteractive'), null);
+});
+
+test('hydration meter stays inside narrow viewports and follows the rendered camera', () => {
+  const { context: c, run, element } = controller();
+  run(`threeCamera = new THREE.OrthographicCamera(-5,5,5,-5,0.1,100);
+    threeCamera.position.z = 10; threeCamera.updateMatrixWorld(true);
+    sceneViewport = { width: 320, height: 400 };
+    objects.plant = new THREE.Object3D();
+    plantMeterBounds.push(new THREE.Vector3(-5,-1,0), new THREE.Vector3(-4,1,0));`);
+  c.positionPlantMeter();
+  const meter = element('plantHydration');
+  const position = () => [...meter.style.transform.matchAll(/(-?[\d.]+)px/g)].map(match => Math.round(Number(match[1])));
+  assert.deepEqual(position(), [31, 162]);
+  run('threeCamera.position.x = -4; threeCamera.updateMatrixWorld(true);');
+  c.positionPlantMeter();
+  assert.deepEqual(position(), [107, 162]);
 });
 
 test('a primary tap picks at release, while a drag, right click, or orphan release does not activate', () => {
@@ -847,4 +1043,37 @@ test('cloud dither shadows blend with each lighting phase', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   const pattern = html.match(/<pattern id="cloudDitherShadow"[\s\S]*?<\/pattern>/)[0];
   assert.equal((pattern.match(/fill=/g) || []).length, 1, 'dots inherit the animated pattern fill');
+});
+
+
+test('slider input fades atmosphere from the visible colours and retargets without a flash', () => {
+  const { context: c, run, element, advance } = controller();
+  run('setupModalSectionMotion = () => {}; setupEventListeners();');
+  c.setTimeOfDay(100);
+  const night = element('app').style.background;
+  element('lightingSlider').value = '0';
+  element('lightingSlider').listeners.input();
+  assert.equal(element('app').style.background, night);
+  assert.equal(element('lightingSlider').value, '0');
+  advance(200);
+  c.updateDayNightCycle(200);
+  const midway = element('app').style.background;
+  assert.notEqual(midway, night);
+  assert.notEqual(midway, run('THEMES.day.bg.getStyle()'));
+  const clouds = run('cycleCloudColor.getStyle()');
+  element('lightingSlider').value = '50';
+  element('lightingSlider').listeners.input();
+  assert.equal(element('app').style.background, midway);
+  assert.equal(run('cycleCloudColor.getStyle()'), clouds);
+  advance(600);
+  c.updateDayNightCycle(600);
+  assert.equal(element('app').style.background, run('THEMES.sunset.bg.getStyle()'));
+  assert.equal(run('themeTransition'), null);
+  c.updateDayNightCycle(700);
+  assert.equal(run('themeTransition'), null);
+  run('interactionMotionMedia.matches = true;');
+  element('lightingSlider').value = '100';
+  element('lightingSlider').listeners.input();
+  assert.equal(element('app').style.background, night);
+  assert.equal(run('themeTransition'), null);
 });

@@ -1172,13 +1172,17 @@ function findInteractiveParent(obj) {
   return null;
 }
 
-function getInteractiveAtPointer(e) {
-  if (!threeScene || !threeCamera) return null;
+function getSceneHitsAtPointer(e) {
+  if (!threeScene || !threeCamera) return [];
   const rect = canvas.getBoundingClientRect();
   mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
   mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
   raycaster.setFromCamera(mouse, threeCamera);
-  const hits = raycaster.intersectObjects(threeScene.children, true);
+  return raycaster.intersectObjects(threeScene.children, true);
+}
+
+function getInteractiveAtPointer(e) {
+  const hits = getSceneHitsAtPointer(e);
   return hits.length ? findInteractiveParent(hits[0].object) : null;
 }
 
@@ -1512,6 +1516,13 @@ function renderContent() {
 // Bind after Spline so its wheel handler stays between our capture/bubble handlers.
 function setupSceneInput() {
   // Canvas pointer raycasting and click handling. Orbit is constrained; panning is disabled.
+  canvas.addEventListener('pointerdown', e => {
+    const orbitControls = splineApp?._controls?.orbitControls;
+    // Decide before Spline starts the gesture; later fingers must retain that decision.
+    if (e.isPrimary && orbitControls) {
+      orbitControls.enableRotate = getSceneHitsAtPointer(e).length > 0;
+    }
+  }, { capture: true });
   canvas.addEventListener('pointermove', handlePointerMove);
   canvas.addEventListener('pointerleave', () => {
     pendingHover = null;

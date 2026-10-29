@@ -33,7 +33,9 @@ function controller({ menus = false } = {}) {
         setAttribute(name, value) { this.attributes[name] = value; },
         getAttribute(name) { return this.attributes[name]; },
         matches: () => false,
-        addEventListener(name, listener) { this.listeners[name] = listener; },
+        addEventListener(name, listener, options) {
+          this.listeners[options?.capture ? `${name}Capture` : name] = listener;
+        },
         querySelector: selector => id === 'themeDropdown' && selector === '[aria-checked="true"]'
           ? null : element(`${id} ${selector === '[aria-checked="true"]' ? 'item' : selector}`),
         querySelectorAll: selector => selector === '.dropdown-item, input[type="range"]'
@@ -478,6 +480,33 @@ test('a primary tap picks at release, while a drag, right click, or orphan relea
   c.handlePointerUp(pointer(1, { button: 2 }));
   c.handlePointerUp(pointer());
   assert.equal(activations.length, 1);
+});
+
+test('rotation starts on room geometry only and retains its origin through a pinch', () => {
+  const { context: c, run, element } = controller();
+  element('canvas3d').getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 200 });
+  run(`threeCamera = new THREE.OrthographicCamera(-5, 5, 5, -5, 0.1, 100);
+    threeCamera.position.z = 10; threeCamera.updateMatrixWorld(true);
+    threeScene = new THREE.Scene();
+    threeScene.add(new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), new THREE.MeshBasicMaterial()));
+    threeScene.updateMatrixWorld(true);
+    splineApp = { _controls: { orbitControls: { enableRotate: true, enableZoom: true } } };
+    setupSceneInput();`);
+  const down = element('canvas3d').listeners.pointerdownCapture;
+  const controls = run('splineApp._controls.orbitControls');
+  for (const pointerType of ['mouse', 'touch']) {
+    down(pointer(1, { pointerType, clientX: 10, clientY: 10 }));
+    assert.equal(controls.enableRotate, false, 'sky cannot start rotation');
+    down(pointer(2, { pointerType }));
+    assert.equal(controls.enableRotate, false, 'a second finger on the room cannot enable rotation');
+    c.keepOrbitDragActive(pointer(1, { buttons: 1 }));
+    assert.equal(controls.enableRotate, false, 'elastic edge handling cannot enable sky drags');
+    assert.equal(controls.enableZoom, true);
+    down(pointer(1, { pointerType }));
+    assert.equal(controls.enableRotate, true, 'the next gesture on room geometry can rotate');
+    down(pointer(2, { pointerType, clientX: 10, clientY: 10 }));
+    assert.equal(controls.enableRotate, true, 'later fingers retain the room origin');
+  }
 });
 
 test('a two-finger gesture cannot activate in either release order, even without movement', () => {

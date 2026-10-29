@@ -524,6 +524,7 @@ body, html {
   pointer-events: auto;
 }
 .hotspot-ring {
+  --hotspot-cream: #eee0c5;
   position: absolute;
   inset: 10px;
   transform: scale(0.8);
@@ -536,10 +537,10 @@ body, html {
   position: absolute;
   inset: 0;
   scale: 0.8;
-  border: 1px solid var(--panel-bg);
+  border: 1px solid var(--hotspot-cream);
   border-radius: 50%;
-  background: radial-gradient(circle, var(--panel-bg) 0 2px, transparent 3px 6px, var(--panel-bg) 7px 8px, transparent 9px) var(--accent-ink);
-  box-shadow: 0 0 0 4px rgba(24, 20, 28, 0.5), 0 2px 8px rgba(0, 0, 0, 0.45);
+  background: radial-gradient(circle, var(--hotspot-cream) 0 2px, transparent 3px 6px, var(--hotspot-cream) 7px 8px, transparent 9px) rgb(48 42 56 / 45%);
+  background-clip: padding-box;
 }
 .hotspot-bubble {
   position: absolute;
@@ -1381,8 +1382,7 @@ body, html {
   }
   .hotspot-ring::before {
     scale: 1.2;
-    background: radial-gradient(circle, var(--panel-bg) 0 0.75px, transparent 1.25px 1.5px, var(--panel-bg) 2px 2.75px, transparent 3.25px) var(--accent-ink);
-    box-shadow: 0 0 0 1px rgba(24, 20, 28, 0.5), 0 1px 4px rgba(0, 0, 0, 0.45);
+    background-image: radial-gradient(circle, var(--hotspot-cream) 0 0.75px, transparent 1.25px 1.5px, var(--hotspot-cream) 2px 2.75px, transparent 3.25px);
   }
   .zen-overlay {
     width: calc(100vw - 32px);

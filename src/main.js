@@ -25,7 +25,6 @@ const loadingAboutBtn = document.getElementById('loadingAboutBtn');
 const retrySceneBtn = document.getElementById('retrySceneBtn');
 const hotspotContainer = document.getElementById('hotspotContainer');
 const hoverTooltip = document.getElementById('hoverTooltip');
-const toastContainer = document.getElementById('toastContainer');
 const zenOverlay = document.getElementById('zenOverlay');
 const zenClock = document.getElementById('zenClock');
 
@@ -225,13 +224,13 @@ function activateHotspot(spot, trigger = null) {
   if (spot.id === 'plant') {
     const accepted = spot.action(trigger);
     if (accepted && spot.cameraPreset && (!currentCamAnim || state.cameraPreset !== spot.cameraPreset)) {
-      setCameraPreset(spot.cameraPreset, { notify: false, audible: false });
+      setCameraPreset(spot.cameraPreset, { audible: false });
     }
     return accepted;
   }
   sound.playPop();
   if (spot.cameraPreset && (!currentCamAnim || state.cameraPreset !== spot.cameraPreset)) {
-    setCameraPreset(spot.cameraPreset, { notify: false });
+    setCameraPreset(spot.cameraPreset);
   }
   spot.action(trigger);
 }
@@ -804,7 +803,7 @@ function animateLoop(now) {
 }
 
 // Camera Preset Transition
-function setCameraPreset(presetName, { notify = true, audible = true } = {}) {
+function setCameraPreset(presetName, { audible = true } = {}) {
   const preset = CAMERA_PRESETS[presetName];
   if (!preset || !threeCamera) return;
 
@@ -833,12 +832,10 @@ function setCameraPreset(presetName, { notify = true, audible = true } = {}) {
     duration: 1.2,
     elapsed: 0
   };
-
-  if (notify) showToast(`Perspective switched to ${presetName.toUpperCase()}`, '📐');
 }
 
 // Lighting & Atmosphere Transition
-function setTheme(themeName, { notify = true, restartCycle = true } = {}) {
+function setTheme(themeName, { restartCycle = true } = {}) {
   const theme = THEMES[themeName];
   if (!theme || (state.zenMode && themeName !== 'night')) return;
 
@@ -876,8 +873,6 @@ function setTheme(themeName, { notify = true, restartCycle = true } = {}) {
   }
   if (!themeTransition) applyThemeLighting(theme);
   updateLampLighting({ applyIntensity: !themeTransition });
-
-  if (notify) showToast(`Atmosphere set to ${theme.label}`, '🌤️');
 }
 
 function updateLightingSlider(value, { automatic = false } = {}) {
@@ -950,7 +945,7 @@ function updateDayNightCycle(now) {
   if (now - lastCycleUpdate < 100) return;
   lastCycleUpdate = now;
   const { from, to, blend } = getDayNightPhase(now - dayNightCycleStart);
-  if (state.theme !== from) setTheme(from, { notify: false, restartCycle: false });
+  if (state.theme !== from) setTheme(from, { restartCycle: false });
   applyThemeLighting(THEMES[from], THEMES[to], blend);
   const position = ((now - dayNightCycleStart) % DAY_NIGHT_CYCLE_MS + DAY_NIGHT_CYCLE_MS)
     % DAY_NIGHT_CYCLE_MS / (DAY_NIGHT_CYCLE_MS / DAY_NIGHT_PHASES.length);
@@ -966,7 +961,7 @@ function cycleTheme() {
 
 function setupLightingAndTheme() {
   splineApp.setBackgroundColor('transparent');
-  setTheme('night', { notify: false });
+  setTheme('night');
 }
 
 // Bedside Lamp Toggle
@@ -974,8 +969,6 @@ function toggleLamp() {
   state.lampOn = !state.lampOn;
   sound.playSwitch(state.lampOn);
   updateLampLighting();
-
-  showToast(`Bedside lamp turned ${state.lampOn ? 'ON' : 'OFF'}`, state.lampOn ? '💡' : '🌑');
 }
 
 function updateLampLighting({ applyIntensity = true } = {}) {
@@ -993,7 +986,6 @@ function updateLampLighting({ applyIntensity = true } = {}) {
 function spinChair() {
   if (!chairSwivel?.start(performance.now())) return;
   sound.playWhoosh();
-  showToast('Swiveled the chair!', '🪑');
 }
 
 // House Plant Interaction
@@ -1004,7 +996,6 @@ function waterPlant() {
   if (action === 'water') sound.playWaterPour();
   else sound.playPop(0.8);
   updateInteractionLabels();
-  showToast(action === 'water' ? `Plant watered · ${plantInteraction.hydration}% hydrated` : 'Already watered · Happy as can be', action === 'water' ? '💧' : '🌱');
   return action;
 }
 
@@ -1023,9 +1014,8 @@ function toggleZenMode(enable = null) {
       if (state.zenMode && !activeModal) exitZenBtn.focus({ preventScroll: true });
     });
     setTheme('night');
-    showToast('Entered Cozy Zen Mode', '🌙');
   } else {
-    setTheme('night', { notify: false });
+    setTheme('night');
     const shouldRestoreFocus = zenOverlay.contains(document.activeElement);
     zenOverlay.classList.remove('active');
     if (shouldRestoreFocus) {
@@ -1034,7 +1024,6 @@ function toggleZenMode(enable = null) {
       target.focus({ preventScroll: true });
     }
     zenReturnFocus = null;
-    showToast('Exited Zen Mode', '☀️');
   }
 }
 
@@ -1150,27 +1139,6 @@ function startZoomLimitBounce() {
   threeCamera.updateProjectionMatrix();
 }
 
-// Toast System
-function showToast(message, icon = '✨') {
-  if (toastContainer.childElementCount >= 4) {
-    gsap.killTweensOf(toastContainer.firstElementChild);
-    toastContainer.firstElementChild.remove();
-  }
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
-  toastContainer.appendChild(toast);
-
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  gsap.timeline({ onComplete: () => toast.remove() })
-    .fromTo(toast,
-      { autoAlpha: 0, y: reducedMotion ? 0 : 8, scale: reducedMotion ? 1 : 0.96 },
-      { autoAlpha: 1, y: 0, scale: 1, duration: reducedMotion ? 0 : 0.4, ease: 'back.out(1.2)' })
-    .to(toast,
-      { autoAlpha: 0, y: reducedMotion ? 0 : -6, scale: reducedMotion ? 1 : 0.97, duration: reducedMotion ? 0 : 0.22, ease: 'power2.in' },
-      3.5);
-}
-
 // Modal Handlers
 function setupModalSectionMotion() {
   document.querySelectorAll('.modal-nav').forEach(nav => {
@@ -1204,7 +1172,7 @@ function openModal(modalName, trigger = null) {
   modalReturnFallback = document.querySelector(`#sideNav [data-modal="${modalName === 'funProjects' ? 'projects' : modalName}"]`);
   // Disable the room and inactive dialogs without making the active dialog inert.
   for (const child of appEl.children) {
-    if (child === targetModal || child === toastContainer) continue;
+    if (child === targetModal) continue;
     modalBackgroundState.set(child, child.inert);
     child.inert = true;
   }
@@ -1456,7 +1424,6 @@ function setupEventListeners() {
     const isPlaying = sound.toggleAmbient();
     lofiBtn.classList.toggle('active', isPlaying);
     lofiBtn.setAttribute('aria-pressed', String(isPlaying));
-    showToast(`Cozy Lofi Chords: ${isPlaying ? 'ON' : 'OFF'}`, '🎵');
   });
 
   muteBtn.addEventListener('click', () => {
@@ -1464,7 +1431,6 @@ function setupEventListeners() {
     muteBtn.querySelector('use').setAttribute('href', `/ui-icons.svg#${isMuted ? 'volume-x' : 'volume-2'}`);
     muteBtn.classList.toggle('active', isMuted);
     muteBtn.setAttribute('aria-pressed', String(isMuted));
-    showToast(`Sound Effects: ${isMuted ? 'MUTED' : 'ENABLED'}`, isMuted ? '🔇' : '🔊');
   });
 
   lightingSlider.addEventListener('input', () => setTimeOfDay(Number(lightingSlider.value)));
@@ -1534,7 +1500,6 @@ function setupEventListeners() {
     togglePinsBtn.setAttribute('aria-pressed', String(state.pinsVisible));
     hotspotContainer.style.display = state.pinsVisible ? 'block' : 'none';
     sound.playPop();
-    showToast(`Hotspot Pins: ${state.pinsVisible ? 'VISIBLE' : 'HIDDEN'}`, '📍');
   });
 
   fullscreenBtn.addEventListener('click', () => {

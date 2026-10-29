@@ -11,10 +11,10 @@ import { PORTFOLIO_DATA } from '../src/data.js';
 const source = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8')
   .replace(/^import .*;\n/gm, '')
   .replace("await import('@splinetool/runtime')", 'await loadSplineRuntime()')
-  .replace(/^initPage\(\);|^inject\(\);/gm, '');
+  .replace(/^initPage\(\);|^inject(?:SpeedInsights)?\(\);/gm, '');
 
 function controller({ menus = false } = {}) {
-  const elements = new Map(), activations = [], picks = [], sounds = [], toasts = [], warnings = [];
+  const elements = new Map(), activations = [], picks = [], sounds = [], warnings = [];
   const documentListeners = {};
   let now = 0;
   const element = id => {
@@ -44,7 +44,7 @@ function controller({ menus = false } = {}) {
     return elements.get(id);
   };
   const context = createContext({
-    THREE, PORTFOLIO_DATA, ...cycle, ...motion, activations, picks, toasts,
+    THREE, PORTFOLIO_DATA, ...cycle, ...motion, activations, picks,
     performance: { now: () => now }, requestAnimationFrame() {},
     sound: { toggleAmbient() {}, playPop: () => sounds.push('pop'),
       playWaterPour: () => sounds.push('water') },
@@ -67,9 +67,8 @@ function controller({ menus = false } = {}) {
     const originalActivateHotspot = activateHotspot;
     getInteractiveAtPointer = event => { picks.push(event); return {}; };
     activateHotspot = () => activations.push('hotspot');
-    showToast = message => toasts.push(message);
   `, context);
-  return { context, activations, picks, sounds, toasts, warnings, element, documentListeners,
+  return { context, activations, picks, sounds, warnings, element, documentListeners,
     run: code => runInContext(code, context),
     advance: time => { now = time; }
   };
@@ -134,7 +133,7 @@ test('all dock menus dismiss on a second Safari tap and outside click, while ret
 });
 
 test('lighting slider scrubs the full atmosphere, interrupts fades, and resumes the cycle', () => {
-  const { context: c, run, element, advance, toasts } = controller();
+  const { context: c, run, element, advance } = controller();
   run('setupModalSectionMotion = () => {}; setupEventListeners(); dayNightCycleStart = 0;');
   c.setTheme('day');
   advance(250);
@@ -151,7 +150,6 @@ test('lighting slider scrubs the full atmosphere, interrupts fades, and resumes 
     assert.equal(run('cycleCloudColor.getStyle()'), run(`THEMES.${from}.cloudColor.clone().lerp(THEMES.${to}.cloudColor, ${blend}).getStyle()`));
     assert.equal(run('cycleStarOpacity'), run(`THREE.MathUtils.lerp(THEMES.${from}.starOpacity, THEMES.${to}.starOpacity, ${blend})`));
   }
-  assert.equal(toasts.length, 1, 'scrubbing does not flood notifications');
   c.setTimeOfDay(25);
   c.updateDayNightCycle(100250);
   assert.equal(Number(element('lightingSlider').value), 50);
@@ -227,7 +225,7 @@ test('lighting icons light up only while under the thumb, including after resizi
 });
 
 test('plant pin and Water Plant menu share progress and busy guards', () => {
-  const { context: c, run, advance, element, sounds, toasts } = controller();
+  const { context: c, run, advance, element, sounds } = controller();
   run(`
     plantInteraction = createPlantInteraction([], new THREE.Vector3());
     HOTSPOTS.find(spot => spot.id === 'plant').domElement = document.getElementById('hotspot-plant');
@@ -240,7 +238,8 @@ test('plant pin and Water Plant menu share progress and busy guards', () => {
   assert.equal(element('hotspot-plant').attributes['aria-label'], 'House Plant: 75% hydrated · Water plant');
   assert.equal(element('hotspot-plant').attributes['aria-disabled'], 'true');
   element('waterPlantBtn').listeners.click();
-  assert.equal(toasts.length, 1);
+  assert.equal(run('plantInteraction.hydration'), 75, 'busy plant rejects repeat watering');
+  assert.deepEqual(sounds, ['water']);
   advance(1200);
   c.updateObjectInteractions(1200);
   assert.equal(element('hotspot-plant').attributes['aria-disabled'], 'false');
@@ -320,7 +319,7 @@ test('cancelled pointers and lost capture end tracking without turning a pinch i
 test('Zen holds night against manual changes, then resumes the cycle on exit', () => {
   const { context: c, run, advance, element } = controller();
   run('dayNightCycleStart = 0');
-  c.setTheme('day', { notify: false });
+  c.setTheme('day');
   c.toggleZenMode(true);
   advance(1000);
   c.updateDayNightCycle(1000);
@@ -379,7 +378,7 @@ test('automatic lighting updates at 10Hz while manual fades keep every animation
   run('let lightUpdates = 0; applyThemeLighting = () => lightUpdates++; dayNightCycleStart = 0;');
   for (let now = 0; now < 1000; now += 10) c.updateDayNightCycle(now);
   assert.equal(run('lightUpdates'), 10);
-  advance(1000); c.setTheme('day', { notify: false });
+  advance(1000); c.setTheme('day');
   run('lightUpdates = 0;');
   for (let now = 1000; now <= 2000; now += 10) c.updateDayNightCycle(now);
   assert.equal(run('lightUpdates'), 101);
@@ -794,7 +793,7 @@ test('sky blends preserve Spline RGB and alpha without repeated parsing or warni
 test('interrupting a theme fade captures the visible sky and continues without a jump', () => {
   const { context: c, run, advance, element } = controller();
   run('applyThemeLighting(THEMES.sunset); dayNightCycleStart = 0;');
-  c.setTheme('night', { notify: false });
+  c.setTheme('night');
   advance(400); c.updateDayNightCycle(400);
   const visible = {
     bg: element('app').style.background,
@@ -803,7 +802,7 @@ test('interrupting a theme fade captures the visible sky and continues without a
     clouds: element('skyClouds').style.opacity,
     stars: element('skyStars').style.opacity
   };
-  c.setTheme('day', { notify: false });
+  c.setTheme('day');
   c.updateDayNightCycle(400);
   assert.equal(element('app').style.background, visible.bg);
   assert.equal(element('skyClouds').style.color, visible.color);

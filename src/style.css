@@ -754,36 +754,6 @@ body, html {
   filter: drop-shadow(0 0 3px #79caff) drop-shadow(0 1px 1px #60497080);
 }
 
-/* Toast Notifications */
-.toast-container {
-  position: absolute;
-  top: 20px;
-  right: calc(76px + env(safe-area-inset-right, 0px));
-  width: max-content;
-  max-width: min(320px, calc(100vw - 152px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 50;
-  pointer-events: none;
-}
-.toast {
-  pointer-events: auto;
-  overflow-wrap: anywhere;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  padding: 10px 16px;
-  border-radius: var(--radius-md);
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-main);
-  box-shadow: var(--surface-shadow);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transform-origin: top right;
-}
-
 /* A solid, molded frame keeps the content readable against every room phase. */
 .modal-backdrop {
   position: fixed;
@@ -1329,14 +1299,6 @@ body, html {
     scale: 1.2;
     background: radial-gradient(circle, var(--panel-bg) 0 0.75px, transparent 1.25px 1.5px, var(--panel-bg) 2px 2.75px, transparent 3.25px) var(--accent-ink);
     box-shadow: 0 0 0 1px rgba(24, 20, 28, 0.5), 0 1px 4px rgba(0, 0, 0, 0.45);
-  }
-  .toast-container {
-    top: calc(12px + env(safe-area-inset-top, 0px));
-    right: calc(66px + env(safe-area-inset-right, 0px));
-    max-width: min(320px, calc(100vw - 208px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
-  }
-  .toast {
-    font-size: 0.8rem;
   }
   .zen-overlay {
     width: calc(100vw - 32px);

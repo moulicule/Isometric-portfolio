@@ -759,7 +759,10 @@ body, html {
   height: 44px;
   margin: 0;
   padding: 0 4px;
+  border: 0;
+  border-radius: 999px;
   background: transparent;
+  -webkit-tap-highlight-color: transparent;
   cursor: pointer;
   touch-action: pan-y;
 }
@@ -780,13 +783,19 @@ body, html {
   height: 30px;
   margin-top: 4px;
   border: 0;
+  border-radius: 50%;
   background: transparent;
+  box-shadow: none;
+  opacity: 0;
 }
 .lighting-slider::-moz-range-thumb {
   width: 30px;
   height: 30px;
   border: 0;
+  border-radius: 50%;
   background: transparent;
+  box-shadow: none;
+  opacity: 0;
 }
 .lighting-slider:focus-visible {
   outline: 2px solid var(--accent-ink);

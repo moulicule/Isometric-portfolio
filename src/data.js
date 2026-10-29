@@ -24,7 +24,7 @@ export const PORTFOLIO_DATA = {
       description: "CAP is my wearable privacy project; Cappy is the expressive companion who lives on its screen. Together, they explore recording and consent through animated eyes and haptic alerts. Follow my design process, explore the hardware in 3D, and try Cappy’s reactions in an interactive browser simulation.",
       image: "/projects/cap/assets/p19-1.webp",
       imageAlt: "My orange CAP 2.0 prototype on a shelf, with Cappy’s bright white eyes on its screen",
-      tags: ["Product Design", "Critical Making", "Wearable Design", "ESP32", "Prototyping", "CAD"],
+      tags: ["Product Design", "Interaction Design", "Critical Making", "Wearable Design", "ESP32", "Prototyping", "CAD"],
       links: [
         { label: "Explore case study", url: "/projects/cap/index.html" },
         { label: "Build journal", url: "/projects/cap/journal.html" }

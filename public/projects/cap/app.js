@@ -118,7 +118,6 @@ function setBench(){
  button.setAttribute('aria-pressed',String(amount>0));
  const label=amount?'Switch to assembled view':'Switch to exploded view';
  button.setAttribute('aria-label',label);button.title=label;
- button.querySelector('span').textContent=amount?'↙':'↗';
  bench?.focus(activePart,amount);
 }
 $('#explode').addEventListener('click',()=>{manualView=bench.exploded?0:1;setBench();});

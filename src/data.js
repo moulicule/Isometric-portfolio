@@ -110,67 +110,67 @@ export const PORTFOLIO_DATA = {
   ],
   skills: [
     {
-      category: "UI/UX & Interaction Design",
+      category: "UI/UX and Interaction Design",
       icon: "laptop",
       items: [
-        { name: "UI/UX & User-Centred Design" },
-        { name: "Figma & FigJam" },
-        { name: "Wireframing & Interactive Prototyping" },
-        { name: "User Flows & Information Architecture" },
-        { name: "Design Systems & Component Libraries" },
-        { name: "Accessibility & Mobile-First Design" },
-        { name: "Microinteractions & UI Animation" },
-        { name: "Spline & 3D Interaction Design" }
+        { name: "UI/UX and User-Centred Design" },
+        { name: "Figma and FigJam" },
+        { name: "Wireframing and Interactive Prototyping" },
+        { name: "User Flows and Information Architecture" },
+        { name: "Design Systems and Component Libraries" },
+        { name: "Accessibility and Mobile-First Design" },
+        { name: "Microinteractions and UI Animation" },
+        { name: "Spline and 3D Interaction Design" }
       ]
     },
     {
-      category: "Research & Service Design",
+      category: "Research and Service Design",
       icon: "book-open",
       items: [
-        { name: "User Research, Interviews & Surveys" },
-        { name: "Usability Testing & Think-Aloud Studies" },
+        { name: "User Research, Interviews and Surveys" },
+        { name: "Usability Testing and Think-Aloud Studies" },
         { name: "Competitive Analysis" },
-        { name: "Personas & Journey Mapping" },
-        { name: "Stakeholder Mapping & Systems Thinking" },
-        { name: "Service Blueprints & Inclusive Design" }
+        { name: "Personas and Journey Mapping" },
+        { name: "Stakeholder Mapping and Systems Thinking" },
+        { name: "Service Blueprints and Inclusive Design" }
       ]
     },
     {
-      category: "Product Design & Making",
+      category: "Product Design and Making",
       icon: "box",
       items: [
-        { name: "CAD: Fusion 360 & Tinkercad" },
-        { name: "Physical Prototyping & 3D Printing" },
-        { name: "Design Thinking & Critical Making" }
+        { name: "CAD: Fusion 360 and Tinkercad" },
+        { name: "Physical Prototyping and 3D Printing" },
+        { name: "Design Thinking and Critical Making" }
       ]
     },
     {
       category: "Physical Computing",
       icon: "zap",
       items: [
-        { name: "ESP32 & Arduino Prototyping" },
-        { name: "C++ Firmware & PlatformIO" },
-        { name: "Sensors, Displays & Haptic Feedback" }
+        { name: "ESP32 and Arduino Prototyping" },
+        { name: "C++ Firmware and PlatformIO" },
+        { name: "Sensors, Displays and Haptic Feedback" }
       ]
     },
     {
-      category: "Motion, Visual Design & Film",
+      category: "Motion, Visual Design and Film",
       icon: "camera",
       items: [
-        { name: "Motion Graphics & After Effects" },
-        { name: "Video Production, Editing & Premiere Pro" },
-        { name: "Photoshop, Illustrator & InDesign" },
-        { name: "Visual Identity, Logos & Typography" },
-        { name: "Storyboarding & Creative Direction" }
+        { name: "Motion Graphics and After Effects" },
+        { name: "Video Production, Editing and Premiere Pro" },
+        { name: "Photoshop and Illustrator" },
+        { name: "Visual Identity, Logos and Typography" },
+        { name: "Storyboarding and Creative Direction" }
       ]
     },
     {
-      category: "Web & Creative Development",
+      category: "Web and Creative Development",
       icon: "gamepad",
       items: [
-        { name: "HTML, CSS & JavaScript" },
-        { name: "Three.js & Interactive 3D" },
-        { name: "GSAP & Web Animation" },
+        { name: "HTML, CSS and JavaScript" },
+        { name: "Three.js and Interactive 3D" },
+        { name: "GSAP and Web Animation" },
         { name: "Responsive Web Design" }
       ]
     }

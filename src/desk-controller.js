@@ -11,7 +11,7 @@ export async function loadDeskController(app, room, { timeoutMs = 8000 } = {}) {
     // Calibrated against the desk surface in public/scene.splinecode.
     const center = new Vector3(-40.258056090413426, -2.916331241292987, 35.73154673771854);
     const surfaceY = -9.899157690651808;
-    const width = 22.740570944319305;
+    const width = 25.014628038751236;
     const screen = room.getObjectByName('Computer');
     const direction = screen ? new Box3().setFromObject(screen).getCenter(new Vector3()).sub(center) : new Vector3(0, 0, -1);
     // The shoulder buttons face -Z; offset 20° clockwise from the monitor.

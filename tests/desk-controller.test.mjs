@@ -53,7 +53,7 @@ test('the supplied controller loads on the desk surface with its materials', asy
   assert.ok(parts >= 7, 'all controller parts are imported');
   assert.ok(bounds.getSize(new Vector3()).x < bounds.getSize(new Vector3()).z, 'controller turns toward the screen on its left');
   assert.ok(Math.abs(bounds.min.y + 9.899157690651808) < 1e-4, 'bottom rests on the desk surface');
-  assert.ok(Math.abs(bounds.getSize(new Vector3()).z - 22.740570944319305) < 1e-4);
+  assert.ok(Math.abs(bounds.getSize(new Vector3()).z - 25.014628038751236) < 1e-4);
   assert.ok(Math.abs(bounds.getCenter(new Vector3()).x - x) < 1e-4);
   assert.ok(Math.abs(bounds.getCenter(new Vector3()).z - z) < 1e-4);
 });

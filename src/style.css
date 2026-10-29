@@ -315,10 +315,14 @@ body, html {
   justify-content: flex-start;
   border-radius: 999px;
   overflow: hidden;
-  transition-property: background-color, border-color, box-shadow;
+  transition-property: background-color, border-color, box-shadow, transform;
 }
 .side-nav .nav-btn:hover {
   transform: none;
+}
+.side-nav .nav-btn:active {
+  background: var(--support-surface);
+  transform: translateY(2px);
 }
 .ui-icon {
   width: 18px;
@@ -1460,5 +1464,5 @@ button { font-family: var(--font-sans); }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0s !important; }
   .loader-spinner, .sky-cloud, .sky-star:nth-child(-n+6) { animation: none; }
   .modal-window { transform: none; }
-  :is(.hud-btn, .dock-btn, .dropdown-item, .modal-close-btn, .btn-primary, .btn-secondary, .social-pill):is(:hover, :active) { transform: none; }
+  :is(.side-nav .nav-btn, .hud-btn, .dock-btn, .dropdown-item, .modal-close-btn, .btn-primary, .btn-secondary, .social-pill):is(:hover, :active) { transform: none; }
 }

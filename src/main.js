@@ -953,7 +953,7 @@ function setTheme(themeName, { restartCycle = true } = {}) {
   state.theme = themeName;
   appEl.setAttribute('data-theme', themeName);
 
-  updateLightingSlider({ day: 0, sunset: 50, night: 100 }[themeName], { automatic: !restartCycle });
+  updateLightingSlider({ day: 0, sunset: 50, night: 100 }[themeName]);
 
   // Bedside Lamp behavior based on theme
   if (themeName === 'night') {
@@ -963,8 +963,7 @@ function setTheme(themeName, { restartCycle = true } = {}) {
   updateLampLighting({ applyIntensity: !themeTransition });
 }
 
-function updateLightingSlider(value, { automatic = false } = {}) {
-  if (automatic && document.getElementById('themeDropdown').classList.contains('open')) return;
+function updateLightingSlider(value) {
   lightingSlider.value = String(Math.round(value * 10) / 10);
   const label = value < 0.25 ? 'Day' : Math.abs(value - 50) < 0.25 ? 'Sunset' : value > 99.75 ? 'Night'
     : value < 50 ? `Day to Sunset, ${Math.round(value * 2)}%`
@@ -1076,8 +1075,8 @@ function updateDayNightCycle(now) {
   applyThemeLighting(THEMES[from], THEMES[to], blend);
   const position = ((now - dayNightCycleStart) % DAY_NIGHT_CYCLE_MS + DAY_NIGHT_CYCLE_MS)
     % DAY_NIGHT_CYCLE_MS / (DAY_NIGHT_CYCLE_MS / DAY_NIGHT_PHASES.length);
-  // Dawn has no stop on the Day → Sunset → Night slider; retain Night until Day begins.
-  updateLightingSlider(position < 1 ? 100 : (position - 1) * 50, { automatic: true });
+  // Dawn has no slider stop; select the closer endpoint without passing through Sunset.
+  updateLightingSlider(position < 1 ? (blend < 0.5 ? 100 : 0) : (position - 1) * 50);
 }
 
 function cycleTheme() {

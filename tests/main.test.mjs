@@ -171,17 +171,22 @@ test('lighting slider scrubs the full atmosphere, interrupts fades, and resumes 
   assert.equal(Number(element('lightingSlider').value), 100, 'Zen keeps night');
 });
 
-test('automatic dawn keeps Night selected without sweeping through Sunset', () => {
-  const { context: c, run, element } = controller();
-  run('dayNightCycleStart = 0');
-  c.updateDayNightCycle(100000);
-  assert.equal(Number(element('lightingSlider').value), 100);
-  assert.equal(element('lightingSlider').attributes['aria-valuetext'], 'Night');
-  assert.equal(element('sunsetIcon').classList.contains('is-lit'), false);
-  assert.equal(element('app').style.background, run('THEMES.night.bg.clone().lerp(THEMES.day.bg, 0.5).getStyle()'));
-  for (const [now, value] of [[200000, 0], [300000, 25], [400000, 50], [500000, 75], [600000, 100], [700000, 100], [800000, 0]]) {
-    c.updateDayNightCycle(now);
-    assert.equal(Number(element('lightingSlider').value), value, `slider at ${now}ms`);
+test('automatic dawn switches from Night to Day at halfway without selecting Sunset', () => {
+  for (const open of [false, true]) {
+    const { context: c, run, element } = controller();
+    run('dayNightCycleStart = 0');
+    element('themeDropdown').classList.toggle('open', open);
+    for (const [now, value] of [[0, 100], [99900, 100], [100000, 0], [100100, 0], [199900, 0], [200000, 0], [300000, 25], [400000, 50], [500000, 75], [600000, 100], [699900, 100], [700000, 0], [800000, 0]]) {
+      c.updateDayNightCycle(now);
+      assert.equal(Number(element('lightingSlider').value), value, `slider at ${now}ms, open=${open}`);
+      if (now < 200000) {
+        assert.equal(element('lightingSlider').attributes['aria-valuetext'], value === 100 ? 'Night' : 'Day');
+        assert.equal(element('sunsetIcon').classList.contains('is-lit'), false);
+      }
+      if (now === 100000) {
+        assert.equal(element('app').style.background, run('THEMES.night.bg.clone().lerp(THEMES.day.bg, 0.5).getStyle()'));
+      }
+    }
   }
 });
 
@@ -198,28 +203,22 @@ test('lighting slider keeps native keyboard handling and stays open during input
   assert.equal(dropdown.querySelector('.dropdown-menu').inert, false);
 });
 
-test('an open lighting slider stays fixed through automatic phase changes but still accepts input', () => {
+test('an open lighting slider follows the cycle and still accepts manual input', () => {
   const { context: c, run, element, advance } = controller({ menus: true });
-  run('setupModalSectionMotion = () => {}; setupEventListeners();');
-  c.setTimeOfDay(25);
+  run('setupModalSectionMotion = () => {}; setupEventListeners(); dayNightCycleStart = 0;');
   const dropdown = element('themeDropdown');
   dropdown.querySelector('.dropdown-toggle').listeners.click({ detail: 1, stopPropagation() {} });
-  const valueText = element('lightingSlider').attributes['aria-valuetext'];
-  for (const now of [100, 100000, 300000]) {
-    c.updateDayNightCycle(now);
-    assert.equal(Number(element('lightingSlider').value), 25);
-    assert.equal(element('lightingSlider').attributes['aria-valuetext'], valueText);
-  }
-  assert.equal(run('state.theme'), 'night', 'the atmosphere continues cycling');
-  advance(300000);
+  c.updateDayNightCycle(300000);
+  assert.equal(Number(element('lightingSlider').value), 25);
+  c.updateDayNightCycle(400000);
+  assert.equal(Number(element('lightingSlider').value), 50);
+  advance(400000);
   element('lightingSlider').value = '75';
   element('lightingSlider').listeners.input();
   assert.equal(element('lightingSlider').attributes['aria-valuetext'], 'Sunset to Night, 50%');
-  c.updateDayNightCycle(350000);
-  assert.equal(Number(element('lightingSlider').value), 75);
-  dropdown.querySelector('.dropdown-toggle').listeners.click({ detail: 1, stopPropagation() {} });
-  c.updateDayNightCycle(350100);
-  assert.ok(Number(element('lightingSlider').value) > 75, 'closed sliders sync with the cycle again');
+  c.updateDayNightCycle(400200);
+  assert.equal(Number(element('lightingSlider').value), 75, 'manual selection holds during its fade');
+  assert.equal(dropdown.classList.contains('open'), true);
 });
 
 test('lighting icons light up only while under the thumb, including after resizing', () => {

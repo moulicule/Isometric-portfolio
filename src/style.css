@@ -318,6 +318,8 @@ body, html {
    the canvas itself fades in so the sky stays visible throughout entry. */
 #app[data-scene-state="ready"] .loading-backdrop {
   visibility: hidden;
+  /* Hide with the sky's z-index change so the cover never obscures it. */
+  transition: none;
 }
 #app[data-room-entered="true"] #canvas3d { transition: opacity 0.4s ease; }
 #app[data-scene-state="ready"]:not([data-room-entered="true"]) #canvas3d,

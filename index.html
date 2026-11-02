@@ -28,25 +28,19 @@
   <div id="app" data-theme="night" data-scene-state="loading">
     <!-- Decorative sky stays behind the transparent Spline canvas. -->
     <div class="sky-atmosphere" id="skyAtmosphere" aria-hidden="true" inert>
-      <svg class="sky-definitions" width="0" height="0" focusable="false">
-        <defs>
-          <!-- Paint the dither into the silhouette: nested use/clipPath references can drop shadows in Safari. -->
-          <pattern id="cloudDitherShadow" fill="#604970" width="8" height="128" patternUnits="userSpaceOnUse">
-            <path d="M4 52h2v2h-2zM0 56h2v2h-2zM4 60h2v2h-2zM0 64h2v2h-2zM4 68h2v2h-2zM0 72h2v2h-2z" shape-rendering="crispEdges"/>
-            <path d="M0 76h2v2h-2zM4 76h2v2h-2zM0 80h2v2h-2zM4 80h2v2h-2zM0 84h2v2h-2zM4 84h2v2h-2zM0 88h2v2h-2zM4 88h2v2h-2z" shape-rendering="crispEdges"/>
-            <path d="M0 92h2v2h-2zM4 92h2v2h-2zM2 94h2v2h-2zM6 94h2v2h-2zM0 96h2v2h-2zM4 96h2v2h-2zM2 98h2v2h-2zM6 98h2v2h-2zM0 100h2v2h-2zM4 100h2v2h-2zM2 102h2v2h-2zM6 102h2v2h-2zM0 104h2v2h-2zM4 104h2v2h-2zM2 106h2v2h-2zM6 106h2v2h-2z" shape-rendering="crispEdges"/>
-          </pattern>
-          <pattern id="cloudDitherHighlight" width="8" height="8" patternUnits="userSpaceOnUse">
-            <path d="M0 0h2v2H0zM4 0h2v2H4zM0 4h2v2H0zM4 4h2v2H4z" fill="#fff" shape-rendering="crispEdges"/>
-          </pattern>
-          <symbol id="skyCloudShape" viewBox="0 0 240 128">
-            <path d="M47 108C25 108 12 94 12 77C12 60 25 47 43 47C48 24 67 12 88 18C101 0 133 4 146 25C169 15 193 29 196 50C217 47 230 61 230 79C230 96 216 108 198 108Z" fill="currentColor"/>
-            <path d="M47 108C25 108 12 94 12 77C12 60 25 47 43 47C48 24 67 12 88 18C101 0 133 4 146 25C169 15 193 29 196 50C217 47 230 61 230 79C230 96 216 108 198 108Z" fill="url(#cloudDitherShadow)" opacity="0.38"/>
-            <path d="M54 45C61 28 76 25 87 29M105 20C116 15 128 20 134 27" fill="none" stroke="url(#cloudDitherHighlight)" stroke-opacity="0.65" stroke-width="8"/>
-          </symbol>
-        </defs>
-      </svg>
       <div class="sky-clouds" id="skyClouds">
+        <svg class="sky-definitions" width="0" height="0" focusable="false">
+          <defs>
+            <linearGradient id="cloudGrain" gradientUnits="userSpaceOnUse" x1="0" y1="60" x2="0" y2="140">
+              <stop stop-color="currentColor"/>
+              <stop id="cloudShadow" offset="1" stop-color="#604970"/>
+            </linearGradient>
+            <pattern id="cloudDots" width="6" height="10" patternUnits="userSpaceOnUse" fill="currentColor">
+              <circle cx="1.5" cy="2" r="1.5"/><circle cx="4.5" cy="7" r="1.5"/>
+            </pattern>
+            <path id="skyCloudShape" d="M47 108C25 108 12 94 12 77C12 60 25 47 43 47C48 24 67 12 88 18C101 0 133 4 146 25C169 15 193 29 196 50C217 47 230 61 230 79C230 96 216 108 198 108Z" fill="url(#cloudDots)"/>
+          </defs>
+        </svg>
         <svg class="sky-cloud sky-cloud-one" viewBox="0 0 240 128" focusable="false"><use href="#skyCloudShape"/></svg>
         <svg class="sky-cloud sky-cloud-two" viewBox="0 0 240 128" focusable="false"><use href="#skyCloudShape"/></svg>
         <svg class="sky-cloud sky-cloud-three" viewBox="0 0 240 128" focusable="false"><use href="#skyCloudShape"/></svg>
@@ -98,7 +92,7 @@
     <div class="hover-tooltip" id="hoverTooltip">Click to interact</div>
 
     <!-- Top Left Navigation Controls -->
-    <nav class="side-nav" id="sideNav" aria-label="Main Navigation">
+    <nav class="side-nav" id="sideNav" aria-label="Main Navigation" inert>
       <button class="nav-btn hud-btn" data-modal="about" aria-label="About Me">
         <span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#user-round"/></svg></span>
         <span class="nav-label" aria-hidden="true">About Me</span>
@@ -290,24 +284,28 @@
       </div>
     </div>
 
-    <!-- Static identity/contact remain usable even without JavaScript or 3D. -->
+    <!-- The introduction remains readable without JavaScript or 3D. -->
     <div class="loading-backdrop" id="loadingBackdrop" aria-hidden="true" inert></div>
     <section class="loading-screen" id="loadingScreen" aria-labelledby="fallbackName" tabindex="0">
+      <img class="intro-photo" src="/images/moulik-nanda.jpg" alt="Moulik Nanda sitting cross-legged with two laptops" width="1600" height="1200" decoding="async">
       <h1 class="loader-title" id="fallbackName">Moulik Nanda</h1>
-      <p class="loader-sub">M.A. Experience Design · Srishti Manipal Institute of Art, Design and Technology</p>
-      <p class="fallback-description">Multidisciplinary designer based in Bangalore, driven by storytelling, tinkering, and iteration.</p>
-      <div class="scene-loading-status">
-        <div class="loader-spinner" id="loaderSpinner" aria-hidden="true" hidden></div>
-        <p class="loader-sub" id="loadingStatus" role="status">You can email me or visit my LinkedIn profile below.</p>
-      </div>
+      <p class="fallback-description">Welcome to my studio! I’m a designer with many <span class="intro-hats">hats<span class="intro-hat-strip" aria-hidden="true">
+        <span class="intro-hat"><svg class="ui-icon" viewBox="0 0 24 24" focusable="false"><use href="/ui-icons.svg#hat-top"/></svg></span>
+        <span class="intro-hat"><svg class="ui-icon" viewBox="0 0 24 24" focusable="false"><use href="/ui-icons.svg#hat-cap"/></svg></span>
+        <span class="intro-hat"><svg class="ui-icon" viewBox="0 0 24 24" focusable="false"><use href="/ui-icons.svg#hat-sun"/></svg></span>
+        <span class="intro-hat"><svg class="ui-icon" viewBox="0 0 24 24" focusable="false"><use href="/ui-icons.svg#hat-graduation"/></svg></span>
+        <span class="intro-hat"><svg class="ui-icon" viewBox="0 0 24 24" focusable="false"><use href="/ui-icons.svg#hat-chef"/></svg></span>
+      </span></span> working across digital interfaces and physical prototypes. I love telling stories and tinkering while being fluid across mediums, caring far more about solving the right problem, rather than the tools it takes to get there.</p>
       <div class="fallback-actions">
-        <button class="btn-secondary" id="loadingAboutBtn" data-modal="about" hidden>About Me</button>
-        <a class="btn-primary" id="fallbackEmailLink" href="mailto:mouliknanda@gmail.com">Email me <span aria-hidden="true">&nearr;</span></a>
-        <a class="social-pill" id="fallbackLinkedInLink" href="https://www.linkedin.com/in/moulik-nanda-868469205/" target="_blank" rel="noopener noreferrer">LinkedIn <span aria-hidden="true">&nearr;</span></a>
+        <button class="btn-primary" id="enterRoomBtn" aria-describedby="loadingStatus" disabled>
+          <span class="loader-spinner" id="loaderSpinner" aria-hidden="true" hidden></span>
+          <span id="enterRoomLabel">Enter the studio</span>
+        </button>
+        <button class="btn-secondary" id="loadingProjectsBtn" data-modal="projects" disabled>View projects</button>
       </div>
-      <p class="contact-address" id="fallbackEmailAddress">mouliknanda@gmail.com</p>
+      <p class="loader-sub scene-loading-status" id="loadingStatus" role="status">Enable JavaScript to explore the portfolio.</p>
       <button class="btn-secondary" id="retrySceneBtn" hidden>Reload room</button>
-      <noscript><p class="loader-sub">JavaScript is off. The contact links above still work.</p></noscript>
+      <noscript><p class="loader-sub">JavaScript is off. Enable it to explore the portfolio.</p></noscript>
     </section>
   </div>
 

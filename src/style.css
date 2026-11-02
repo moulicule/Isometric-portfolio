@@ -75,9 +75,9 @@ body, html {
 .sky-atmosphere {
   z-index: 0;
   overflow: hidden;
-  visibility: hidden;
 }
-#app[data-scene-state="ready"] .sky-atmosphere { visibility: visible; }
+/* Keep the boot sky above the cover while Spline prepares its first frames. */
+#app:not([data-scene-state="ready"]) .sky-atmosphere { z-index: 16; }
 .sky-atmosphere * { pointer-events: none; }
 .sky-definitions { position: absolute; }
 .sky-clouds { color: #d4c3ef; opacity: 0.15; }
@@ -88,6 +88,11 @@ body, html {
   scale: 1.2;
   overflow: visible;
   animation: cloud-drift 45s ease-in-out infinite alternate;
+}
+.sky-cloud text {
+  font: 600 11.5px ui-monospace, monospace;
+  white-space: pre;
+  dominant-baseline: central;
 }
 .sky-cloud-one { left: 5%; top: 32%; animation-delay: -15s; }
 .sky-cloud-two {
@@ -131,7 +136,6 @@ body, html {
   from { opacity: 0.45; }
   to { opacity: 0.9; }
 }
-#app:not([data-scene-state="ready"]) .sky-atmosphere *,
 .sky-atmosphere.is-paused * { animation-play-state: paused; }
 @media (max-width: 840px), (max-height: 500px) {
   .sky-cloud-one { width: 150px; left: -24px; top: 27%; }
@@ -174,12 +178,12 @@ body, html {
   pointer-events: none;
 }
 
-/* Loading/error card leaves navigation and contact usable. */
+/* Introduction stays visible until the visitor enters the ready room. */
 .loading-screen {
   position: absolute;
   inset: 0;
   margin: auto;
-  width: min(460px, calc(100% - 32px));
+  width: min(520px, calc(100% - 32px));
   height: max-content;
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
@@ -191,23 +195,33 @@ body, html {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
+  gap: 16px;
   text-align: center;
   user-select: text;
   z-index: 30;
 }
 .loader-spinner {
-  width: 22px;
-  height: 22px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
-  border: 3px solid var(--accent-surface);
+  border: 2px solid var(--panel-border-accent);
   border-top-color: var(--accent-ink);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+.intro-photo {
+  display: block;
+  width: 160px;
+  height: 120px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border: 4px solid var(--surface-raised);
+  border-radius: var(--radius-md);
+  box-shadow: var(--card-shadow);
+}
 .loader-title {
   font-size: 1.75rem;
-  font-weight: 600;
+  font-weight: 900;
   letter-spacing: -0.01em;
 }
 .loader-sub {
@@ -218,10 +232,48 @@ body, html {
 .fallback-description {
   line-height: 1.5;
 }
-.scene-loading-status {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.intro-hats {
+  display: inline-block;
+  position: relative;
+  padding-top: 1rem;
+}
+.intro-hat-strip {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 3rem;
+  height: 1rem;
+  overflow: hidden;
+  transform: translateX(-50%);
+  pointer-events: none;
+  user-select: none;
+}
+.intro-hat {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-50%);
+}
+.intro-hat:first-child {
+  opacity: 1;
+  visibility: visible;
+}
+.intro-hat .ui-icon {
+  width: 16px;
+  height: 16px;
+}
+.scene-loading-status:not(.visible) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 .fallback-actions {
   display: flex;
@@ -233,19 +285,52 @@ body, html {
   flex: none;
   min-height: 44px;
 }
-#app:not(.ui-ready) .side-nav,
-#app:not([data-scene-state="ready"]) .top-nav-right,
-#app:not([data-scene-state="ready"]) .bottom-dock {
+.fallback-actions button:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+:is(.side-nav, .top-nav-right, .bottom-dock) {
+  opacity: 0;
+  transition: opacity 0.4s ease-out;
+}
+#app:not([data-room-entered]) :is(.side-nav, .top-nav-right, .bottom-dock, .hotspot-container) {
   visibility: hidden;
 }
+#app[data-room-entered="true"] :is(.side-nav, .top-nav-right, .bottom-dock) {
+  opacity: 1;
+}
+#app[data-room-entered="entering"] {
+  --entry-about: 0;
+  --entry-controls: 0;
+}
+#app[data-room-entered="entering"] :is(.loading-screen, .loading-backdrop, #enterRoomBtn, #canvas3d, .side-nav, .top-nav-right, .bottom-dock) {
+  transition: none;
+}
+#app[data-room-entered="entering"] :is(.hotspot-pin, .side-nav, .top-nav-right, .bottom-dock) {
+  opacity: var(--entry-controls);
+}
+#app[data-room-entered="entering"] #hotspot-about {
+  opacity: var(--entry-about);
+}
+/* Readiness needs the preparing canvas to render behind the cover. Once ready,
+   the canvas itself fades in so the sky stays visible throughout entry. */
+#app[data-scene-state="ready"] .loading-backdrop {
+  visibility: hidden;
+}
+#app[data-room-entered="true"] #canvas3d { transition: opacity 0.4s ease; }
+#app[data-scene-state="ready"]:not([data-room-entered="true"]) #canvas3d,
 #app:not([data-scene-state="ready"]) #canvas3d {
   opacity: 0;
+}
+#app:not([data-room-entered="true"]) #canvas3d {
   pointer-events: none;
 }
 #app[data-scene-state="preparing"] #canvas3d {
   opacity: 1;
 }
-#app:not([data-scene-state="ready"]) .hover-tooltip {
+#app:not([data-room-entered="true"]) .hover-tooltip {
   display: none;
 }
 #app[data-scene-state="error"] .scene-loading-status {
@@ -1296,15 +1381,9 @@ body, html {
 
 /* Responsive Media Queries */
 @media (max-width: 840px), (max-height: 500px) {
-  #app:not([data-scene-state="ready"]) .side-nav {
-    flex-direction: row;
-  }
-  #app:not([data-scene-state="ready"]) .side-nav .nav-icon {
-    width: 24px;
-  }
   .loading-screen {
-    inset: 68px 0 12px;
-    max-height: calc(100dvh - 80px);
+    inset: 12px 0;
+    max-height: calc(100dvh - 24px);
     padding: 24px;
   }
   .side-nav {
@@ -1402,6 +1481,13 @@ body, html {
 }
 
 @media (max-width: 360px) {
+  .loading-screen {
+    padding: 20px;
+    gap: 12px;
+  }
+  .fallback-actions button {
+    padding-inline: 8px;
+  }
   .dock-btn {
     padding: 0 4px;
     gap: 4px;

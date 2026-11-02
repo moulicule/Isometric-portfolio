@@ -15,13 +15,14 @@ const source = readFileSync(new URL('../src/main.js', import.meta.url), 'utf8')
 
 function controller({ menus = false } = {}) {
   const elements = new Map(), activations = [], picks = [], sounds = [], warnings = [];
-  const documentListeners = {};
+  const documentListeners = {}, windowListeners = {};
   let now = 0;
   const element = id => {
     if (!elements.has(id)) {
       const classes = new Set();
       elements.set(id, {
         id,
+        dataset: id === 'app' ? { roomEntered: 'true' } : {},
         clientWidth: 242,
         value: id === 'lightingSlider' ? '100' : '',
         attributes: {}, listeners: {}, style: {},
@@ -59,7 +60,8 @@ function controller({ menus = false } = {}) {
     sound: { toggleAmbient() {}, playPop: () => sounds.push('pop'),
       playWaterPour: () => sounds.push('water') },
     console: { warn: message => warnings.push(message) },
-    window: { matchMedia: () => ({ matches: false, addEventListener() {} }), addEventListener() {} },
+    window: { matchMedia: () => ({ matches: false, addEventListener() {} }),
+      addEventListener(name, listener) { windowListeners[name] = listener; } },
     document: {
       hidden: false,
       addEventListener(name, listener) { (documentListeners[name] ||= []).push(listener); },
@@ -69,7 +71,8 @@ function controller({ menus = false } = {}) {
         ? ['dayIcon', 'sunsetIcon', 'nightIcon'].map(element)
         : menus && selector === '.bottom-dock .dropdown'
           ? ['theme', 'camera', 'interactions'].map(id => element(`${id}Dropdown`)) : [],
-      querySelector: () => ({ lastElementChild: { textContent: 'Night' } })
+      querySelector: selector => ['.top-nav-right', '.bottom-dock', '#sideNav [data-modal="projects"]'].includes(selector)
+        ? element(selector) : { lastElementChild: { textContent: 'Night' } }
     }
   });
   runInContext(source, context);
@@ -78,7 +81,7 @@ function controller({ menus = false } = {}) {
     getInteractiveAtPointer = event => { picks.push(event); return {}; };
     activateHotspot = () => activations.push('hotspot');
   `, context);
-  return { context, activations, picks, sounds, warnings, element, documentListeners,
+  return { context, activations, picks, sounds, warnings, element, documentListeners, windowListeners,
     run: code => runInContext(code, context),
     advance: time => { now = time; }
   };
@@ -88,28 +91,229 @@ const pointer = (pointerId = 1, extra = {}) => ({
   pointerId, isPrimary: pointerId === 1, button: 0, clientX: 100, clientY: 100, ...extra
 });
 
-test('the room reaches readiness when its optional controller is unavailable', async () => {
+test('intro hats animate only with motion enabled and pause whenever the intro is hidden', () => {
+  const { context, run, element, documentListeners } = controller();
+  element('app').dataset = { sceneState: 'ready' };
+  const hats = ['top-hat', 'cap', 'sun-hat', 'graduation-cap', 'helmet'].map(element);
+  const queryAll = context.document.querySelectorAll;
+  context.document.querySelectorAll = selector => selector === '.intro-hat' ? hats : queryAll(selector);
+  let enableMotion, isPaused = true, created = 0;
+  const entrances = [], exits = [];
+  context.gsap.matchMedia = () => ({ add(query, callback) {
+    assert.equal(query, '(prefers-reduced-motion: no-preference)');
+    enableMotion = callback;
+  } });
+  context.gsap.set = () => {};
+  context.gsap.timeline = options => {
+    assert.equal(options.repeat, -1);
+    created++;
+    return {
+      fromTo(hat, from, to, position) { entrances.push({ hat, from, to, position }); return this; },
+      to(hat, to, position) { exits.push({ hat, to, position }); return this; },
+      paused(value) { isPaused = value; }
+    };
+  };
+  run('setupIntroHatMotion()');
+  assert.equal(created, 0, 'reduced motion leaves the static CSS hat visible');
+  const cleanup = enableMotion();
+  assert.equal(entrances.length, hats.length);
+  assert.equal(exits.length, hats.length);
+  assert.equal(isPaused, false);
+  assert.ok(entrances.every(({ from, to }) => from.x > to.x && from.autoAlpha === 0 && to.autoAlpha === 1));
+  assert.ok(exits.every(({ to }) => to.x < 0 && to.autoAlpha === 0));
+  context.document.hidden = true;
+  documentListeners.visibilitychange.forEach(listener => listener());
+  assert.equal(isPaused, true);
+  context.document.hidden = false;
+  documentListeners.visibilitychange.forEach(listener => listener());
+  assert.equal(isPaused, false);
+  run('activeModal = projectsModal; syncIntroHatMotion()');
+  assert.equal(isPaused, true);
+  run('activeModal = null; syncIntroHatMotion()');
+  assert.equal(isPaused, false);
+  run('enterRoom()');
+  assert.equal(isPaused, true);
+  cleanup();
+  assert.equal(run('introHatTimeline'), null);
+});
+
+test('readiness keeps the intro and an open Projects dialog in place until room entry', async () => {
   const { context: c, run, element } = controller();
-  let disposed = false, checkedReadiness = false;
+  let disposed = false, checkedReadiness = false, paused = false;
   c.loadSplineRuntime = async () => ({ Application: class {
-    constructor() { this._scene = new THREE.Group(); this._camera = new THREE.OrthographicCamera(); }
+    constructor() {
+      this._scene = new THREE.Group();
+      this._scene.activePage = { bgColor: new THREE.Color() };
+      this._camera = new THREE.OrthographicCamera();
+    }
     async load() {}
+    stop() { paused = true; }
+    play() { paused = false; }
+    requestRender() {}
     dispose() { disposed = true; }
   } });
   c.loadDeskController = async () => null;
   c.applyRoomPalette = () => {};
-  c.waitForSceneReady = async () => { checkedReadiness = true; };
+  let finishReadiness;
+  c.waitForSceneReady = () => { checkedReadiness = true; return new Promise(resolve => { finishReadiness = resolve; }); };
   c.ResizeObserver = class { observe() {} };
   c.setTimeout = setTimeout;
   c.clearTimeout = clearTimeout;
   element('app').dataset = {};
+  element('enterRoomBtn').disabled = true;
+  for (const id of ['canvas3d', 'hotspotContainer', 'sideNav', '.top-nav-right', '.bottom-dock']) element(id).inert = true;
+  element('loadingProjectsBtn').focus();
   run(`syncResponsiveCameraZoom = configureCameraControls = setupSceneReferences =
     setupObjectInteractions = setupHotspots = setupLightingAndTheme = setupSceneInput = () => {};`);
-  await c.init();
+  const initialized = c.init();
+  while (!checkedReadiness) await Promise.resolve();
+  assert.equal(element('enterRoomLabel').textContent, 'Loading room…');
+  assert.equal(element('loaderSpinner').hidden, false);
+  element('retrySceneBtn').hidden = false;
+  run('enterRoom()');
+  assert.equal(element('app').dataset.roomEntered, undefined, 'entry must wait for readiness');
+  run('activeModal = projectsModal; modalBackgroundState.set(canvas, true);');
+  element('projectsModal').focus();
+  finishReadiness();
+  await initialized;
   assert.equal(element('app').dataset.sceneState, 'ready');
+  assert.equal(paused, true, 'the invisible room must stop rendering after readiness');
   assert.equal(checkedReadiness, true);
   assert.equal(disposed, false);
   assert.equal(run('objects.controller'), null);
+  assert.equal(element('enterRoomBtn').disabled, false);
+  assert.equal(element('enterRoomLabel').textContent, 'Enter the studio');
+  assert.equal(element('loaderSpinner').hidden, true);
+  assert.equal(element('retrySceneBtn').hidden, true);
+  assert.equal(element('loadingScreen').classList.contains('hidden'), false);
+  assert.equal(element('loadingBackdrop').classList.contains('hidden'), false);
+  assert.equal(run('activeModal'), element('projectsModal'));
+  assert.equal(c.document.activeElement, element('projectsModal'), 'readiness must preserve dialog focus');
+  assert.equal(run('modalBackgroundState.get(canvas)'), true);
+  assert.equal(element('sideNav').inert, true, 'readiness must leave the navigation inert until entry');
+  run('enterRoom()');
+  assert.equal(element('app').dataset.roomEntered, undefined, 'an open dialog prevents entry');
+  run('activeModal = null; modalBackgroundState.clear(); enterRoom()');
+  assert.equal(paused, false, 'entry must resume the renderer');
+  assert.equal(element('app').dataset.roomEntered, 'true');
+  assert.equal(element('loadingScreen').inert, true);
+  assert.equal(element('loadingScreen').classList.contains('hidden'), true);
+  assert.equal(element('loadingBackdrop').classList.contains('hidden'), true);
+  for (const id of ['canvas3d', 'hotspotContainer', 'sideNav', '.top-nav-right', '.bottom-dock']) assert.equal(element(id).inert, false);
+  assert.equal(c.document.activeElement, element('#sideNav [data-modal="projects"]'));
+  element('loadingProjectsBtn').focus();
+  run('enterRoom()');
+  assert.equal(c.document.activeElement, element('loadingProjectsBtn'), 'repeated entry must do nothing');
+});
+
+test('the final card corners and About Me anchor project onto the same note face at both sizes', () => {
+  const { run, element } = controller();
+  const card = { left: 30, top: 120, width: 330, height: 280 };
+  element('loadingScreen').getBoundingClientRect = () => card;
+  run(`
+    threeCamera = new THREE.OrthographicCamera(-80, 80, 60, -60, 1, 500);
+    threeCamera.position.set(50, 100, 200);
+    threeCamera.lookAt(0, 0, 0);
+    threeCamera.updateMatrixWorld();
+    const stack = objects.stickyNotes = new THREE.Group();
+    stack.position.set(-12, 3, 15);
+    const sheet = new THREE.Mesh(new THREE.BoxGeometry(36, 8, 39));
+    sheet.name = 'Cube 73';
+    sheet.scale.set(0.36, 0.03, 0.36);
+    sheet.rotation.x = -Math.PI / 2;
+    stack.add(sheet);
+    const about = HOTSPOTS.find(spot => spot.id === 'about');
+    about.noteFace = getNoteFace(stack);
+  `);
+  for (const [width, height] of [[1280, 720], [390, 844]]) {
+    run(`sceneViewport = { left: 4, top: 6, width: ${width}, height: ${height} }`);
+    const [a, b, c, d, dx, dy] = run('noteLandingTransform()').slice(7, -1).split(',').map(Number);
+    const cx = card.left + card.width / 2 + dx, cy = card.top + card.height / 2 + dy;
+    const project = p => [(1 + p.x) * width / 2 + 4, (1 - p.y) * height / 2 + 6];
+    const [px, py] = project(run('stack.localToWorld(about.noteFace.center.clone()).project(threeCamera)'));
+    assert.ok(Math.hypot(px - cx, py - cy) < 1e-6);
+    const corners = run('about.noteFace.corners.map(p => stack.localToWorld(p.clone()).project(threeCamera))');
+    for (const [x, y] of corners.map(project)) {
+      assert.ok([-0.5, 0.5].some(u => [-0.5, 0.5].some(v => Math.hypot(
+        cx + a * card.width * u + c * card.height * v - x,
+        cy + b * card.width * u + d * card.height * v - y) < 1e-6)));
+    }
+  }
+});
+
+test('entry runs once, keeps controls inert in flight, and settles on completion or interruption', () => {
+  for (const mode of ['complete', 'hidden', 'resize', 'reduced']) {
+    const { context, run, element, documentListeners } = controller();
+    element('app').dataset = { sceneState: 'ready' };
+    element('canvas3d').inert = true;
+    let complete, flights = 0;
+    const tweens = [];
+    context.gsap.timeline = ({ onComplete }) => {
+      flights++;
+      complete = onComplete;
+      return { to(target, vars, start) { tweens.push({ target, vars, start }); return this; }, progress: onComplete };
+    };
+    run(`noteLandingTransform = () => 'matrix(0.1,0,0,0.1,42,24)';
+      setupModalSectionMotion = () => {}; setupEventListeners();`);
+    if (mode === 'reduced') run('interactionMotionMedia.matches = true');
+    run('enterRoom(); enterRoom()');
+    if (mode !== 'reduced') {
+      const roomFade = tweens.find(tween => tween.target === element('canvas3d'));
+      assert.equal(roomFade.vars.opacity, 1);
+      const controlsFade = tweens.find(tween => '--entry-controls' in tween.vars);
+      assert.ok(controlsFade.vars.duration >= 0.4, 'controls need a perceptible fade');
+      assert.ok(controlsFade.start >= 0.6, 'controls follow the paper landing');
+      assert.equal(element('app').dataset.roomEntered, 'entering');
+      assert.equal(element('canvas3d').inert, true);
+      assert.equal(element('loadingScreen').inert, true);
+      if (mode === 'hidden') {
+        context.document.hidden = true;
+        documentListeners.visibilitychange.forEach(listener => listener());
+      } else if (mode === 'resize') {
+        for (const id of ['canvas3d', 'sideNav', '.top-nav-right', '.bottom-dock']) {
+          element(id).getBoundingClientRect = () => ({ width: 390, height: 844, left: 0, right: 390, top: 0 });
+        }
+        run('threeCamera = new THREE.OrthographicCamera(); syncResponsiveCameraZoom()');
+      } else complete();
+    }
+    assert.equal(flights, mode === 'reduced' ? 0 : 1);
+    assert.equal(element('app').dataset.roomEntered, 'true');
+    assert.equal(element('canvas3d').inert, false);
+    assert.equal(context.document.activeElement, element('#sideNav [data-modal="projects"]'));
+  }
+});
+
+test('room shortcuts start only after the visitor enters', () => {
+  const { context, run, element, windowListeners, activations } = controller();
+  context.HTMLElement = class {};
+  element('app').dataset = { sceneState: 'ready' };
+  run('setupModalSectionMotion = () => {}; toggleLamp = () => activations.push("lamp"); setupEventListeners();');
+  windowListeners.keydown({ key: 'l' });
+  assert.deepEqual(activations, []);
+  run('enterRoom()');
+  windowListeners.keydown({ key: 'l' });
+  assert.deepEqual(activations, ['lamp']);
+});
+
+test('a failed room keeps the intro visible and offers reload with entry disabled', async () => {
+  const { context, run, element } = controller();
+  context.loadSplineRuntime = async () => { throw new Error('Renderer unavailable'); };
+  context.console.error = () => {};
+  context.setTimeout = setTimeout;
+  context.clearTimeout = clearTimeout;
+  element('app').dataset = {};
+  element('enterRoomBtn').disabled = true;
+  await context.init();
+  assert.equal(element('app').dataset.sceneState, 'error');
+  assert.equal(element('enterRoomBtn').disabled, true);
+  assert.equal(element('enterRoomLabel').textContent, 'Room unavailable');
+  assert.equal(element('loaderSpinner').hidden, true);
+  assert.equal(element('loadingStatus').classList.contains('visible'), true);
+  assert.equal(element('retrySceneBtn').hidden, false);
+  assert.equal(element('loadingScreen').classList.contains('hidden'), false);
+  assert.equal(element('loadingBackdrop').classList.contains('hidden'), false);
+  run('enterRoom()');
+  assert.equal(element('app').dataset.roomEntered, undefined);
 });
 
 test('all dock menus dismiss on a second Safari tap and outside click, while retaining keyboard focus', () => {
@@ -568,6 +772,38 @@ test('overview fits phone, landscape, and desktop bounds and preserves zoom duri
   assert.equal(run('threeCamera.zoom'), zoom, 'a hidden canvas must not destroy zoom');
 });
 
+test('the ready intro updates its sky without updating or rendering the hidden room, then resumes on entry', () => {
+  const { context: c, run, element, advance } = controller();
+  element('app').dataset = { sceneState: 'ready' };
+  let renders = 0, roomUpdates = 0, backgroundUpdates = 0, resumed = false;
+  c.countRender = () => renders++;
+  c.countRoomUpdate = () => roomUpdates++;
+  c.countBackground = () => backgroundUpdates++;
+  c.resume = () => { resumed = true; };
+  run(`
+    splineApp = { requestRender: countRender, play: resume };
+    threeScene = { activePage: { bgColor: { setRGB: countBackground } } };
+    dayNightCycleStart = 0;
+    updateClockHands = updateObjectInteractions = updateHotspots = countRoomUpdate;
+    chairSwivel = { update: countRoomUpdate };
+    animateLoop(0);
+  `);
+  const initialSky = element('skyClouds').style.opacity;
+  for (let now = 100; now <= 10000; now += 100) c.animateLoop(now);
+  assert.notEqual(element('skyClouds').style.opacity, initialSky, 'the visible sky keeps cycling');
+  assert.equal(renders, 0);
+  assert.equal(roomUpdates, 0);
+  assert.equal(backgroundUpdates, 0, 'hidden room materials must not be dirtied');
+  advance(10000);
+  run('enterRoom()');
+  assert.equal(resumed, true);
+  assert.equal(renders, 1, 'entry applies the current sky lighting to the room immediately');
+  assert.equal(backgroundUpdates, 1);
+  c.animateLoop(10100);
+  assert.ok(roomUpdates > 0);
+  assert.ok(renders > 1);
+});
+
 test('automatic lighting updates at 10Hz while manual fades keep every animation frame', () => {
   const { context: c, run, advance } = controller();
   run('let lightUpdates = 0; applyThemeLighting = () => lightUpdates++; dayNightCycleStart = 0;');
@@ -993,7 +1229,7 @@ test('interrupting a theme fade captures the visible sky and continues without a
   const visible = {
     bg: element('app').style.background,
     color: element('skyClouds').style.color,
-    shadow: element('cloudDitherShadow').getAttribute('fill'),
+    shadow: element('cloudShadow').getAttribute('stop-color'),
     clouds: element('skyClouds').style.opacity,
     stars: element('skyStars').style.opacity
   };
@@ -1001,7 +1237,7 @@ test('interrupting a theme fade captures the visible sky and continues without a
   c.updateDayNightCycle(400);
   assert.equal(element('app').style.background, visible.bg);
   assert.equal(element('skyClouds').style.color, visible.color);
-  assert.equal(element('cloudDitherShadow').getAttribute('fill'), visible.shadow);
+  assert.equal(element('cloudShadow').getAttribute('stop-color'), visible.shadow);
   assert.equal(element('skyClouds').style.opacity, visible.clouds);
   assert.equal(element('skyStars').style.opacity, visible.stars);
   advance(900); c.updateDayNightCycle(900);
@@ -1027,21 +1263,18 @@ test('decorative motion follows page visibility, including an initially hidden p
   assert.ok(sky.classList.contains('is-paused'));
 });
 
-test('cloud dither shadows blend with each lighting phase', () => {
+test('cloud particle shadows blend with each lighting phase', () => {
   const { run, element } = controller();
   const fills = new Set();
   for (const [from, to] of [['night', 'day'], ['day', 'sunset'], ['sunset', 'night']]) {
     for (const blend of [0, 0.5, 1]) {
       run(`applyThemeLighting(THEMES.${from}, THEMES.${to}, ${blend});`);
-      const fill = element('cloudDitherShadow').getAttribute('fill');
+      const fill = element('cloudShadow').getAttribute('stop-color');
       assert.equal(fill, run(`THEMES.${from}.cloudShadowColor.clone().lerp(THEMES.${to}.cloudShadowColor, ${blend}).getStyle()`));
       fills.add(fill);
     }
   }
   assert.equal(fills.size, 6, 'three distinct shadow colors and their intermediate blends');
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  const pattern = html.match(/<pattern id="cloudDitherShadow"[\s\S]*?<\/pattern>/)[0];
-  assert.equal((pattern.match(/fill=/g) || []).length, 1, 'dots inherit the animated pattern fill');
 });
 
 

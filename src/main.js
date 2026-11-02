@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { gsap } from 'gsap';
 import { inject } from '@vercel/analytics';
 import { injectSpeedInsights } from '@vercel/speed-insights';
+import { setupCloudWake } from './cloud-wake.js';
 import { sound } from './audio.js';
 import { PORTFOLIO_DATA } from './data.js';
 import { waitForSceneReady } from './scene-ready.js';
@@ -14,14 +15,17 @@ import { createChairSwivel, createWallClock, createPlantInteraction } from './sc
 const appEl = document.getElementById('app');
 const canvas = document.getElementById('canvas3d');
 const skyAtmosphere = document.getElementById('skyAtmosphere');
+let rippleCloud;
 const skyClouds = document.getElementById('skyClouds');
-const cloudDitherShadow = document.getElementById('cloudDitherShadow');
+const cloudShadow = document.getElementById('cloudShadow');
 const skyStars = document.getElementById('skyStars');
 const loadingScreen = document.getElementById('loadingScreen');
 const loadingBackdrop = document.getElementById('loadingBackdrop');
 const loadingStatus = document.getElementById('loadingStatus');
 const loaderSpinner = document.getElementById('loaderSpinner');
-const loadingAboutBtn = document.getElementById('loadingAboutBtn');
+const loadingProjectsBtn = document.getElementById('loadingProjectsBtn');
+const enterRoomBtn = document.getElementById('enterRoomBtn');
+const enterRoomLabel = document.getElementById('enterRoomLabel');
 const retrySceneBtn = document.getElementById('retrySceneBtn');
 const hotspotContainer = document.getElementById('hotspotContainer');
 const hoverTooltip = document.getElementById('hoverTooltip');
@@ -43,6 +47,8 @@ let modalSectionTimeline = null;
 let reduceModalMotion = false;
 const modalBackgroundState = new Map();
 let zenReturnFocus = null;
+let introHatTimeline = null;
+let roomEntryTimeline = null;
 
 // Buttons
 const lofiBtn = document.getElementById('lofiBtn');
@@ -249,8 +255,10 @@ function activateHotspot(spot, trigger = null) {
 function initPage() {
   renderContent();
   setupEventListeners();
-  appEl.classList.add('ui-ready');
-  loadingAboutBtn.hidden = false;
+  setupIntroHatMotion();
+  rippleCloud = setupCloudWake(skyClouds, interactionMotionMedia);
+  loadingProjectsBtn.disabled = false;
+  enterRoomBtn.addEventListener('click', enterRoom);
   retrySceneBtn.addEventListener('click', () => window.location.reload());
   init();
 }
@@ -261,12 +269,116 @@ function setBaseInert(element, isInert) {
   else element.inert = isInert;
 }
 
+function syncIntroHatMotion() {
+  introHatTimeline?.paused(document.hidden || !!activeModal || !!appEl.dataset.roomEntered);
+}
+
+function setupIntroHatMotion() {
+  const hats = document.querySelectorAll('.intro-hat');
+  gsap.matchMedia().add('(prefers-reduced-motion: no-preference)', () => {
+    gsap.set(hats, { autoAlpha: 0, xPercent: -50 });
+    introHatTimeline = gsap.timeline({ repeat: -1, paused: true });
+    hats.forEach((hat, index) => {
+      const start = index * 1.5;
+      introHatTimeline
+        .fromTo(hat, { x: 32, autoAlpha: 0 }, {
+          x: 0, autoAlpha: 1, duration: 0.65, ease: 'power2.out', immediateRender: false
+        }, start)
+        .to(hat, { x: -32, autoAlpha: 0, duration: 0.65, ease: 'power2.in' }, start + 1.05);
+    });
+    syncIntroHatMotion();
+    return () => { introHatTimeline = null; };
+  });
+  document.addEventListener('visibilitychange', syncIntroHatMotion);
+}
+
+// The broad paper faces of Cube 73 lie in its local XZ plane. Keep the
+// visible face in stack coordinates so the marker and the paper share a target.
+function getNoteFace(stack) {
+  const note = stack?.getObjectByName('Cube 73');
+  if (!note?.geometry || !threeCamera) return null;
+  note.geometry.computeBoundingBox();
+  const box = note.geometry.boundingBox;
+  if (!box || box.isEmpty()) return null;
+  const center = box.getCenter(new THREE.Vector3());
+  const depth = y => note.localToWorld(center.clone().setY(y)).project(threeCamera).z;
+  const y = depth(box.max.y) < depth(box.min.y) ? box.max.y : box.min.y;
+  const inStack = (x, z) => stack.worldToLocal(note.localToWorld(new THREE.Vector3(x, y, z)));
+  return {
+    center: inStack(center.x, center.z),
+    corners: [inStack(box.min.x, box.min.z), inStack(box.max.x, box.min.z), inStack(box.min.x, box.max.z)]
+  };
+}
+
+function noteLandingTransform() {
+  const face = HOTSPOTS.find(spot => spot.id === 'about')?.noteFace;
+  if (!face || !sceneViewport || !threeCamera) return null;
+  const viewport = sceneViewport;
+  const [corner, across, down] = face.corners.map(local => {
+    const p = objects.stickyNotes.localToWorld(local.clone()).project(threeCamera);
+    if (![p.x, p.y, p.z].every(n => Number.isFinite(n) && Math.abs(n) <= 1)) return null;
+    return new THREE.Vector2(viewport.left + (1 + p.x) * viewport.width / 2,
+      viewport.top + (1 - p.y) * viewport.height / 2);
+  });
+  if (!corner || !across || !down) return null;
+  const card = loadingScreen.getBoundingClientRect();
+  if (!card.width || !card.height) return null;
+  const center = across.clone().lerp(down, 0.5);
+  across.sub(corner).divideScalar(card.width);
+  down.sub(corner).divideScalar(card.height);
+  if (Math.abs(across.cross(down)) < 1e-8) return null;
+  // Choose equivalent edge directions that keep the sheet upright during flight.
+  if (across.x < 0) across.negate();
+  if (across.cross(down) < 0) down.negate();
+  return `matrix(${across.x},${across.y},${down.x},${down.y},${center.x - card.left - card.width / 2},${center.y - card.top - card.height / 2})`;
+}
+
+function enterRoom() {
+  if (appEl.dataset.sceneState !== 'ready' || appEl.dataset.roomEntered || activeModal) return;
+  appEl.dataset.roomEntered = 'entering';
+  splineApp?.play();
+  appliedBackground = null;
+  lastCycleUpdate = -Infinity;
+  updateDayNightCycle(performance.now());
+  const landing = !interactionMotionMedia.matches && noteLandingTransform();
+  if (!landing) {
+    finishRoomEntry();
+    return;
+  }
+  setBaseInert(loadingScreen, true);
+  syncIntroHatMotion();
+  roomEntryTimeline = gsap.timeline({ onComplete: finishRoomEntry })
+    .to(enterRoomBtn, { y: 2, duration: 0.07 }, 0)
+    .to(loadingScreen.children, { opacity: 0, duration: 0.12 }, 0)
+    .to(canvas, { opacity: 1, duration: 0.5 }, 0.1)
+    .to(loadingScreen, { transform: landing, borderRadius: 0, boxShadow: '0 0 0 transparent',
+      duration: 0.5, ease: 'power2.inOut' }, 0.1)
+    .to(loadingScreen, { opacity: 0, duration: 0.65, ease: 'power2.in' }, 0.1)
+    .to(appEl, { '--entry-about': 1, duration: 0.12 }, 0.6)
+    .to(appEl, { '--entry-controls': 1, duration: 0.4, ease: 'power1.out' }, 0.67);
+}
+
+function finishRoomEntry() {
+  roomEntryTimeline = null;
+  appEl.dataset.roomEntered = 'true';
+  syncIntroHatMotion();
+  for (const element of [canvas, hotspotContainer, document.getElementById('sideNav'), document.querySelector('.top-nav-right'), document.querySelector('.bottom-dock')]) {
+    setBaseInert(element, false);
+  }
+  loadingBackdrop.classList.add('hidden');
+  loadingScreen.classList.add('hidden');
+  setBaseInert(loadingScreen, true);
+  document.querySelector('#sideNav [data-modal="projects"]').focus({ preventScroll: true });
+}
+
 // Initialize Spline independently of portfolio content and navigation.
 async function init() {
   loaderSpinner.hidden = false;
-  loadingStatus.textContent = 'Loading the interactive room. About and contact are available now.';
+  enterRoomLabel.textContent = 'Loading room…';
+  loadingStatus.textContent = 'Loading the interactive room. Projects are available now.';
   const slowLoadTimer = setTimeout(() => {
-    loadingStatus.textContent = 'The room is taking longer than usual. You can still browse About or contact me.';
+    loadingStatus.classList.add('visible');
+    loadingStatus.textContent = 'The room is taking longer than usual. You can still view projects.';
     retrySceneBtn.hidden = false;
   }, 12000);
   try {
@@ -294,17 +406,12 @@ async function init() {
     appEl.dataset.sceneState = 'preparing';
     await waitForSceneReady(splineApp);
     appEl.dataset.sceneState = 'ready';
-    for (const element of [canvas, hotspotContainer, document.querySelector('.top-nav-right'), document.querySelector('.bottom-dock')]) {
-      setBaseInert(element, false);
-    }
+    splineApp.stop();
     loadingStatus.textContent = 'The interactive room is ready.';
-    loadingBackdrop.classList.add('hidden');
-    loadingScreen.classList.add('hidden');
-    setBaseInert(loadingScreen, true);
-    // A loading-card opener disappears here; preserve keyboard access.
-    if (!activeModal && loadingScreen.contains(document.activeElement)) {
-      document.querySelector('#sideNav [data-modal="about"]').focus({ preventScroll: true });
-    }
+    loadingStatus.classList.remove('visible');
+    retrySceneBtn.hidden = true;
+    enterRoomLabel.textContent = 'Enter the studio';
+    enterRoomBtn.disabled = false;
 
     // Start render/update loop
     dayNightCycleStart = performance.now();
@@ -314,7 +421,9 @@ async function init() {
   } catch (err) {
     console.error('Failed to initialize Spline scene:', err);
     appEl.dataset.sceneState = 'error';
-    loadingStatus.textContent = 'The 3D room could not load. About and contact are still available, or you can try loading the room again.';
+    enterRoomLabel.textContent = 'Room unavailable';
+    loadingStatus.classList.add('visible');
+    loadingStatus.textContent = 'The room could not load. Projects are still available, or you can try loading the room again.';
     retrySceneBtn.hidden = false;
     threeScene = null;
     threeCamera = null;
@@ -332,6 +441,7 @@ function syncResponsiveCameraZoom() {
 
   const rect = canvas.getBoundingClientRect();
   if (rect.width <= 0 || rect.height <= 0) return;
+  roomEntryTimeline?.progress(1);
   sceneViewport = rect;
   hotspotsDirty = true;
   const dockRect = document.querySelector('.bottom-dock').getBoundingClientRect();
@@ -633,6 +743,7 @@ function setupHotspots() {
     spot.bubble = el.querySelector('.hotspot-bubble');
     spot.ring = el.querySelector('.hotspot-ring');
     const obj = objects[spot.objKey];
+    if (spot.id === 'about') spot.noteFace = getNoteFace(obj);
     const bounds = obj && spot.revealOffsetY === undefined && new THREE.Box3().setFromObject(obj);
     spot.bounds = [];
     if (bounds && !bounds.isEmpty()) {
@@ -761,7 +872,8 @@ function updateHotspots(projectPositions = true) {
     }
     spot.worldMatrix.copy(obj.matrixWorld);
     spot.layoutDirty = false;
-    obj.getWorldPosition(v);
+    if (spot.noteFace) obj.localToWorld(v.copy(spot.noteFace.center));
+    else obj.getWorldPosition(v);
     v.y += spot.offsetY ?? 40;
     v.project(threeCamera);
 
@@ -836,6 +948,7 @@ function animateLoop(now) {
   lastTime = now;
 
   updateDayNightCycle(now);
+  if (!appEl.dataset.roomEntered) return;
 
   // 1. Clock hands update
   updateClockHands();
@@ -1029,20 +1142,24 @@ function setTimeOfDay(value, { fade = false } = {}) {
 }
 
 function applyThemeLighting(from, to = from, blend = 0) {
+  const updateRoom = appEl.dataset.sceneState !== 'ready' || !!appEl.dataset.roomEntered;
   const background = cycleBackgroundColor.copy(from.bg).lerp(to.bg, blend).getStyle();
   if (background !== appliedBackground) {
     // Spline 2.0.60's Color4 keeps alpha zero; explicit sRGB also respects its color management.
-    const rgb = runtimeBackgroundColor.copy(cycleBackgroundColor).convertLinearToSRGB();
-    threeScene?.activePage.bgColor.setRGB(rgb.r, rgb.g, rgb.b, 'srgb');
+    if (updateRoom) {
+      const rgb = runtimeBackgroundColor.copy(cycleBackgroundColor).convertLinearToSRGB();
+      threeScene?.activePage.bgColor.setRGB(rgb.r, rgb.g, rgb.b, 'srgb');
+    }
     appEl.style.background = background;
     appliedBackground = background;
   }
   skyClouds.style.color = cycleCloudColor.copy(from.cloudColor).lerp(to.cloudColor, blend).getStyle();
-  cloudDitherShadow.setAttribute('fill', cycleCloudShadowColor.copy(from.cloudShadowColor).lerp(to.cloudShadowColor, blend).getStyle());
+  cloudShadow.setAttribute('stop-color', cycleCloudShadowColor.copy(from.cloudShadowColor).lerp(to.cloudShadowColor, blend).getStyle());
   cycleCloudOpacity = THREE.MathUtils.lerp(from.cloudOpacity, to.cloudOpacity, blend);
   cycleStarOpacity = THREE.MathUtils.lerp(from.starOpacity, to.starOpacity, blend);
   skyClouds.style.opacity = cycleCloudOpacity;
   skyStars.style.opacity = cycleStarOpacity;
+  if (!updateRoom) return;
   if (objects.sunLight) {
     objects.sunLight.color.copy(from.sunColor).lerp(to.sunColor, blend);
     objects.sunLight.intensity = THREE.MathUtils.lerp(from.sunIntensity, to.sunIntensity, blend);
@@ -1242,6 +1359,8 @@ function handlePointerUp(e) {
     const targetSpot = getInteractiveAtPointer(e);
     if (targetSpot) {
       activateHotspot(targetSpot);
+    } else {
+      rippleCloud?.(e);
     }
   }
   if (!activePointers.size) isDragging = false;
@@ -1302,6 +1421,7 @@ function openModal(modalName, trigger = null) {
   dockDropdowns.forEach(dropdown => setDockDropdownOpen(dropdown, false));
   sound.playPop(1.2);
   activeModal = targetModal;
+  syncIntroHatMotion();
   modalReturnFocus = returnTarget;
   modalReturnFallback = document.querySelector(`#sideNav [data-modal="${modalName === 'funProjects' ? 'projects' : modalName}"]`);
   // Disable the room and inactive dialogs without making the active dialog inert.
@@ -1356,6 +1476,7 @@ function closeAllModals({ restoreFocus = true, immediate = false } = {}) {
   activeModal.classList.remove('open');
   activeModal.inert = true;
   activeModal = null;
+  syncIntroHatMotion();
   for (const [element, wasInert] of modalBackgroundState) element.inert = wasInert;
   modalBackgroundState.clear();
   const canFocus = el => el?.isConnected && !el.closest('[inert]') && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
@@ -1461,8 +1582,6 @@ function renderContent() {
   const aboutContainer = document.getElementById('aboutContainer');
   const dev = PORTFOLIO_DATA.developer;
   document.getElementById('fallbackName').textContent = dev.name;
-  document.getElementById('fallbackEmailLink').href = `mailto:${dev.email}`;
-  document.getElementById('fallbackEmailAddress').textContent = dev.email;
   if (aboutContainer) {
     aboutContainer.innerHTML = `
       <div class="profile-card">
@@ -1540,7 +1659,13 @@ function setupSceneInput() {
 
 // DOM controls are available independently of the renderer.
 function setupEventListeners() {
-  const syncSkyMotion = () => skyAtmosphere.classList.toggle('is-paused', document.hidden);
+  const syncSkyMotion = () => {
+    skyAtmosphere.classList.toggle('is-paused', document.hidden);
+    if (document.hidden) roomEntryTimeline?.progress(1);
+  };
+  interactionMotionMedia.addEventListener('change', () => {
+    if (interactionMotionMedia.matches) roomEntryTimeline?.progress(1);
+  });
   document.addEventListener('visibilitychange', syncSkyMotion);
   syncSkyMotion();
   setupModalSectionMotion();
@@ -1691,7 +1816,7 @@ function setupEventListeners() {
       if (e.key === 'Tab') trapModalFocus(e);
       return;
     }
-    if (appEl.dataset.sceneState !== 'ready') return;
+    if (appEl.dataset.roomEntered !== 'true') return;
     const isEditing = e.target instanceof HTMLElement && (e.target.isContentEditable || e.target.closest('input, textarea, select'));
     if (isEditing || e.repeat || e.ctrlKey || e.metaKey || e.altKey || openDropdown) return;
     if (e.key === 'l' || e.key === 'L') {

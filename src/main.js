@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { gsap } from 'gsap';
+import { CustomEase } from 'gsap/CustomEase';
 import { inject } from '@vercel/analytics';
 import { injectSpeedInsights } from '@vercel/speed-insights';
 import { setupCloudWake } from './cloud-wake.js';
@@ -253,6 +254,8 @@ function activateHotspot(spot, trigger = null) {
 
 // The DOM portfolio is usable before renderer download, construction, or loading.
 function initPage() {
+  gsap.registerPlugin(CustomEase);
+  CustomEase.create('studioEntry', '0.22,0,0.36,1');
   renderContent();
   setupEventListeners();
   setupIntroHatMotion();
@@ -355,7 +358,7 @@ function enterRoom() {
       duration: 0.5, ease: 'power2.inOut' }, 0.1)
     .to(loadingScreen, { opacity: 0, duration: 0.65, ease: 'power2.in' }, 0.1)
     .to(appEl, { '--entry-about': 1, duration: 0.12 }, 0.6)
-    .to(appEl, { '--entry-controls': 1, duration: 0.4, ease: 'power1.out' }, 0.67);
+    .to(appEl, { '--entry-controls': 1, duration: 0.4, ease: 'studioEntry' }, 0.67);
 }
 
 function finishRoomEntry() {

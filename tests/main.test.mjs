@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createContext, runInContext } from 'node:vm';
 import * as THREE from 'three';
 import * as cycle from '../src/day-night-cycle.js';
@@ -1093,7 +1093,10 @@ test('both project grids show full descriptions, tags, and links without disclos
       assert.equal(article.split(project.description).length - 1, 1, 'description appears once');
       assert.ok(!article.includes(project.summary), 'short preview is not repeated');
       assert.ok(article.includes(`data-src="${project.image}"`));
-      assert.doesNotMatch(article, /\ssrc="/, 'closed dialogs must not start image downloads');
+      assert.doesNotMatch(article, /\ssrc="/, 'dialog markup keeps image requests deferred until opening');
+      assert.ok(article.includes(`loading="${index === 0 ? 'eager' : 'lazy'}"`));
+      assert.equal(article.includes('fetchpriority="high"'), index === 0, 'the first visible cover gets priority on opening');
+      assert.ok(article.includes('decoding="async"'));
       assert.ok(existsSync(new URL(`../public${project.image}`, import.meta.url)), 'the delivery thumbnail exists');
       assert.ok(article.includes(project.badge));
       for (const tag of project.tags) assert.ok(article.includes(`<span class="project-tag">${tag}</span>`));
@@ -1103,6 +1106,29 @@ test('both project grids show full descriptions, tags, and links without disclos
       }
     });
   }
+});
+
+test('optimized CAP, About, and Creative Playground images share low-priority preloads', () => {
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const preloads = [...html.matchAll(/<link\b(?=[^>]*\brel="preload")(?=[^>]*\bas="image")[^>]*>/g)];
+  const cap = PORTFOLIO_DATA.projects.find(project => project.id === 'cap');
+  const images = [cap.image, PORTFOLIO_DATA.developer.photo, ...PORTFOLIO_DATA.funProjects.map(project => project.image)];
+  assert.equal(preloads.length, images.length, 'preload only the requested sections');
+  for (const image of images) {
+    const preload = preloads.find(([tag]) => tag.includes(`href="${image}"`));
+    assert.ok(preload, `the preload and displayed image must reuse the same URL: ${image}`);
+    assert.match(preload[0], /fetchpriority="low"/);
+    assert.ok(preload[0].includes(`type="${image.endsWith('.svg') ? 'image/svg+xml' : 'image/webp'}"`));
+    assert.ok(html.indexOf(preload[0]) < html.indexOf('</head>'));
+  }
+  for (const [image, budget] of [[cap.image, 12], [PORTFOLIO_DATA.developer.photo, 100], [PORTFOLIO_DATA.funProjects[0].image, 50]]) {
+    assert.ok(statSync(new URL(`../public${image}`, import.meta.url)).size < budget * 1024, `${image} must stay below ${budget} KiB`);
+  }
+  const { context: c, element } = controller();
+  c.renderContent();
+  assert.ok(html.includes(`class="intro-photo" src="${PORTFOLIO_DATA.developer.photo}"`), 'the introduction reuses the About photo');
+  assert.ok(element('aboutContainer').innerHTML.includes(`data-src="${PORTFOLIO_DATA.developer.photo}"`));
+  assert.match(element('aboutContainer').innerHTML, /class="profile-photo"[^>]*loading="eager"[^>]*fetchpriority="high"/);
 });
 
 test('opening a dialog loads only its own deferred images, once', () => {

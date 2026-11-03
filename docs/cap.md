@@ -6,6 +6,8 @@ CAP is part of this portfolio repository. Its editable website files live in `pu
 
 Run `npm run dev` from the portfolio root and open `/projects/cap/index.html`. Edit the HTML, CSS, JavaScript, or assets in `public/projects/cap/`, then refresh the case study. The portfolio card’s title, description, and tags live in `src/data.js`.
 
+The portfolio card uses `assets/cover-thumb.webp` (800 × 450, 8,356 bytes), a centered 16:9 crop of `assets/p19-1.webp` encoded with Pillow WebP quality 75 and method 6. The original 800 × 533 photo remains in the case study and journal. `index.html` preloads this thumbnail at low priority; keep its URL synchronized with the CAP card in `src/data.js`. See `docs/image-loading.md` for the other preloaded images.
+
 Run `node --test tests/cap*.test.mjs` for CAP’s simulation, local-link, and CAD inspection-layout checks. These checks resolve files relative to the test, so they do not depend on the current working directory.
 
 Run `npm run build` to include the latest case study in the portfolio’s generated `dist/projects/cap/`. Deploy the complete portfolio `dist/` directory. With Git-connected hosting, commit and push the source changes to trigger the configured build and deployment.

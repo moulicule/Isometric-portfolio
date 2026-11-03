@@ -22,6 +22,10 @@
   <meta name="twitter:image" content="https://mouliks.studio/images/social-preview.jpg">
   <meta name="twitter:image:alt" content="Moulik Nanda's design portfolio: a warm isometric 3D room with a desk, chair, plant and bed.">
   <link rel="stylesheet" href="./src/style.css">
+  <link rel="preload" as="image" href="/projects/cap/assets/cover-thumb.webp" type="image/webp" fetchpriority="low">
+  <link rel="preload" as="image" href="/images/moulik-nanda.webp" type="image/webp" fetchpriority="low">
+  <link rel="preload" as="image" href="/projects/timescape/exhibition-thumb.webp" type="image/webp" fetchpriority="low">
+  <link rel="preload" as="image" href="/projects/film-motion/cover.svg" type="image/svg+xml" fetchpriority="low">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
 </head>
 <body>
@@ -287,7 +291,7 @@
     <!-- The introduction remains readable without JavaScript or 3D. -->
     <div class="loading-backdrop" id="loadingBackdrop" aria-hidden="true" inert></div>
     <section class="loading-screen" id="loadingScreen" aria-labelledby="fallbackName" tabindex="0">
-      <img class="intro-photo" src="/images/moulik-nanda.jpg" alt="Moulik Nanda sitting cross-legged with two laptops" width="1600" height="1200" decoding="async">
+      <img class="intro-photo" src="/images/moulik-nanda.webp" alt="Moulik Nanda sitting cross-legged with two laptops" width="1200" height="900" decoding="async">
       <h1 class="loader-title" id="fallbackName">Moulik Nanda</h1>
       <p class="fallback-description">Welcome to my studio! I’m a designer with many <span class="intro-hats">hats<span class="intro-hat-strip" aria-hidden="true">
         <span class="intro-hat"><svg class="ui-icon" viewBox="0 0 24 24" focusable="false"><use href="/ui-icons.svg#hat-top"/></svg></span>

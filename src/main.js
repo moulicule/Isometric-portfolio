@@ -1534,9 +1534,9 @@ function renderContent() {
   for (const [gridId, projects] of [['projectsGrid', PORTFOLIO_DATA.projects], ['funProjectsGrid', PORTFOLIO_DATA.funProjects]]) {
     const projectsGrid = document.getElementById(gridId);
     if (projectsGrid) {
-      projectsGrid.innerHTML = projects.map(p => `
+      projectsGrid.innerHTML = projects.map((p, index) => `
         <article class="project-card" aria-labelledby="project-${p.id}">
-          <img class="project-image" data-src="${p.image}" alt="${p.imageAlt}" loading="lazy">
+          <img class="project-image" data-src="${p.image}" alt="${p.imageAlt}" loading="${index === 0 ? 'eager' : 'lazy'}" decoding="async"${index === 0 ? ' fetchpriority="high"' : ''}>
           <div class="project-card-header">
             <div>
               <h3 class="project-name" id="project-${p.id}">${p.title}</h3>
@@ -1596,7 +1596,7 @@ function renderContent() {
         </div>
 
         <div class="profile-photo-frame">
-          <img class="profile-photo" data-src="${dev.photo}" alt="${dev.photoAlt}" width="1600" height="1200" decoding="async">
+          <img class="profile-photo" data-src="${dev.photo}" alt="${dev.photoAlt}" width="1200" height="900" loading="eager" decoding="async" fetchpriority="high">
         </div>
 
         <p class="profile-bio">${dev.bio}</p>

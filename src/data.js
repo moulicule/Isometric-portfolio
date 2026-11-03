@@ -5,7 +5,7 @@ export const PORTFOLIO_DATA = {
     name: "Moulik Nanda",
     title: "M.A. Experience Design @Srishti Manipal Institute of Art, Design and Technology",
     bio: "I am a multidisciplinary designer driven by storytelling, tinkering and iterating. I have hands on experience in design research, UI/UX, design systems, web, 3D/CAD, motion graphics and film. I remain fluid across mediums, and care far more about solving the right problem, rather than the tools it takes to get there.",
-    photo: "/images/moulik-nanda.jpg",
+    photo: "/images/moulik-nanda.webp",
     photoAlt: "Moulik Nanda sitting cross-legged with two laptops",
     location: "Bangalore, India",
     email: "mouliknanda@gmail.com",
@@ -22,7 +22,7 @@ export const PORTFOLIO_DATA = {
       badge: "Master’s Project",
       category: "End-to-end product development",
       description: "CAP is my wearable privacy project; Cappy is the expressive companion who lives on its screen. Together, they explore recording and consent through animated eyes and haptic alerts. Follow my design process, explore the hardware in 3D, and try Cappy’s reactions in an interactive browser simulation.",
-      image: "/projects/cap/assets/p19-1.webp",
+      image: "/projects/cap/assets/cover-thumb.webp",
       imageAlt: "My orange CAP 2.0 prototype on a shelf, with Cappy’s bright white eyes on its screen",
       tags: ["Product Design", "Interaction Design", "Critical Making", "Wearable Design", "ESP32", "Prototyping", "CAD"],
       links: [

@@ -33,6 +33,7 @@ An interactive, real-time 3D isometric room portfolio webpage powered by **Splin
 ### ⌨️ Keyboard Shortcuts
 - `L`: Toggle Bedside Lamp ON / OFF
 - `C`: Swivel Office Chair
+- `F`: Toggle Fullscreen (where supported)
 - `1`: Switch to Day Mode
 - `2`: Switch to Sunset Mode
 - `3`: Switch to Night Mode

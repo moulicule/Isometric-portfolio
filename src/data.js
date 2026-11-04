@@ -106,6 +106,20 @@ export const PORTFOLIO_DATA = {
         { label: "Video portfolio", url: "https://drive.google.com/drive/folders/1qoEE_AjW4LM1DI3Lty8lldMrqGmoOaJA" },
         { label: "Watch Sunbird in the Garden", url: "https://drive.google.com/file/d/1iDBPJtSaNEq1VJtFWDFnEhzARwvIaR8o/view" }
       ]
+    },
+    {
+      id: "this-portfolio",
+      summary: "My portfolio as a playful 3D room, bringing together interaction design, creative coding, and plenty of iteration.",
+      title: "This Portfolio",
+      badge: "Personal Project",
+      category: "3D Web design",
+      description: "The room you’re in is a project too. I spent weeks building my portfolio as a small, interactive studio where everyday objects lead to my work. Spin the chair, water the plant, change the lighting, disturb the clouds, or settle into some lofi. Built with Spline and JavaScript, it brings together 3D, motion, and sound, with plenty of time spent refining the small details, from camera movement and loading to every single touch interaction.",
+      image: "/projects/this-portfolio/cover.webp",
+      imageAlt: "Moulik Nanda’s portfolio preview beside the interactive isometric studio, with plum walls, a desk, plant, chair, and glowing bedside lamp",
+      tags: ["Interaction Design", "Spline", "JavaScript", "Three.js", "UX Design", "Web Audio"],
+      links: [
+        { label: "Visit portfolio", action: "close" }
+      ]
     }
   ],
   skills: [

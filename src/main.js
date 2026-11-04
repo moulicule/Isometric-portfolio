@@ -58,7 +58,6 @@ const toggleLampBtn = document.getElementById('toggleLampBtn');
 const spinChairBtn = document.getElementById('spinChairBtn');
 const waterPlantBtn = document.getElementById('waterPlantBtn');
 const togglePinsBtn = document.getElementById('togglePinsBtn');
-const fullscreenBtn = document.getElementById('fullscreenBtn');
 const exitZenBtn = document.getElementById('exitZenBtn');
 const lightingSlider = document.getElementById('lightingSlider');
 const lightingThumb = document.getElementById('lightingThumb');
@@ -1549,7 +1548,11 @@ function renderContent() {
             ${p.tags.map(t => `<span class="project-tag">${t}</span>`).join('')}
           </div>
           <div class="project-links">
-            ${p.links.map((link, index) => `
+            ${p.links.map((link, index) => link.action === 'close' ? `
+              <button type="button" data-close class="${index === 0 ? 'btn-primary' : 'btn-secondary'}">
+                <span>${link.label}</span>
+              </button>
+            ` : `
               <a href="${link.url}" target="_blank" rel="noopener" class="${index === 0 ? 'btn-primary' : 'btn-secondary'}" aria-label="${link.label} (opens in a new tab)">
                 <span>${link.label}</span>
                 <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><use href="/ui-icons.svg#arrow-up-right"/></svg>
@@ -1658,6 +1661,24 @@ function setupSceneInput() {
     const atMinimumZoom = zoomBeforeWheel !== null && zoomBeforeWheel <= ZOOM_BOUNDS.min + 0.001;
     if (e.deltaY > 0 && atMinimumZoom) startZoomLimitBounce();
   }, { passive: true });
+}
+
+async function toggleFullscreen() {
+  const root = document.documentElement;
+  const requestFullscreen = root.requestFullscreen || root.webkitRequestFullscreen;
+  const exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+  // Some mobile browsers only support fullscreen for video.
+  if (!(document.fullscreenEnabled || document.webkitFullscreenEnabled)
+    || !requestFullscreen || !exitFullscreen) return;
+  try {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      await exitFullscreen.call(document);
+    } else {
+      await requestFullscreen.call(root);
+    }
+  } catch (error) {
+    console.warn('Fullscreen request failed:', error);
+  }
 }
 
 // DOM controls are available independently of the renderer.
@@ -1786,20 +1807,6 @@ function setupEventListeners() {
     sound.playPop();
   });
 
-  fullscreenBtn.addEventListener('click', () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
-    }
-  });
-
-  document.addEventListener('fullscreenchange', () => {
-    fullscreenBtn.querySelector('use').setAttribute('href', `/ui-icons.svg#${document.fullscreenElement ? 'minimize' : 'maximize'}`);
-    fullscreenBtn.classList.toggle('active', !!document.fullscreenElement);
-    fullscreenBtn.setAttribute('aria-pressed', String(!!document.fullscreenElement));
-  });
-
   exitZenBtn.addEventListener('click', () => toggleZenMode(false));
   zenOverlay.addEventListener('click', (e) => {
     if (e.target === zenOverlay) toggleZenMode(false);
@@ -1826,6 +1833,9 @@ function setupEventListeners() {
       toggleLamp();
     } else if (e.key === 'c' || e.key === 'C') {
       spinChair();
+    } else if (e.key === 'f' || e.key === 'F') {
+      e.preventDefault();
+      return toggleFullscreen();
     } else if (e.key === '1') {
       setTheme('day');
     } else if (e.key === '2') {

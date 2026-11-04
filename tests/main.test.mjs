@@ -64,6 +64,7 @@ function controller({ menus = false } = {}) {
       addEventListener(name, listener) { windowListeners[name] = listener; } },
     document: {
       hidden: false,
+      documentElement: element('root'),
       addEventListener(name, listener) { (documentListeners[name] ||= []).push(listener); },
       createElement: () => element('created'),
       getElementById: element,
@@ -89,6 +90,108 @@ function controller({ menus = false } = {}) {
 
 const pointer = (pointerId = 1, extra = {}) => ({
   pointerId, isPrimary: pointerId === 1, button: 0, clientX: 100, clientY: 100, ...extra
+});
+
+test('fullscreen shortcut does nothing when unavailable or denied by document policy', async () => {
+  assert.doesNotMatch(readFileSync(new URL('../index.html', import.meta.url), 'utf8'), /fullscreenBtn/);
+  for (const methodsPresent of [false, true]) {
+    const { context, run, windowListeners } = controller();
+    context.HTMLElement = class {};
+    context.document.fullscreenEnabled = false;
+    if (methodsPresent) {
+      context.document.documentElement.requestFullscreen = () => assert.fail('fullscreen is disabled');
+      context.document.exitFullscreen = () => {};
+    }
+    run('setupModalSectionMotion = () => {}; setupEventListeners();');
+    await windowListeners.keydown({ key: 'f', preventDefault() {} });
+  }
+});
+
+test('F toggles standard and legacy WebKit fullscreen using the browser current state', async () => {
+  for (const legacy of [false, true]) {
+    const { context, run, windowListeners } = controller();
+    context.HTMLElement = class {};
+    const doc = context.document, root = doc.documentElement;
+    const enabled = legacy ? 'webkitFullscreenEnabled' : 'fullscreenEnabled';
+    const current = legacy ? 'webkitFullscreenElement' : 'fullscreenElement';
+    const request = legacy ? 'webkitRequestFullscreen' : 'requestFullscreen';
+    const exit = legacy ? 'webkitExitFullscreen' : 'exitFullscreen';
+    let requests = 0, exits = 0, prevented = 0;
+    doc[enabled] = true;
+    root[request] = function () {
+      assert.equal(this, root);
+      requests++;
+      doc[current] = root;
+      return legacy ? undefined : Promise.resolve();
+    };
+    doc[exit] = function () {
+      assert.equal(this, doc);
+      exits++;
+      doc[current] = null;
+      return legacy ? undefined : Promise.resolve();
+    };
+    run('setupModalSectionMotion = () => {}; setupEventListeners();');
+    const press = key => windowListeners.keydown({ key, preventDefault() { prevented++; } });
+    await press('f');
+    assert.equal(requests, 1);
+    await press('F');
+    assert.equal(exits, 1);
+    await press('f');
+    doc[current] = null; // Escape or a browser control exits fullscreen.
+    await press('f');
+    assert.equal(requests, 3);
+    assert.equal(exits, 1);
+    assert.equal(prevented, 4);
+  }
+});
+
+test('fullscreen catches synchronous errors and rejected requests', async () => {
+  for (const asynchronous of [false, true]) {
+    const { context, run, windowListeners, warnings } = controller();
+    context.HTMLElement = class {};
+    context.document.fullscreenEnabled = true;
+    context.document.documentElement.requestFullscreen = () => {
+      const error = new Error('Fullscreen denied');
+      if (asynchronous) return Promise.reject(error);
+      throw error;
+    };
+    context.document.exitFullscreen = () => {};
+    run('setupModalSectionMotion = () => {}; setupEventListeners();');
+    await windowListeners.keydown({ key: 'f', preventDefault() {} });
+    assert.deepEqual(warnings, ['Fullscreen request failed:']);
+  }
+});
+
+test('fullscreen shortcut respects room entry, editing, dialogs, menus, and keyboard guards', async () => {
+  const { context, run, element, windowListeners } = controller({ menus: true });
+  context.HTMLElement = class {};
+  let requests = 0;
+  context.document.fullscreenEnabled = true;
+  context.document.documentElement.requestFullscreen = () => { requests++; };
+  context.document.exitFullscreen = () => {};
+  run('setupModalSectionMotion = () => {}; setupEventListeners();');
+  const press = extra => windowListeners.keydown({ key: 'f', preventDefault() {}, ...extra });
+  for (const guard of ['defaultPrevented', 'isComposing', 'repeat', 'ctrlKey', 'metaKey', 'altKey']) {
+    await press({ [guard]: true });
+  }
+  const editable = new context.HTMLElement();
+  editable.closest = () => true;
+  await press({ target: editable });
+  editable.closest = () => null;
+  editable.isContentEditable = true;
+  await press({ target: editable });
+  element('app').dataset.roomEntered = 'entering';
+  await press();
+  element('app').dataset.roomEntered = 'true';
+  run('activeModal = projectsModal');
+  await press();
+  run('activeModal = null');
+  element('cameraDropdown').classList.add('open');
+  await press();
+  assert.equal(requests, 0);
+  element('cameraDropdown').classList.remove('open');
+  await press();
+  assert.equal(requests, 1);
 });
 
 test('intro hats animate only with motion enabled and pause whenever the intro is hidden', () => {
@@ -1101,7 +1204,12 @@ test('both project grids show full descriptions, tags, and links without disclos
       assert.ok(article.includes(project.badge));
       for (const tag of project.tags) assert.ok(article.includes(`<span class="project-tag">${tag}</span>`));
       for (const link of project.links) {
-        assert.ok(article.includes(`href="${link.url}"`), 'original link is preserved');
+        if (link.action === 'close') {
+          assert.match(article, /<button type="button" data-close class="btn-primary">/);
+          assert.doesNotMatch(article, /target="_blank"|opens in a new tab|arrow-up-right/);
+        } else {
+          assert.ok(article.includes(`href="${link.url}"`), 'original link is preserved');
+        }
         assert.ok(article.includes(`<span>${link.label}</span>`));
       }
     });
@@ -1121,7 +1229,7 @@ test('optimized CAP, About, and Creative Playground images share low-priority pr
     assert.ok(preload[0].includes(`type="${image.endsWith('.svg') ? 'image/svg+xml' : 'image/webp'}"`));
     assert.ok(html.indexOf(preload[0]) < html.indexOf('</head>'));
   }
-  for (const [image, budget] of [[cap.image, 12], [PORTFOLIO_DATA.developer.photo, 100], [PORTFOLIO_DATA.funProjects[0].image, 50]]) {
+  for (const [image, budget] of [[cap.image, 12], [PORTFOLIO_DATA.developer.photo, 100], [PORTFOLIO_DATA.funProjects.find(project => project.id === 'timescape').image, 50], [PORTFOLIO_DATA.funProjects.find(project => project.id === 'this-portfolio').image, 20]]) {
     assert.ok(statSync(new URL(`../public${image}`, import.meta.url)).size < budget * 1024, `${image} must stay below ${budget} KiB`);
   }
   const { context: c, element } = controller();

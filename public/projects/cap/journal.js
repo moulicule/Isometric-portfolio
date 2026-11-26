@@ -84,45 +84,6 @@ function scheduleReadingUpdate() {
   requestAnimationFrame(updateReadingState);
 }
 
-function setupPdfButton() {
-  const button = document.querySelector('.journal-summary .button.outline');
-  if (!gsap || !button) return;
-
-  const style = getComputedStyle(button);
-  const ink = style.getPropertyValue('--ink').trim();
-  const paper = style.getPropertyValue('--paper').trim();
-  const inversion = gsap.fromTo(
-    button,
-    { backgroundColor: paper, color: ink },
-    { backgroundColor: ink, color: 'white', duration: 0.2, ease: 'power2.out', paused: true },
-  );
-  let hovered = false;
-
-  function updateInversion() {
-    const active = hovered || button.matches(':focus-visible');
-    if (reducedMotion.matches) {
-      inversion.pause().progress(Number(active));
-    } else if (active) {
-      inversion.play();
-    } else {
-      inversion.reverse();
-    }
-  }
-
-  button.addEventListener('pointerenter', event => {
-    if (event.pointerType === 'touch') return;
-    hovered = true;
-    updateInversion();
-  });
-  button.addEventListener('pointerleave', () => {
-    hovered = false;
-    updateInversion();
-  });
-  button.addEventListener('focus', updateInversion);
-  button.addEventListener('blur', updateInversion);
-  reducedMotion.addEventListener('change', updateInversion);
-}
-
 addEventListener('scroll', scheduleReadingUpdate, { passive: true });
 addEventListener('resize', scheduleReadingUpdate);
 addEventListener('pageshow', scheduleReadingUpdate);
@@ -138,6 +99,5 @@ if (chapterNav) {
     navWidth = undefined;
     scheduleReadingUpdate();
   });
-  setupPdfButton();
 }
 scheduleReadingUpdate();

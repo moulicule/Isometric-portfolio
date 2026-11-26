@@ -95,9 +95,7 @@ function frame(now){requestAnimationFrame(frame);if(document.hidden||now-lastSte
  if(visible)paint(emotion,now,reduced,gaze);
 }paint('happy');requestAnimationFrame(frame);
 const info={all:'Complete CAP 2.0 assembly—3D-printed squircle shell, round TFT screen, ESP32-S3-Zero, sensors, and battery.',shell:'My snap-fit, two-piece printed shell supports the screen and leaves room for the on/off switch and USB-C port.',display:'Cappy lives on CAP’s 1.28-inch GC9A01 TFT screen: 240 × 240 pixels, with his eyes animated at around 30fps using LovyanGFX.',brain:'The ESP32-S3-Zero scans BLE advertisements with NimBLE and turns smoothed signal strength into Cappy’s reactions.',touch:'The ADXL345 listens for a double-knock. A MOSFET-driven motor gives alerts you can feel without checking the screen.',power:'A 3.7V LiPo battery and TP4056 USB-C charging circuit power CAP, with a physical on/off switch.'};
-let hero,bench,manualView=null,activePart='shell';
-$('#hero-zoom-out').addEventListener('click',()=>hero?.zoom(.6));
-$('#hero-zoom-in').addEventListener('click',()=>hero?.zoom(-.6));
+let bench,manualView=null,activePart='shell';
 function describePart(part){
  const element=$('#part-info'),text=info[part];
  if(window.gsap)gsap.killTweensOf(element);
@@ -132,11 +130,10 @@ let sceneModule;
 function fail(host,error){console.error('CAP model unavailable:',error);host.classList.add('failed');host.setAttribute('aria-busy','false');host.querySelector('.model-loading p').textContent='3D view unavailable. Here’s my project photo instead.';}
 async function loadViewer(host){
  try{
-  const {makeScene}=await(sceneModule??=import('./scene.js?v=4'));
+  const {makeScene}=await(sceneModule??=import('./scene.js?v=5'));
   const isHero=host.id==='hero-viewer';
   const scene=await makeScene(host,{hero:isHero});
-  if(isHero){hero=scene;$('#hero-zoom-out').disabled=false;$('#hero-zoom-in').disabled=false;}
-  else{bench=scene;$('#explode').disabled=false;setBench();}
+  if(!isHero){bench=scene;$('#explode').disabled=false;setBench();}
  }catch(error){fail(host,error);}
 }
 const pendingViewers=new Set([$('#hero-viewer'),$('#bench-viewer')]);

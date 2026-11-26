@@ -32,7 +32,8 @@ function viewers({ reject = false } = {}) {
     if (!elements.has(selector)) elements.set(selector, {
       id: selector.slice(1), disabled: true,
       classList: { add: value => failures.push(value) },
-      setAttribute() {}, querySelector: () => ({ textContent: '' })
+      setAttribute(name, value) { this[name] = value; },
+      querySelector: () => ({ textContent: '' })
     });
     return elements.get(selector);
   };
@@ -54,7 +55,7 @@ function viewers({ reject = false } = {}) {
   });
   const source = appSource.slice(appSource.indexOf('let sceneModule;'), appSource.indexOf('if(window.gsap&&window.ScrollTrigger)'))
     .replace(/import\('\.\/scene\.js\?v=\d+'\)/, 'loadScene()');
-  runInContext('let hero, bench, synchronizations = 0; function setBench() { synchronizations++; }\n' + source, context);
+  runInContext('let bench, synchronizations = 0; function setBench() { synchronizations++; }\n' + source, context);
   return { element, calls, failures, observed, context, margin,
     get imports() { return imports; },
     async intersect(selector, isIntersecting = true, copies = 1) {
@@ -76,7 +77,7 @@ test('CAP defers each viewer until near the viewport and imports the scene only 
   assert.equal(v.imports, 1);
   assert.equal(v.calls.length, 1);
   assert.equal(v.calls[0].options.hero, true);
-  assert.equal(v.element('#hero-zoom-in').disabled, false);
+  assert.equal(v.calls[0].host, v.element('#hero-viewer'));
   assert.equal(v.element('#explode').disabled, true);
   await v.intersect('#hero-viewer');
   assert.equal(v.calls.length, 1, 'an initialized viewer must not be recreated');
@@ -88,11 +89,11 @@ test('CAP defers each viewer until near the viewport and imports the scene only 
   assert.equal(runInContext('synchronizations', v.context), 1, 'late initialization must apply the current chapter');
 });
 
-test('a failed CAP viewer retains its photo fallback and disabled controls', async () => {
+test('a failed CAP viewer shows its photo fallback and clears its loading state', async () => {
   const v = viewers({ reject: true });
   await v.intersect('#hero-viewer');
   assert.deepEqual(v.failures, ['failed']);
-  assert.equal(v.element('#hero-zoom-in').disabled, true);
+  assert.equal(v.element('#hero-viewer')['aria-busy'], 'false');
   assert.equal(v.element('#explode').disabled, true);
   assert.equal(v.calls.length, 1);
 });

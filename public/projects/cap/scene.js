@@ -15,9 +15,16 @@ export async function makeScene(host,{hero=false}={}) {
   const home=hero?new THREE.Vector3(3.2,2.1,7.1):new THREE.Vector3(3.7,2.7,8.7);camera.position.copy(home);
   scene.add(new THREE.HemisphereLight(0xffffff,0xb7b2a8,2));
   for(const [color,intensity,pos] of [[0xffffff,3,[3,5,6]],[0xffffff,.6,[-4,1,2]],[0xffab70,.4,[-2,-3,-3]]]){const light=new THREE.DirectionalLight(color,intensity);light.position.set(...pos);scene.add(light);}
-  const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=!reduced;controls.enableZoom=false;controls.enablePan=false;controls.minDistance=4;controls.maxDistance=hero?15:40;controls.autoRotate=false;controls.autoRotateSpeed=.35;
-  // Wheel stays with the story. Buttons and keyboard controls handle zoom.
-  renderer.domElement.style.touchAction='pan-y';
+  const canvas=renderer.domElement;
+  const controls=new OrbitControls(camera,canvas);controls.enableDamping=!reduced;controls.enableZoom=hero;controls.enablePan=false;controls.minDistance=4;controls.maxDistance=hero?15:40;controls.autoRotate=false;controls.autoRotateSpeed=.35;
+  canvas.style.touchAction='pan-y';
+  if(hero){
+    controls.mouseButtons.MIDDLE=null;
+    // Trackpad pinches arrive as Ctrl-wheel events. Leave ordinary scrolling to the browser.
+    canvas.addEventListener('wheel',event=>{
+      if(!event.ctrlKey)event.stopImmediatePropagation();
+    },{capture:true,passive:true});
+  }
   const presentation=new THREE.Group();presentation.rotation.z=-Math.PI/2+(hero?-.08:0);scene.add(presentation);
   const assembly=new THREE.Group();assembly.rotation.x=Math.PI/2;assembly.scale.setScalar(45);presentation.add(assembly);
   const source=gltf.scene.clone(true);source.updateMatrixWorld(true);
@@ -57,7 +64,18 @@ export async function makeScene(host,{hero=false}={}) {
     const view=amount?inspectionView(parts,kind,camera.aspect,camera.fov):{position:home,target:new THREE.Vector3()};
     moveVector(camera.position,view.position);moveVector(controls.target,view.target);
   }
-  function resize(){const w=host.clientWidth,h=host.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(!hero&&exploded)moveCamera(selection,exploded);invalidate();}new ResizeObserver(resize).observe(host);resize();
+  function resize(){
+    const width=host.clientWidth,height=host.clientHeight;
+    if(!width||!height)return;
+    renderer.setSize(width,height,false);
+    camera.aspect=width/height;
+    // Keep the hero enclosure inside the frame when the panel is tall and narrow.
+    if(hero)camera.zoom=Math.min(1,camera.aspect/.7);
+    camera.updateProjectionMatrix();
+    if(!hero&&exploded)moveCamera(selection,exploded);
+    invalidate();
+  }
+  new ResizeObserver(resize).observe(host);resize();
   function focus(kind='all',amount=kind==='all'?0:1){
     const wasExploded=exploded;selection=kind;exploded=amount;
     if(!hero&&(amount||wasExploded))moveCamera(kind,amount);
@@ -89,5 +107,5 @@ export async function makeScene(host,{hero=false}={}) {
     dirty=false;renderer.render(scene,camera);
   }
   renderer.setAnimationLoop(frame);
-  controls.update();renderer.render(scene,camera);dirty=false;host.classList.add('ready');host.setAttribute('aria-busy','false');host.dataset.modelLoaded='true';return {focus,reset,zoom,get exploded(){return exploded},get selection(){return selection}};
+  controls.update();renderer.render(scene,camera);dirty=false;host.classList.add('ready');host.setAttribute('aria-busy','false');host.dataset.modelLoaded='true';return {focus,reset,get exploded(){return exploded},get selection(){return selection}};
 }

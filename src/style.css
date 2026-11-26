@@ -1325,8 +1325,7 @@ body, html {
   gap: 12px;
 }
 .contact-section .skill-category-title { margin-bottom: 0; }
-.contact-description, .contact-address { color: #505643; font-size: 0.875rem; line-height: 1.5; }
-.contact-address { overflow-wrap: anywhere; user-select: text; }
+.contact-address { color: #505643; font-size: 0.875rem; line-height: 1.5; overflow-wrap: anywhere; user-select: text; }
 .contact-email-link { flex: none; }
 .contact-email-link:focus-visible, .social-pill:focus-visible {
   outline: 2px solid var(--accent-ink);

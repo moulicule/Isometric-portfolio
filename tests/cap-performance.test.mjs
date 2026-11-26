@@ -6,6 +6,24 @@ import { createContext, runInContext } from 'node:vm';
 const appSource = readFileSync(new URL('../public/projects/cap/app.js', import.meta.url), 'utf8');
 const sceneSource = readFileSync(new URL('../public/projects/cap/scene.js', import.meta.url), 'utf8');
 
+test('CAP updates reading progress on the case study without a chapter bar', () => {
+  const source = readFileSync(new URL('../public/projects/cap/journal.js', import.meta.url), 'utf8');
+  const progress = { style: {} };
+  let frame;
+  runInContext(source, createContext({
+    document: {
+      documentElement: { scrollHeight: 2400 },
+      querySelector: selector => selector === '#reading-progress' ? progress : null,
+    },
+    innerHeight: 800,
+    scrollY: 400,
+    addEventListener() {},
+    requestAnimationFrame(callback) { frame = callback; },
+  }));
+  frame();
+  assert.equal(progress.style.width, '25%');
+});
+
 function viewers({ reject = false } = {}) {
   const elements = new Map();
   const calls = [], observed = new Set(), failures = [];
